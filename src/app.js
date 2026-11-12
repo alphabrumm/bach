@@ -220,6 +220,16 @@ function posToTick(x, y) {
   return pts[pts.length - 1].t;
 }
 
+// Schlichte SVG-Symbole statt Emoji (iOS zeigt ${IC.play}& Co. sonst als bunte Emoji)
+const IC = {
+  play: '<svg class="ic" viewBox="0 0 20 20"><path d="M5 3.2v13.6c0 .6.7 1 1.2.7l10.6-6.8c.5-.3.5-1 0-1.3L6.2 2.5C5.7 2.2 5 2.6 5 3.2z"/></svg>',
+  loop: '<svg class="ic" viewBox="0 0 20 20"><path d="M10 3a7 7 0 0 1 6.6 4.7l1.6-.9-.7 4.3-3.9-1.8 1.4-.8A5 5 0 0 0 5.2 8.6L3.3 8A7 7 0 0 1 10 3zm-6.6 9.3 3.9 1.8-1.4.8a5 5 0 0 0 9-1.6l1.9.6A7 7 0 0 1 3.4 13.3l-1.6.9.6-4.3z"/></svg>',
+  stop: '<svg class="ic" viewBox="0 0 20 20"><rect x="4.5" y="4.5" width="11" height="11" rx="1.5"/></svg>',
+  timer: '<svg class="ic" viewBox="0 0 20 20"><path d="M8 1.5h4v1.8H8zM10 4.5a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm0 1.9a5.1 5.1 0 1 0 0 10.2 5.1 5.1 0 0 0 0-10.2zm-.9 1.6h1.8v3.7l2.5 1.5-.9 1.5-3.4-2z"/></svg>',
+  note: '<svg class="ic" viewBox="0 0 20 20"><path d="M8.5 2.5h1.8c.4 2.2 2.2 3.2 3.8 4.4 1.4 1 2 2.6 1.6 4.2-.2-1.4-1.3-2.7-3.1-3.2l-2.3-.6v7.2c0 1.9-1.8 3.2-3.8 3.2-1.4 0-2.5-.8-2.5-2 0-1.7 1.9-3.1 4-3.1.2 0 .4 0 .5.1z"/></svg>',
+  warn: '<svg class="ic" viewBox="0 0 20 20"><path d="M10 2.2c.4 0 .8.2 1 .6l7.3 12.8c.4.8-.1 1.7-1 1.7H2.7c-.9 0-1.4-.9-1-1.7L9 2.8c.2-.4.6-.6 1-.6zm-.9 5v4.6h1.8V7.2zm0 6.2v1.8h1.8v-1.8z"/></svg>',
+};
+
 // ---------- Cursor & Auswahl ----------
 let playhead = 0, selNote = null, selRange = null, loopOn = false;
 let markAnchor = null, markUntil = 0, markTimer = null; // Markiermodus
@@ -269,8 +279,8 @@ function showNoteInfo(n) {
     <div class="row"><span class="k">Dauer</span><span>${durName(n)}</span></div>
     <div class="row"><span class="k">Harmonie</span><span>${ch ? `${ch.name} – ${keyName(bt.key)}: <b>${ch.roman}</b>` : '–'}</span></div>
     <div class="row"><span class="k">Rolle</span><span>${role.text}</span></div>`;
-  if (n.ghost) h += `<div class="ghostnote">⚠ Takt-gültiges Vorzeichen: Hier steht kein Zeichen, aber das ${ACC_SIGN[n.alter]} von weiter vorn im Takt gilt noch – also <b>${helmholtz(n)}</b>.</div>`;
-  h += `<div class="btns"><button data-act="hear">♪ anhören</button><button data-act="from">▶ ab hier spielen</button><button data-act="measure">Takt ${n.measure}</button></div>`;
+  if (n.ghost) h += `<div class="ghostnote">${IC.warn}Takt-gültiges Vorzeichen: Hier steht kein Zeichen, aber das ${ACC_SIGN[n.alter]} von weiter vorn im Takt gilt noch – also <b>${helmholtz(n)}</b>.</div>`;
+  h += `<div class="btns"><button data-act="hear">${IC.note}anhören</button><button data-act="from">${IC.play}ab hier spielen</button><button data-act="measure">Takt ${n.measure}</button></div>`;
   openInfo(h, act => {
     if (act === 'hear') { audio.ensure(); audio.note(n.midi, audio.now() + 0.02, Math.min(1.5, n.playTicks * spt()) || 0.6, 0.8, n.voice); }
     if (act === 'from') startPlayback(n.onset);
@@ -288,9 +298,9 @@ function showRangeInfo() {
   let h = `<div class="lbl">${single ? `Takt ${a} von ${model.measures}` : `Takte ${a}–${b} · ${b - a + 1} Takte markiert`}</div><h4>${keys}</h4>`;
   if (single) h += `<div class="beats">${bs.map((x, i) => `<div class="beat"><i>${i + 1}</i><b>${x.chord ? x.chord.roman : '–'}</b>${x.chord ? x.chord.name : ''}</div>`).join('')}</div>`;
   else h += `<div class="rangeharm">${[...new Set(bs.map(x => x.measure))].map(m => `<div><i>${m}</i> ${bs.filter(x => x.measure === m).map(x => x.chord ? x.chord.roman : '–').join(' · ')}</div>`).join('')}</div>`;
-  if (ghosts.length) h += `<div class="ghostnote">⚠ ${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${n.measure})`).join(', ')}</div>`;
+  if (ghosts.length) h += `<div class="ghostnote">${IC.warn}${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${n.measure})`).join(', ')}</div>`;
   if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
-  h += `<div class="btns"><button data-act="play">▶ ${single ? 'Takt' : 'Abschnitt'} spielen</button><button data-act="loop">${loopOn ? '⟲ Schleife aus' : '⟲ Schleife'}</button><button data-act="from">ab hier</button><button data-act="addsec">＋ Übe-Abschnitt</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
+  h += `<div class="btns"><button data-act="play">${IC.play}${single ? 'Takt' : 'Abschnitt'} spielen</button><button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from">ab hier</button><button data-act="addsec">＋ Übe-Abschnitt</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
   openInfo(h, act => {
     if (act === 'play') { loopOn = false; startPlayback((a - 1) * MEASURE, b * MEASURE); }
     if (act === 'loop') { loopOn = !loopOn; if (loopOn) startPlayback((a - 1) * MEASURE); else stopPlayback(); showRangeInfo(); }
@@ -359,9 +369,9 @@ function showSection(sec) {
     <div class="row"><span class="k">Übezeit</span><span id="secTime">${fmtTime(sec.total + practiceSec(sec))} gesamt · ${sec.sessions.length} Mal geübt</span></div>
     ${last.length ? `<div class="sesslog">${last.map(x => `<div>${fmtDate(x.at)} · ${fmtTime(x.sec)} · <span style="color:${RATINGS[x.rating].c}">${RATINGS[x.rating].name}</span></div>`).join('')}</div>` : ''}
     <div class="btns">
-      <button data-act="timer" class="${running ? 'timerOn' : ''}">${running ? '⏹ Üben beenden' : '⏱ Üben starten'}</button>
-      <button data-act="play">▶ spielen</button>
-      <button data-act="loop">${loopOn ? '⟲ Schleife aus' : '⟲ Schleife'}</button>
+      <button data-act="timer" class="${running ? 'timerOn' : ''}">${running ? IC.stop + 'Üben beenden' : IC.timer + 'Üben starten'}</button>
+      <button data-act="play">${IC.play}spielen</button>
+      <button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button>
       <button data-act="del">${confirmDel === sec.id ? 'Wirklich löschen?' : 'Löschen'}</button>
     </div>`;
   openInfo(h, act => {
@@ -387,10 +397,10 @@ function startPractice(sec) {
   practiceTick = setInterval(() => {
     const s2 = sections.find(x => x.id === practice.id); if (!s2) return;
     const run = (Date.now() - practice.start) / 1000;
-    $('#practiceChip').textContent = '⏱ ' + fmtTime(run).replace(' min', '');
+    $('#practiceChip').innerHTML = IC.timer + fmtTime(run).replace(' min', '');
     const el = $('#secTime'); if (el && $('#secName')) el.textContent = `${fmtTime(s2.total + run)} gesamt · ${s2.sessions.length} Mal geübt`;
   }, 1000);
-  $('#practiceChip').textContent = '⏱ 0 s';
+  $('#practiceChip').innerHTML = IC.timer + '0 s';
 }
 function stopPractice() {
   if (!practice) return;
