@@ -356,7 +356,93 @@ function showNoteInfo(n) {
     if (act === 'measure') selectMeasure(n.measure);
   });
 }
+// ---------- Stufen erklären ----------
+const DEG_WORD = ['1.', '2.', '3.', '4.', '5.', '6.', '7.'];
+function spellChord(ch, from, to) {
+  // Akkordtöne mit deutschen Namen in Terzschichtung, z. B. E–Gis–H–D
+  const n0 = model.notes.find(n => n.pc === ch.root && n.onset < to && n.onset + n.ticks > from);
+  let rStep, rAlt;
+  if (n0) { rStep = n0.step; rAlt = n0.alter; }
+  else {
+    const nm = pcSpelling(ch.root, model, from, to);
+    rStep = 'cdefgab'.indexOf(nm[0] === 'h' ? 'b' : nm[0] === 'b' ? 'b' : nm[0]);
+    rAlt = nm === 'b' ? -1 : nm.endsWith('is') ? 1 : nm.length > 1 && nm.endsWith('s') ? -1 : 0;
+  }
+  const NAT = [0, 2, 4, 5, 7, 9, 11];
+  return ch.pcs.map((pc, k) => {
+    const step = (rStep + 2 * k) % 7;
+    let alt = ((pc - NAT[step]) % 12 + 12) % 12; if (alt > 6) alt -= 12;
+    if (k === 0) alt = rAlt;
+    const nm = germanStepName(step, alt);
+    return nm[0].toUpperCase() + nm.slice(1);
+  }).join('–');
+}
+function explainChord(bt) {
+  const ch = bt.chord; if (!ch) return 'Hier ist keine Akkordschätzung möglich (zu wenige Töne).';
+  const key = bt.key, kn = keyName(key), notes = spellChord(ch, bt.from, bt.to), minor = key.minor;
+  const r = ch.roman.replace(/ \(picardische Terz\)/, '');
+  const base = r.replace(/^[♭♯]/, '').replace(/[°ø7]/g, '').split('/')[0];
+  const deg = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'].indexOf(base.toUpperCase());
+  const where = `(in ${kn}: ${notes})`;
+  const isSec = r.includes('/');
+  let txt;
+  if (ch.roman.includes('picardische')) txt = `I – Dur-Tonika am Schluss eines Moll-Stücks („picardische Terz“) ${where}: die Molltonika wird zum hellen Dur-Schlussklang aufgehellt.`;
+  else if (isSec) {
+    const target = r.split('/')[1];
+    txt = r.startsWith('vii') ? `${r} – verminderter Akkord als Zwischendominante ${where}: Leittonakkord zur Stufe ${target}, zieht stark dorthin.`
+      : `${r} – Zwischendominante ${where}: Dominant${ch.q === 'dom7' ? 'sept' : ''}akkord zur Stufe ${target}; macht ${target} kurz zur „Tonika“ und leitet dorthin.`;
+  } else if (/^[♭♯]/.test(r)) txt = `${r} – leiterfremde Stufe ${where}: ${r.startsWith('♭') ? 'erniedrigte' : 'erhöhte'} ${DEG_WORD[deg]} Stufe, Klang aus der Nachbartonart (Mischklang/Ausweichung), färbt die Harmonik ein.`;
+  else switch (base.toUpperCase() + '|' + ch.q) {
+    default: {
+      const T = {
+        I: minor ? 'Tonika (Moll-Grundakkord) – Ruhepunkt, die Entspannung nach der Spannung.' : 'Tonika (Dur-Grundakkord) – Ruhepunkt, die Entspannung nach der Spannung.',
+        II: minor ? (ch.q === 'hdim7' ? 'halbverminderter Septakkord auf der 2. Stufe – typische Subdominant-Vorbereitung der Dominante in Moll (iiø7–V–i).' : 'Akkord auf der 2. Stufe – bereitet die Dominante vor.')
+          : 'Akkord auf der 2. Stufe (Subdominantparallele) – klassische Vorbereitung der Dominante (ii–V–I).',
+        III: minor ? 'Dur-Akkord auf der 3. Stufe (Tonikaparallele) – das Dur-Gegenstück zur Molltonika, häufiges Ausweichziel.' : 'Moll-Akkord auf der 3. Stufe (Dominantparallele) – vermittelnder, eher selten eigenständiger Klang.',
+        IV: minor ? 'Subdominante (Moll) – entfernt sich von der Tonika und bereitet oft die Dominante vor.' : 'Subdominante (Dur) – entfernt sich von der Tonika und bereitet oft die Dominante vor.',
+        V: ch.q === 'dom7' ? 'Dominantseptakkord auf der 5. Stufe – Leitton und Septime erzeugen starke Auflösungsspannung zur Tonika.'
+          : (ch.q === 'min' || ch.q === 'min7') ? `Moll-Variante der Dominante (${ch.q === 'min7' ? 'mit Mollseptime, ' : ''}ohne Leitton) – klingt weicher, eher modal; meist im Durchgang.`
+          : 'Dominante ohne Septime – strebt zur Tonika.',
+        VI: minor ? 'Dur-Akkord auf der 6. Stufe (Tonikagegenklang) – häufig als tröstende Ausweichstufe; nach V ein Trugschluss.' : 'Moll-Akkord auf der 6. Stufe (Tonikaparallele) – verwandt mit der Tonika; nach V ein Trugschluss.',
+        VII: ch.q === 'dim7' ? 'verminderter Septakkord auf der 7. Stufe – sehr spannungsreich, oft als „Verstärker“ der Dominante (verkürzter Dominantseptnonakkord).'
+          : ch.q === 'hdim7' ? 'halbverminderter Septakkord auf der 7. Stufe – verkürzte Dominante, strebt zur Tonika.'
+          : ch.q === 'dim' ? 'verminderter Dreiklang auf der 7. Stufe – verkürzte Dominante (Leittonakkord), strebt zur Tonika.'
+          : 'Dur-Akkord auf der 7. Stufe (natürliches Moll) – oft Dominante der Durparallele (III).',
+      }[base.toUpperCase()] || 'Akkord der Tonart.';
+      txt = `${r} – ${T.split(' – ')[0]} ${where}${T.includes(' – ') ? ', ' + T.split(' – ').slice(1).join(' – ') : ''}`;
+    }
+  }
+  // Umkehrung
+  if (ch.bass != null && ch.bass !== ch.root) {
+    const iv = (ch.bass - ch.root + 12) % 12;
+    const inv = (iv === 3 || iv === 4) ? (ch.pcs.length === 4 ? 'Quintsextakkord (Terz im Bass)' : 'Sextakkord (Terz im Bass)')
+      : (iv === 6 || iv === 7) ? (ch.pcs.length === 4 ? 'Terzquartakkord (Quinte im Bass)' : 'Quartsextakkord (Quinte im Bass)')
+      : 'Sekundakkord (Septime im Bass)';
+    txt += ` Umkehrung: ${inv}.`;
+  }
+  // Tonartwechsel
+  const i = harmony.beats.indexOf(bt), prev = harmony.beats[i - 1];
+  if (prev && (prev.key.tonic !== key.tonic || prev.key.minor !== key.minor)) txt += ` Hier beginnt der Bereich in ${kn} (vorher ${keyName(prev.key)}).`;
+  return txt;
+}
+let openBeat = null;
+function toggleBeatExplain(i) {
+  const box = $('#beatExp'); if (!box) return;
+  $$('#infoBody [data-act^="beat"]').forEach(b => b.classList.toggle('act', +b.dataset.act.slice(4) === i && openBeat !== i));
+  if (openBeat === i) { openBeat = null; box.classList.remove('show'); box.innerHTML = ''; return; }
+  openBeat = i;
+  const bt = harmony.beats[i];
+  box.innerHTML = `<div class="small" style="font-style:normal;margin-bottom:2px">Takt ${mLabel(bt.measure)}, Zählzeit ${bt.beat + 1}</div>${explainChord(bt)}`;
+  box.classList.add('show');
+  // Zusammenklang kurz anspielen
+  audio.ensure();
+  const snd = model.notes.filter(n => n.onset < bt.to && n.onset + n.ticks > bt.from && audible(n));
+  const pcsSeen = new Set();
+  snd.sort((x, y) => x.onset - y.onset).forEach(n => { if (pcsSeen.has(n.midi)) return; pcsSeen.add(n.midi); audio.note(n.midi, audio.now() + 0.02, 1.4, 0.5, n.role); });
+}
+
 function showRangeInfo() {
+  openBeat = null;
   const { a, b } = selRange, single = a === b;
   const existing = sections.find(x => x.a === a && x.b === b);
   if (existing && Date.now() >= markUntil) return showSection(existing);
@@ -365,8 +451,10 @@ function showRangeInfo() {
   const ghosts = model.notes.filter(n => n.measure >= a && n.measure <= b && n.ghost);
   const pulsing = Date.now() < markUntil;
   let h = `<div class="lbl">${single ? `Takt ${mLabel(a)} von ${mLabel(model.measures)}` : `Takte ${mLabel(a)}–${mLabel(b)} · ${b - a + 1} Takte markiert`}</div><h4>${keys}</h4>`;
-  if (single) h += `<div class="beats" style="grid-template-columns:repeat(${Math.min(4, harmony.perMeasure)},1fr)">${bs.map((x, i) => `<div class="beat"><i>${i + 1}</i><b>${x.chord ? x.chord.roman : '–'}</b>${x.chord ? x.chord.name : ''}</div>`).join('')}</div>`;
-  else h += `<div class="rangeharm">${[...new Set(bs.map(x => x.measure))].map(m => `<div><i>${mLabel(m)}</i> ${bs.filter(x => x.measure === m).map(x => x.chord ? x.chord.roman : '–').join(' · ')}</div>`).join('')}</div>`;
+  const bi = x => harmony.beats.indexOf(x);
+  h += `<div class="beatexp" id="beatExp"></div>`;
+  if (single) h += `<div class="beats" style="grid-template-columns:repeat(${Math.min(4, harmony.perMeasure)},1fr)">${bs.map((x, i) => `<button class="beat" data-act="beat${bi(x)}"><i>${i + 1}</i><b>${x.chord ? x.chord.roman : '–'}</b>${x.chord ? x.chord.name : ''}</button>`).join('')}</div>`;
+  else h += `<div class="rangeharm">${[...new Set(bs.map(x => x.measure))].map(m => `<div><i>${mLabel(m)}</i> ${bs.filter(x => x.measure === m).map(x => `<button class="rn" data-act="beat${bi(x)}">${x.chord ? x.chord.roman : '–'}</button>`).join(' · ')}</div>`).join('')}</div>`;
   if (ghosts.length) h += `<div class="ghostnote">${IC.warn}${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${mLabel(n.measure)})`).join(', ')}</div>`;
   if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
   h += hearControls();
@@ -378,6 +466,7 @@ function showRangeInfo() {
     if (act === 'clear') { clearSelection(); }
     if (act.startsWith('hear')) { setHear(+act.slice(4)); showRangeInfo(); }
     if (act === 'addsec') { endMarkMode(); markSelection(); showSection(addSection(a, b)); }
+    if (act.startsWith('beat')) toggleBeatExplain(+act.slice(4));
   });
 }
 function openInfo(html, onAct) {

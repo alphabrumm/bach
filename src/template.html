@@ -163,7 +163,12 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
 .card .row{display:flex;gap:10px;margin:6px 0;font-size:17px;line-height:1.3}
 .card .row .k{min-width:96px;color:var(--ink2);font-style:italic}
 .card .beats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
-.card .beat{border:1px solid rgba(107,88,67,.3);border-radius:8px;padding:6px 4px;text-align:center;font-size:16px}
+.card .beat{border:1px solid rgba(107,88,67,.3);border-radius:8px;padding:6px 4px;text-align:center;font-size:16px;background:rgba(255,255,255,.25);color:var(--ink);font-family:inherit}
+.card .beat.act{background:var(--ink);color:var(--paper);border-color:var(--ink)}.card .beat.act i{color:var(--paper2)}
+.card .rn{border:0;background:none;font-family:inherit;font-size:16px;color:var(--ink);padding:1px 3px;border-radius:5px;text-decoration:underline dotted rgba(107,88,67,.5)}
+.card .rn.act{background:var(--ink);color:var(--paper);text-decoration:none}
+.beatexp{display:none;background:rgba(47,107,79,.10);border-left:3px solid var(--v2);border-radius:4px;padding:8px 10px;margin:8px 0 2px;font-size:17px;line-height:1.35}
+.beatexp.show{display:block}
 .card .beat b{display:block;font-size:19px;font-weight:600}
 .card .beat i{color:var(--ink2);font-size:14px}
 .card .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
