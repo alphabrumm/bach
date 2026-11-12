@@ -135,6 +135,14 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 @media (max-width:1000px){#tempo{width:80px}.tempoBox .tlbl{display:none}}
 @media (max-width:700px){#scoreView .topbar .title{display:none}}
 #handChip{font-size:15px}
+.tb{white-space:nowrap}
+@media (max-width:760px){
+  .topbar{gap:5px}
+  .tb{padding:0 9px;min-width:38px}
+  #scoreBack .bl{display:none}
+  .tempoBox{padding:0 7px}
+  #tempo{width:64px}
+}
 .chips{display:flex;gap:6px}
 .chip{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;height:34px;min-width:44px;font-size:15px;font-weight:600}
 .chip[data-v="1"]{color:var(--v1)}.chip[data-v="2"]{color:var(--v2)}.chip[data-v="3"]{color:var(--v3)}.chip[data-v="4"]{color:var(--v4)}
@@ -245,7 +253,7 @@ input{-webkit-user-select:text;user-select:text}
 <section id="scoreView" class="view linen" style="--c:#2f4a3a">
   <div class="cover">
     <div class="topbar">
-      <button class="tb" id="scoreBack">‹ Inhalt</button>
+      <button class="tb" id="scoreBack">‹<span class="bl"> Inhalt</span></button>
       <button class="tb playbtn" id="play" title="Abspielen"></button>
       <div class="tempoBox"><span class="tlbl">Tempo</span><input type="range" id="tempo" min="25" max="100" step="5"><span id="tempoVal"></span></div>
       <div class="title"></div>

@@ -211,6 +211,7 @@ class Parser {
   note(m, st) {
     if (this.toks[this.i] === '\\rest') { // Note mit \rest = Pause an fester Position
       this.i++;
+      st.prev = this.pitch(m, st).dn; // die Tonhöhe der Pause gilt als Bezug für die nächste relative Note
       if (m[7]) st.dur = [+m[7], m[8].length];
       return this.addRest(st, 'rest', st.dur[0], st.dur[1], 1);
     }
