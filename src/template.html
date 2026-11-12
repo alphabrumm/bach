@@ -17,7 +17,7 @@
 <style>
 :root{
   --paper:#f5eddb; --paper2:#efe4cc; --ink:#2b2119; --ink2:#6b5843; --gold:#c9a45c; --gold2:#e6c886;
-  --desk:#2a211b; --v1:#9b2d2a; --v2:#2f6b4f; --v3:#2d4f86; --sel:#d08a1e; --on:#c2410c;
+  --desk:#2a211b; --v1:#9b2d2a; --v2:#2f6b4f; --v3:#2d4f86; --v4:#9a6a12; --sel:#d08a1e; --on:#c2410c;
   --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
   --noise:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.34  0 0 0 0 0.24  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
@@ -103,6 +103,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .col-voices #score svg g.v1,.col-voices #score svg g.v1 *{fill:var(--v1);color:var(--v1)}
 .col-voices #score svg g.v2,.col-voices #score svg g.v2 *{fill:var(--v2);color:var(--v2)}
 .col-voices #score svg g.v3,.col-voices #score svg g.v3 *{fill:var(--v3);color:var(--v3)}
+.col-voices #score svg g.v4,.col-voices #score svg g.v4 *{fill:var(--v4);color:var(--v4)}
 .col-hands #score svg g.st1,.col-hands #score svg g.st1 *{fill:var(--v1);color:var(--v1)}
 .col-hands #score svg g.st2,.col-hands #score svg g.st2 *{fill:var(--v3);color:var(--v3)}
 #score svg g.ghost,#score svg g.ghost *{fill:#b07a3a!important;color:#b07a3a!important;opacity:.75}
@@ -127,11 +128,19 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .tempoBox .tlbl{font-variant:small-caps;letter-spacing:.05em;font-size:15px}
 #tempo{width:110px;accent-color:var(--gold)}
 #tempoVal{font-size:15px;min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
-@media (max-width:980px){#scoreView .topbar .title{display:none}}
-@media (max-width:760px){#tempo{width:80px}.tempoBox .tlbl{display:none}}
+#scoreView .topbar{position:relative}
+#scoreView .topbar .title{position:absolute;left:50%;transform:translateX(-50%);max-width:30vw;pointer-events:none;flex:none}
+#scoreView .topbar .spacer{flex:1}
+@media (max-width:1000px){#tempo{width:80px}.tempoBox .tlbl{display:none}}
+@media (max-width:700px){#scoreView .topbar .title{display:none}}
+#handChip{font-size:15px}
 .chips{display:flex;gap:6px}
 .chip{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;height:34px;min-width:44px;font-size:15px;font-weight:600}
-.chip[data-v="1"]{color:var(--v1)}.chip[data-v="2"]{color:var(--v2)}.chip[data-v="3"]{color:var(--v3)}
+.chip[data-v="1"]{color:var(--v1)}.chip[data-v="2"]{color:var(--v2)}.chip[data-v="3"]{color:var(--v3)}.chip[data-v="4"]{color:var(--v4)}
+.hearseg{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px;align-items:center}
+.hearseg .k{color:var(--ink2);font-style:italic;font-size:16px;margin-right:2px}
+.hearseg button{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;padding:6px 10px;font-size:15px}
+.hearseg button.act{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .chip.mute{opacity:.35;text-decoration:line-through}
 select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color:var(--ink);border:1px solid rgba(107,88,67,.45);border-radius:8px;height:34px}
 
@@ -214,17 +223,17 @@ input{-webkit-user-select:text;user-select:text}
   <div class="cover">
     <div class="topbar">
       <button class="tb" id="tocBack">‹ Regal</button>
-      <div class="title">Inventionen &amp; Sinfonien</div>
+      <div class="title" id="bookTitle"></div>
       <button class="tb fsBtn" title="Vollbild">⤢</button>
     </div>
     <div class="page-scroll sheet" id="tocScroll">
       <div class="toc">
-        <h2>Inventionen &amp; Sinfonien</h2>
-        <div class="sub">Aufrichtige Anleitung · Köthen 1723 · BWV 772–801</div>
+        <h2 id="tocTitle"></h2>
+        <div class="sub" id="tocSub"></div>
         <div class="rule">❦ ❦ ❦</div>
         <div class="cols">
-          <div><h3>Inventionen</h3><div id="tocInv"></div></div>
-          <div><h3>Sinfonien</h3><div id="tocSin"></div></div>
+          <div><h3 id="tocH1"></h3><div id="tocInv"></div></div>
+          <div><h3 id="tocH2"></h3><div id="tocSin"></div></div>
         </div>
       </div>
     </div>
@@ -236,9 +245,11 @@ input{-webkit-user-select:text;user-select:text}
   <div class="cover">
     <div class="topbar">
       <button class="tb" id="scoreBack">‹ Inhalt</button>
-      <div class="title"></div>
       <button class="tb playbtn" id="play" title="Abspielen"></button>
       <div class="tempoBox"><span class="tlbl">Tempo</span><input type="range" id="tempo" min="25" max="100" step="5"><span id="tempoVal"></span></div>
+      <div class="title"></div>
+      <div class="spacer"></div>
+      <button class="tb" id="handChip" style="display:none" title="Hörfilter aufheben"></button>
       <button class="tb" id="practiceChip" style="display:none" title="Läuft gerade"></button>
       <button class="tb dirtyable" id="practiceBtn" title="Übe-Abschnitte">Üben</button>
       <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>

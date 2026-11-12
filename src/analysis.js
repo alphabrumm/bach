@@ -30,7 +30,8 @@ function buildModel(piece) {
   main.forEach(v => { const ns = piece.events.filter(e => e.y === 'n' && String(e.v).split('.')[0] === v); avg[v] = ns.reduce((a, b) => a + b.m, 0) / (ns.length || 1); });
   const order = [...main].sort((a, b) => avg[b] - avg[a]);
   const roleOf = {};
-  order.forEach((v, i) => { roleOf[v] = order.length === 2 ? (i === 0 ? 1 : 3) : order.length === 1 ? 1 : Math.min(3, i + 1); });
+  const ROLE_SETS = { 1: [1], 2: [1, 3], 3: [1, 2, 3], 4: [1, 2, 4, 3] }; // 4 = Tenor
+  order.forEach((v, i) => { roleOf[v] = (ROLE_SETS[order.length] || [1, 2, 4, 3])[Math.min(i, 3)]; });
   const homeStaff = {}; piece.voices.forEach(v => homeStaff[v.id] = v.staff);
   piece.events.forEach((e, i) => {
     const v = String(e.v), mainV = v.split('.')[0];
@@ -64,7 +65,7 @@ function buildModel(piece) {
       n.playTicks = total;
     });
   });
-  const roles = [...new Set(Object.values(roleOf))].sort();
+  const roles = [...new Set(order.map(v => roleOf[v]))]; // von oben nach unten
   return { notes, events, measures: piece.measures, roles, voiceCount: order.length, piece };
 }
 

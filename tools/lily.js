@@ -58,6 +58,7 @@ function clean(s) {
   s = removeBlock(s, /\\midi\s*\{/g);
   s = removeBlock(s, /\\markup\s*\{/g);
   s = s.replace(/\\version\s+"[^"]*"/g, ' ');
+  s = s.replace(/\\barNumberCheck\s+#\d+/g, ' ');
   s = s.replace(/\\(?:once\s*\\)?(?:override|revert)\s+[A-Za-z.]+\s*(?:#'[\w-]+)?(?:\s*\.\s*[\w-]+)*\s*(?:=\s*(?:#'\([^)]*\)|#'?[\w-]+(?:\s*\.\s*[\w-]+)*|#"[^"]*"|##[tf]|#-?[\d.]+|#\([^)]*\)|#[\w-]+))?/g, ' ');
   s = s.replace(/\\set\s+[A-Za-z.]+\s*=\s*(?:#'\([^)]*\)|#'?[\w-]+|#"[^"]*"|##[tf]|#-?[\d.]+|#\([^)]*\)|"[^"]*"|\\[\w]+)/g, ' ');
   s = s.replace(/\\unset\s+[A-Za-z.]+/g, ' ');

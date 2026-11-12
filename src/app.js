@@ -8,7 +8,7 @@ const $$ = s => Array.from(document.querySelectorAll(s));
 let model = null, harmony = null, playable = [], TOTAL = 0, piece = null, catalog = [];
 let VOICE_NAMES = { 1: 'Sopran', 2: 'Alt', 3: 'Bass' };
 const mLabel = m => (piece && piece.pickup ? m - 1 : m); // Taktnummer wie in der Ausgabe (Auftakt = 0)
-const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)' };
+const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)', 4: 'var(--v4)' };
 const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel', '32': 'Zweiunddreißigstel' };
 
 // ---------- Einstellungen ----------
@@ -48,8 +48,10 @@ $$('.fsBtn').forEach(b => b.addEventListener('click', () => {
 
 // ---------- Bibliothek ----------
 const BOOKS = [
-  { id: 'inv', t: 'Inventionen & Sinfonien', s: 'BWV 772–801', c: '#2f4a3a', active: true },
-  { t: 'Das Wohltemperierte Klavier', s: 'Teil I · BWV 846–869', c: '#5b2626' },
+  { id: 'inv', t: 'Inventionen & Sinfonien', s: 'BWV 772–801', c: '#2f4a3a', active: true,
+    sub: 'Aufrichtige Anleitung · Köthen 1723 · BWV 772–801', h: ['Inventionen', 'Sinfonien'] },
+  { id: 'wtk1', t: 'Das Wohltemperierte Klavier', s: 'Teil I · BWV 846–869', c: '#5b2626', active: true,
+    sub: 'Teil I · Köthen 1722 · BWV 846–869', h: ['Präludien', 'Fugen'] },
   { t: 'Französische Suiten', s: 'BWV 812–817', c: '#273956' },
   { t: 'Goldberg-Variationen', s: 'BWV 988', c: '#4b3a26' },
 ];
@@ -63,17 +65,33 @@ $('#shelf').addEventListener('click', e => {
   if (b.id === 'newBook') return toast('Eigene Notenbücher kommen in einer späteren Version');
   const book = BOOKS[+b.dataset.i];
   if (!book.active) return toast('Dieses Buch ist noch in Vorbereitung');
-  show('bookView');
+  openBook(book);
 });
 
 // ---------- Inhalt ----------
 const KEYS = ['C-Dur', 'c-Moll', 'D-Dur', 'd-Moll', 'Es-Dur', 'E-Dur', 'e-Moll', 'F-Dur', 'f-Moll', 'G-Dur', 'g-Moll', 'A-Dur', 'a-Moll', 'B-Dur', 'h-Moll'];
-const tocEntry = (kind, i, bwv, on) => `<button class="entry ${on ? 'on' : 'off'}" ${on ? `data-open="bwv${bwv}"` : ''}>
-  <span class="num">${kind} ${i + 1}</span><span>${KEYS[i]}</span><span class="dots"></span><span class="bwv">BWV ${bwv}</span></button>`;
+const WTK_KEYS = ['C-Dur', 'c-Moll', 'Cis-Dur', 'cis-Moll', 'D-Dur', 'd-Moll', 'Es-Dur', 'es-Moll', 'E-Dur', 'e-Moll', 'F-Dur', 'f-Moll',
+  'Fis-Dur', 'fis-Moll', 'G-Dur', 'g-Moll', 'As-Dur', 'gis-Moll', 'A-Dur', 'a-Moll', 'B-Dur', 'b-Moll', 'H-Dur', 'h-Moll'];
+let curBook = BOOKS[0];
+const tocEntry = (label, key, bwv, id, on) => `<button class="entry ${on ? 'on' : 'off'}" ${on ? `data-open="${id}"` : ''}>
+  <span class="num">${label}</span><span>${key}</span><span class="dots"></span><span class="bwv">BWV ${bwv}</span></button>`;
 function renderToc() {
   const avail = id => catalog.some(c => c.id === id && c.available);
-  $('#tocInv').innerHTML = KEYS.map((k, i) => tocEntry('Inventio', i, 772 + i, avail('bwv' + (772 + i)))).join('');
-  $('#tocSin').innerHTML = KEYS.map((k, i) => tocEntry('Sinfonia', i, 787 + i, avail('bwv' + (787 + i)))).join('');
+  const b = curBook;
+  $('#bookTitle').textContent = b.t; $('#tocTitle').textContent = b.t; $('#tocSub').textContent = b.sub;
+  $('#tocH1').textContent = b.h[0]; $('#tocH2').textContent = b.h[1];
+  if (b.id === 'inv') {
+    $('#tocInv').innerHTML = KEYS.map((k, i) => tocEntry('Inventio ' + (i + 1), k, 772 + i, 'bwv' + (772 + i), avail('bwv' + (772 + i)))).join('');
+    $('#tocSin').innerHTML = KEYS.map((k, i) => tocEntry('Sinfonia ' + (i + 1), k, 787 + i, 'bwv' + (787 + i), avail('bwv' + (787 + i)))).join('');
+  } else {
+    $('#tocInv').innerHTML = WTK_KEYS.map((k, i) => tocEntry('Präludium ' + (i + 1), k, 846 + i, `bwv${846 + i}p`, avail(`bwv${846 + i}p`))).join('');
+    $('#tocSin').innerHTML = WTK_KEYS.map((k, i) => tocEntry('Fuge ' + (i + 1), k, 846 + i, `bwv${846 + i}f`, avail(`bwv${846 + i}f`))).join('');
+  }
+}
+function openBook(book) {
+  curBook = book;
+  ['#bookView', '#scoreView'].forEach(v => $(v).style.setProperty('--c', book.c));
+  renderToc(); show('bookView');
 }
 renderToc();
 fetch('pieces/index.json').then(r => r.json()).then(c => { catalog = c; renderToc(); }).catch(() => toast('Inhaltsverzeichnis nicht erreichbar'));
@@ -120,8 +138,9 @@ async function openPiece(id) {
   stopPlayback(); clearSelection(); hideCards();
   show('scoreView');
   const meta = catalog.find(c => c.id === id) || { id };
+  const bk = BOOKS.find(b => b.id === meta.book); if (bk && bk !== curBook) { curBook = bk; ['#bookView', '#scoreView'].forEach(v => $(v).style.setProperty('--c', bk.c)); renderToc(); }
   $('#scoreView .topbar .title').textContent = `${meta.title || ''} · ${meta.keyName || ''}`;
-  $('#pageHead').innerHTML = `<h2>${meta.title || ''}</h2><div class="meta">${meta.keyName || ''} · BWV ${meta.bwv || ''} · ${meta.voicesLabel || ''}</div>`;
+  $('#pageHead').innerHTML = `<h2>${meta.title || ''}</h2><div class="meta">${[meta.keyName, meta.bwv ? 'BWV ' + meta.bwv : '', meta.voicesLabel].filter(Boolean).join(' · ')}</div>`;
   $('#score').innerHTML = '<div id="loading">Notenstecher bei der Arbeit …</div>';
   $('#secLayer').innerHTML = ''; $('#cursor').style.display = 'none'; layout = null; rendered = false;
   try {
@@ -130,7 +149,7 @@ async function openPiece(id) {
     model = buildModel(piece); computeAccidentals(model); harmony = analyzeHarmony(model);
     playable = model.notes.filter(n => !n.tieEnd).sort((a, b) => a.onset - b.onset || a.role - b.role);
     TOTAL = model.measures * MEASURE;
-    VOICE_NAMES = model.voiceCount === 2 ? { 1: 'Oberstimme', 3: 'Unterstimme' } : { 1: 'Sopran', 2: 'Alt', 3: 'Bass' };
+    VOICE_NAMES = model.voiceCount === 2 ? { 1: 'Oberstimme', 3: 'Unterstimme' } : { 1: 'Sopran', 2: 'Alt', 4: 'Tenor', 3: 'Bass' };
     loadSections(id); buildChips(); syncPanel();
     playhead = piece.pickup ? MEASURE - piece.pickup : 0;
     try { localStorage.setItem('bach.last', id); } catch (e) {}
@@ -279,6 +298,21 @@ function markSelection() {
   flush();
 }
 
+// ---------- Hörfilter: nur Violin- oder Bassschlüssel ----------
+let hearStaff = 0; // 0 = beide Systeme, 1 = Violinschlüssel (oben), 2 = Bassschlüssel (unten)
+const HEAR_LABEL = { 1: 'nur Violinschlüssel', 2: 'nur Bassschlüssel' };
+function audible(n) { return !S.mute.includes(n.role) && (!hearStaff || n.staff === hearStaff); }
+function setHear(v) {
+  hearStaff = v;
+  const c = $('#handChip'); c.style.display = v ? '' : 'none'; c.textContent = v ? HEAR_LABEL[v] + ' ×' : '';
+}
+$('#handChip').onclick = () => { setHear(0); if ($('#info').classList.contains('show') && selRange) refreshCard(); };
+function hearControls() {
+  return `<div class="hearseg"><span class="k">Hören:</span>${[[0, 'beide'], [1, 'Violinschlüssel'], [2, 'Bassschlüssel']]
+    .map(([v, l]) => `<button data-act="hear${v}" class="${hearStaff === v ? 'act' : ''}">${l}</button>`).join('')}</div>`;
+}
+function refreshCard() { const sec = selRange && sections.find(x => x.a === selRange.a && x.b === selRange.b); if (sec && Date.now() >= markUntil) showSection(sec); else showRangeInfo(); }
+
 // ---------- Info-Karte ----------
 function beatLabel(e) {
   const b = Math.floor(e.pos / BEAT + 1e-9) + 1, off = e.pos - (b - 1) * BEAT;
@@ -322,12 +356,15 @@ function showRangeInfo() {
   else h += `<div class="rangeharm">${[...new Set(bs.map(x => x.measure))].map(m => `<div><i>${mLabel(m)}</i> ${bs.filter(x => x.measure === m).map(x => x.chord ? x.chord.roman : '–').join(' · ')}</div>`).join('')}</div>`;
   if (ghosts.length) h += `<div class="ghostnote">${IC.warn}${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${mLabel(n.measure)})`).join(', ')}</div>`;
   if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
-  h += `<div class="btns"><button data-act="play">${IC.play}${single ? 'Takt' : 'Abschnitt'} spielen</button><button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from">ab hier</button><button data-act="addsec">＋ Übe-Abschnitt</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
+  h += hearControls();
+  h += `<div class="btns"><button data-act="play">${IC.play}${single ? 'Takt' : 'Abschnitt'} spielen</button><button data-act="stop">${IC.stop}Stopp</button><button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from">ab hier</button><button data-act="addsec">＋ Übe-Abschnitt</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
   openInfo(h, act => {
     if (act === 'play') { loopOn = false; startPlayback((a - 1) * MEASURE, b * MEASURE); }
     if (act === 'loop') { loopOn = !loopOn; if (loopOn) startPlayback((a - 1) * MEASURE); else stopPlayback(); showRangeInfo(); }
     if (act === 'from') { loopOn = false; startPlayback((a - 1) * MEASURE); }
     if (act === 'clear') { clearSelection(); }
+    if (act === 'stop') { stopPlayback(); }
+    if (act.startsWith('hear')) { setHear(+act.slice(4)); showRangeInfo(); }
     if (act === 'addsec') { endMarkMode(); markSelection(); showSection(addSection(a, b)); }
   });
 }
@@ -463,9 +500,11 @@ function showSection(sec) {
     <div class="rate">${RATINGS.map((r, i) => `<button data-act="rate${i}" class="${sec.rating === i ? 'act' : ''}" style="--rc:${r.c}">${r.name}</button>`).join('')}</div>
     <div class="row"><span class="k">Übezeit</span><span id="secTime">${fmtTime(sec.total + practiceSec(sec))} gesamt · ${sec.sessions.length} Mal geübt</span></div>
     ${last.length ? `<div class="sesslog">${last.map(x => `<div>${fmtDate(x.at)} · ${fmtTime(x.sec)} · <span style="color:${RATINGS[x.rating].c}">${RATINGS[x.rating].name}</span></div>`).join('')}</div>` : ''}
+    ${hearControls()}
     <div class="btns">
       <button data-act="timer" class="${running ? 'timerOn' : ''}">${running ? IC.stop + 'Üben beenden' : IC.timer + 'Üben starten'}</button>
       <button data-act="play">${IC.play}spielen</button>
+      <button data-act="stop">${IC.stop}Stopp</button>
       <button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button>
       <button data-act="del">${confirmDel === sec.id ? 'Wirklich löschen?' : 'Löschen'}</button>
     </div>`;
@@ -473,6 +512,8 @@ function showSection(sec) {
     if (act.startsWith('rate')) { sec.rating = +act.slice(4); saveSections(); drawSections(); renderSecList(); showSection(sec); }
     if (act === 'timer') { if (running) stopPractice(); else startPractice(sec); showSection(sec); }
     if (act === 'play') { loopOn = false; startPlayback((sec.a - 1) * MEASURE, sec.b * MEASURE); }
+    if (act === 'stop') { stopPlayback(); }
+    if (act.startsWith('hear')) { setHear(+act.slice(4)); showSection(sec); }
     if (act === 'loop') { selRange = { a: sec.a, b: sec.b }; loopOn = !loopOn; if (loopOn) startPlayback((sec.a - 1) * MEASURE); else stopPlayback(); showSection(sec); }
     if (act === 'del') {
       if (confirmDel !== sec.id) { confirmDel = sec.id; showSection(sec); setTimeout(() => { confirmDel = null; }, 3000); return; }
@@ -623,13 +664,13 @@ function scrubTo(t) {
   playhead = t; updateCursor();
   const lo = Math.min(prev, t), hi = Math.max(prev, t);
   if (hi > lo) {
-    const crossed = playable.filter(n => n.onset > lo && n.onset <= hi && !S.mute.includes(n.role));
+    const crossed = playable.filter(n => n.onset > lo && n.onset <= hi && audible(n));
     crossed.slice(-6).forEach(n => audio.note(n.midi, audio.now() + 0.005, Math.min(0.5, n.ticks * spt()), 0.62, n.role));
     flashNotes(crossed.map(n => n.id));
   }
   clearTimeout(holdTimer);
   holdTimer = setTimeout(() => { // Finger ruht: Zusammenklang erklingt
-    const snd = playable.filter(n => n.onset <= playhead && n.onset + n.playTicks > playhead && !S.mute.includes(n.role));
+    const snd = playable.filter(n => n.onset <= playhead && n.onset + n.playTicks > playhead && audible(n));
     snd.forEach(n => audio.note(n.midi, audio.now() + 0.01, 1.3, 0.5, n.role));
     flashNotes(snd.map(n => n.id));
   }, 380);
@@ -713,8 +754,10 @@ const audio = {
       const AC = window.AudioContext || window.webkitAudioContext;
       const ctx = this.ctx = new AC();
       const master = ctx.createGain(); master.gain.value = 0.85;
-      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3;
-      master.connect(comp); comp.connect(ctx.destination);
+      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 2.5; comp.knee.value = 12;
+      comp.attack.value = 0.02; comp.release.value = 0.25;
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 28; hp.Q.value = 0.6; // entfernt Gleichanteil/Rumpeln
+      master.connect(hp); hp.connect(comp); comp.connect(ctx.destination);
       // Raumklang: trocken + Faltungshall
       this.master = master;
       this.out = ctx.createGain();
@@ -782,7 +825,7 @@ const audio = {
     let best = +keys[0]; for (const k of keys) if (Math.abs(k - midi) < Math.abs(best - midi)) best = +k;
     const ctx = this.ctx, src = ctx.createBufferSource(), g = ctx.createGain();
     src.buffer = this.buffers[best]; src.playbackRate.value = Math.pow(2, (midi - best) / 12);
-    g.gain.setValueAtTime(vel * 0.9, when);
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vel * 0.9, when + 0.004); // weicher Einsatz, kein Knacken
     g.gain.setTargetAtTime(0, when + dur, 0.11);
     src.connect(g); g.connect(this.out); src.start(when); src.stop(when + dur + 1.2);
   },
@@ -845,11 +888,11 @@ function schedule() {
   const horizon = pl.t0Tick + (now + 0.18 - pl.t0Time) / s;
   while (pl.idx < playable.length && playable[pl.idx].onset < Math.min(horizon, pl.end)) {
     const n = playable[pl.idx++];
-    if (S.mute.includes(n.role)) continue;
+    if (!audible(n)) continue;
     const when = pl.t0Time + (n.onset - pl.t0Tick) * s;
     const len = Math.min(n.playTicks, pl.end - n.onset) * s;
     const accent = Math.abs(n.onset % BEAT) < 1e-6 ? 1 : Math.abs(n.onset % (TPW / 8)) < 1e-6 ? 0.88 : 0.78;
-    const vv = { 1: 0.95, 2: 0.78, 3: 0.88 }[n.role] || 0.85;
+    const vv = { 1: 0.95, 2: 0.78, 4: 0.78, 3: 0.88 }[n.role] || 0.85;
     audio.note(n.midi, Math.max(when, now), Math.max(0.05, len * 0.97), accent * vv, n.role);
   }
   if (horizon >= pl.end) {
@@ -872,7 +915,7 @@ function frame() {
   const t = Math.min(curTick(), pl.end - 0.01);
   if (t >= 0) {
     playhead = t; updateCursor();
-    const ids = model.notes.filter(n => n.onset <= t && n.onset + n.ticks > t && !S.mute.includes(n.role)).map(n => n.id);
+    const ids = model.notes.filter(n => n.onset <= t && n.onset + n.ticks > t && audible(n)).map(n => n.id);
     if (ids.join() !== onSet.join()) { flashNotes(ids); onSet = ids; }
     autoScroll();
   }
