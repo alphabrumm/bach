@@ -21,7 +21,7 @@ function toast(msg, ms = 2200) { const t = $('#toast'); t.textContent = msg; t.c
 
 // ---------- Ansichten ----------
 function show(id) { $$('.view').forEach(v => v.classList.toggle('show', v.id === id)); hideCards(); }
-function hideCards() { $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#page').style.paddingBottom = ''; }
+function hideCards() { if (typeof clearChordMarks === 'function') clearChordMarks(); $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#page').style.paddingBottom = ''; }
 
 // Scroll-Bereiche nie ganz oben/unten (Safari-Wischgeste beendet sonst das Vollbild)
 function keepOffEdges(el) {
@@ -425,22 +425,33 @@ function explainChord(bt) {
   if (prev && (prev.key.tonic !== key.tonic || prev.key.minor !== key.minor)) txt += ` Hier beginnt der Bereich in ${kn} (vorher ${keyName(prev.key)}).`;
   return txt;
 }
-let openBeat = null;
-function toggleBeatExplain(i) {
+let openBeat = null, chordTimers = [];
+function clearChordMarks() {
+  chordTimers.forEach(clearTimeout); chordTimers = [];
+  $$('#score g.chordnote').forEach(el => el.classList.remove('chordnote', 'on'));
+}
+function toggleBeatExplain(i) { // erneutes Tippen spielt den Akkord noch einmal; schließen über ×
   const box = $('#beatExp'); if (!box) return;
-  $$('#infoBody [data-act^="beat"]').forEach(b => b.classList.toggle('act', +b.dataset.act.slice(4) === i && openBeat !== i));
-  if (openBeat === i) { openBeat = null; box.classList.remove('show'); box.innerHTML = ''; return; }
+  $$('#infoBody [data-act^="beat"]').forEach(b => b.classList.toggle('act', +b.dataset.act.slice(4) === i));
   openBeat = i;
   const bt = harmony.beats[i];
   box.innerHTML = `<div class="small" style="font-style:normal;margin-bottom:2px">Takt ${mLabel(bt.measure)}, Zählzeit ${bt.beat + 1}</div>${explainChord(bt)}`;
   box.classList.add('show');
-  // Zusammenklang kurz anspielen
+  // Noten im Notenbild markieren, die den Akkord bilden
+  clearChordMarks();
+  const tones = model.notes.filter(n => n.onset < bt.to - 1e-6 && n.onset + n.ticks > bt.from + 1e-6 && (!bt.chord || bt.chord.pcs.includes(n.pc)));
+  tones.forEach(n => { const el = document.getElementById(n.id); if (el) el.classList.add('chordnote'); });
+  // aufgerollt von unten nach oben im Sechzehntel-Tempo; der gerade klingende Ton leuchtet auf
   audio.ensure();
-  // Akkordtöne dieser Zählzeit als aufgerollter Akkord von unten nach oben, im Sechzehntel-Tempo
-  const snd = model.notes.filter(n => n.onset < bt.to && n.onset + n.ticks > bt.from && audible(n) && (!bt.chord || bt.chord.pcs.includes(n.pc)));
+  const snd = tones.filter(audible);
   const midis = [...new Map(snd.map(n => [n.midi, n])).values()].sort((x, y) => x.midi - y.midi);
   const step = (TPW / 16) * spt(), t0 = audio.now() + 0.03, total = midis.length * step;
-  midis.forEach((n, k) => audio.note(n.midi, t0 + k * step, total - k * step + 0.9, 0.55, n.role));
+  midis.forEach((n, k) => {
+    audio.note(n.midi, t0 + k * step, total - k * step + 0.9, 0.55, n.role);
+    const same = snd.filter(x => x.midi === n.midi);
+    chordTimers.push(setTimeout(() => same.forEach(x => { const el = document.getElementById(x.id); if (el) el.classList.add('on'); }), (0.03 + k * step) * 1000));
+  });
+  chordTimers.push(setTimeout(() => $$('#score g.chordnote.on').forEach(el => el.classList.remove('on')), (0.03 + total + 0.9) * 1000));
 }
 
 function showRangeInfo() {
@@ -472,13 +483,14 @@ function showRangeInfo() {
   });
 }
 function openInfo(html, onAct) {
+  clearChordMarks();
   $('#viewPanel').classList.remove('show'); const sp = $('#secPanel'); if (sp) sp.classList.remove('show');
   $('#infoBody').innerHTML = html;
   $('#infoBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) onAct(b.dataset.act); };
   $('#info').classList.add('show');
   requestAnimationFrame(keepSelectionVisible);
 }
-$('#infoX').onclick = () => { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; };
+$('#infoX').onclick = () => { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); };
 // Karte darf die markierten Noten nicht verdecken: unten Platz schaffen und ggf. hochscrollen
 function keepSelectionVisible() {
   const card = $('#info'), sc = $('#scroller'), pg = $('#page');
