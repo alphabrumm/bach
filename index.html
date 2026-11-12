@@ -22,7 +22,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--desk);color:var(
 button{font-family:inherit;color:inherit;cursor:pointer}
 .view{position:fixed;inset:0;display:none;flex-direction:column}
 .view.show{display:flex}
-.scroller{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.scroller{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 
 /* ---------- Leinen ---------- */
 .linen{background-color:var(--c,#2f4a3a);
@@ -57,7 +57,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .book.new{background:transparent;border:2px dashed rgba(201,164,92,.4);box-shadow:none;color:#bba98c}
 
 /* ---------- Bucheinband + Seite ---------- */
-.cover{flex:1;display:flex;flex-direction:column;padding:calc(var(--safe-t) + 8px) 10px calc(var(--safe-b) + 10px)}
+.cover{flex:1;min-height:0;display:flex;flex-direction:column;padding:calc(var(--safe-t) + 8px) 10px calc(var(--safe-b) + 10px)}
 .topbar{display:flex;align-items:center;gap:8px;padding:4px 6px 8px;color:var(--gold2);min-height:44px}
 .topbar .title{flex:1;text-align:center;font-size:19px;font-variant:small-caps;letter-spacing:.05em;
   text-shadow:0 1px 0 rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -67,7 +67,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .sheet{background-color:var(--paper);background-image:var(--noise),
   radial-gradient(ellipse at 50% 40%,transparent 55%,rgba(120,90,50,.13) 100%);
   border-radius:3px 6px 6px 3px;box-shadow:0 3px 14px rgba(0,0,0,.45),inset 8px 0 14px -10px rgba(80,55,25,.5)}
-.page-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
+.page-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
 .toc{padding:28px 30px 60px;max-width:860px;margin:0 auto}
 .toc h2{font-weight:500;font-size:30px;text-align:center;margin:6px 0 0;font-variant:small-caps;letter-spacing:.05em}
 .toc .sub{text-align:center;font-style:italic;color:var(--ink2);margin-bottom:14px}
@@ -83,8 +83,9 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .entry.on .num::before{content:'❧ ';color:var(--v1)}
 
 /* ---------- Notenblatt ---------- */
-#scoreView .cover{padding-bottom:0}
-#scroller{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:4px 4px 0 0;touch-action:pan-y}
+#scoreView .cover{padding-bottom:calc(var(--safe-b) + 10px)}
+#scroller{border-radius:4px!important}
+#scroller{position:relative;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:4px 4px 0 0;touch-action:pan-y}
 #page{position:relative;margin:0 auto;min-height:100%;padding:18px 0 140px;touch-action:pan-y}
 #pageHead{text-align:center;padding:10px 20px 0}
 #pageHead h2{margin:0;font-weight:500;font-size:28px;font-variant:small-caps;letter-spacing:.05em}
@@ -106,23 +107,23 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #loading{text-align:center;padding:60px 20px;font-style:italic;color:var(--ink2);font-size:19px}
 #hint{position:absolute;left:0;right:0;text-align:center;font-style:italic;color:var(--ink2);font-size:15px;bottom:110px;opacity:.8}
 
-/* ---------- Transport ---------- */
-#transport{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
-  padding:8px 10px calc(var(--safe-b) + 8px);background:linear-gradient(rgba(42,33,27,.0),rgba(42,33,27,.25));color:var(--gold2)}
-#transport .grp{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.22);border:1px solid rgba(201,164,92,.3);border-radius:12px;padding:4px 6px}
-#transport button{background:none;border:0;color:var(--gold2);font-size:20px;min-width:40px;height:38px;border-radius:9px}
-#transport button:active,#transport button.act{background:rgba(201,164,92,.22)}
-#play{font-size:24px!important;min-width:52px!important}
-.chip{font-size:15px!important;min-width:34px!important;font-weight:600}
-.chip.mute{opacity:.35;text-decoration:line-through}
-.chip[data-v="1"]{color:#e7a39f!important}.chip[data-v="2"]{color:#9fd3b8!important}.chip[data-v="3"]{color:#a9c1ec!important}
+/* ---------- Abspielen & Tempo in der Kopfleiste ---------- */
+.playbtn{display:flex;align-items:center;justify-content:center;padding:0;min-width:46px}
+.playbtn svg{width:18px;height:18px;fill:var(--gold2)}
+.tempoBox{display:flex;align-items:center;gap:6px;height:38px;padding:0 10px;border-radius:10px;
+  background:rgba(0,0,0,.18);border:1px solid rgba(201,164,92,.35);color:var(--gold2)}
+.tempoBox .tlbl{font-variant:small-caps;letter-spacing:.05em;font-size:15px}
 #tempo{width:110px;accent-color:var(--gold)}
-#tempoVal{font-size:15px;min-width:54px;text-align:center}
-select{font-family:inherit;font-size:16px;background:transparent;color:var(--gold2);border:0;height:36px}
-select option{color:#000}
+#tempoVal{font-size:15px;min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:760px){#scoreView .topbar .title{display:none}#tempo{width:84px}}
+.chips{display:flex;gap:6px}
+.chip{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;height:34px;min-width:44px;font-size:15px;font-weight:600}
+.chip[data-v="1"]{color:var(--v1)}.chip[data-v="2"]{color:var(--v2)}.chip[data-v="3"]{color:var(--v3)}
+.chip.mute{opacity:.35;text-decoration:line-through}
+select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color:var(--ink);border:1px solid rgba(107,88,67,.45);border-radius:8px;height:34px}
 
 /* ---------- Info-Karte & Ansicht ---------- */
-.card{position:fixed;left:50%;transform:translate(-50%,20px);bottom:calc(var(--safe-b) + 70px);width:min(560px,calc(100% - 24px));
+.card{position:fixed;left:50%;transform:translate(-50%,20px);bottom:calc(var(--safe-b) + 18px);width:min(560px,calc(100% - 24px));
   opacity:0;pointer-events:none;transition:.22s ease;z-index:20;padding:16px 18px 14px}
 .card.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .card .x{position:absolute;right:8px;top:6px;border:0;background:none;font-size:24px;color:var(--ink2);width:40px;height:40px}
@@ -199,6 +200,8 @@ select option{color:#000}
     <div class="topbar">
       <button class="tb" id="scoreBack">‹ Inhalt</button>
       <div class="title">Sinfonia 2 · c-Moll</div>
+      <button class="tb playbtn" id="play" title="Abspielen"></button>
+      <div class="tempoBox"><span class="tlbl">Tempo</span><input type="range" id="tempo" min="25" max="100" step="5"><span id="tempoVal"></span></div>
       <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>
       <button class="tb fsBtn" title="Vollbild">⤢</button>
     </div>
@@ -209,30 +212,6 @@ select option{color:#000}
         <div id="msel"></div>
         <div id="cursor"></div>
         <div class="small" style="text-align:center;padding:24px 20px 0">Notentext: Mutopia Project (Public Domain) · Notensatz: Verovio · Flügel: Salamander Grand Piano von Alexander Holm (CC-BY 3.0)</div>
-      </div>
-    </div>
-    <div id="transport">
-      <div class="grp">
-        <button id="toStart" title="Zum Anfang">⏮</button>
-        <button id="play" title="Abspielen">▶</button>
-        <button id="loopBtn" title="Takt-Schleife">⟲</button>
-      </div>
-      <div class="grp">
-        <span style="font-size:15px;padding-left:4px">♩.</span>
-        <input type="range" id="tempo" min="24" max="80" step="1">
-        <span id="tempoVal"></span>
-      </div>
-      <div class="grp">
-        <button class="chip" data-v="1" title="Sopran stumm/an">S</button>
-        <button class="chip" data-v="2" title="Alt stumm/an">A</button>
-        <button class="chip" data-v="3" title="Bass stumm/an">B</button>
-      </div>
-      <div class="grp">
-        <select id="instr">
-          <option value="grand">Konzertflügel</option>
-          <option value="piano">Flügel (synthetisch)</option>
-          <option value="harpsichord">Cembalo (synthetisch)</option>
-        </select>
       </div>
     </div>
   </div>
@@ -246,6 +225,10 @@ select option{color:#000}
   <div class="opt"><span>Harmonik im Notenbild</span><button class="sw" id="harmSw"></button></div>
   <div class="opt"><span>Geister-Vorzeichen <span class="small" id="ghostCount"></span></span><button class="sw" id="ghostSw"></button></div>
   <div class="opt"><span>Notengröße</span><div class="seg"><button id="zoomOut">A−</button><button id="zoomIn">A+</button></div></div>
+  <div class="opt"><span>Stimmen hören</span><div class="chips">
+    <button class="chip" data-v="1" title="Sopran stumm/an">S</button><button class="chip" data-v="2" title="Alt stumm/an">A</button><button class="chip" data-v="3" title="Bass stumm/an">B</button></div></div>
+  <div class="opt"><span>Instrument</span><select id="instr">
+      <option value="grand">Konzertflügel</option><option value="piano">Flügel (synthetisch)</option><option value="harpsichord">Cembalo (synthetisch)</option></select></div>
   <div class="opt" style="display:block"><div>Klangquelle Flügel (Samples)</div>
     <input type="text" id="sampleBase" spellcheck="false" autocapitalize="off">
     <div class="small">Ordner mit A1.mp3, C2.mp3, Ds2.mp3, Fs2.mp3 … (Salamander-Benennung). Standard: Tone.js-Salamander.</div></div>
@@ -649,7 +632,7 @@ const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)' };
 const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel' };
 
 // ---------- Einstellungen ----------
-const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, bpm: 46, instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
+const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, tempoPct: 75, instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
 let S = Object.assign({}, DEFAULTS);
 try { Object.assign(S, JSON.parse(localStorage.getItem('bach.settings') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('bach.settings', JSON.stringify(S)); } catch (e) {} };
@@ -1088,7 +1071,8 @@ const audio = {
 };
 
 // ---------- Wiedergabe ----------
-const spt = () => 60 / S.bpm / BEAT; // Sekunden pro Tick
+const BASE_BPM = 60; // punktierte Viertel bei 100 %
+const spt = () => 60 / (BASE_BPM * S.tempoPct / 100) / BEAT; // Sekunden pro Tick
 let playing = false, pl = null, timer = null, raf = null, onSet = [], lastUserScroll = 0;
 function startPlayback(from, until) {
   audio.ensure();
@@ -1098,13 +1082,13 @@ function startPlayback(from, until) {
   pl = { t0Tick: from, t0Time: audio.now() + 0.08, prev: null, idx: playable.findIndex(n => n.onset >= from),
     end: until || (loopOn ? loopStart + MEASURE : TOTAL), loopStart };
   if (pl.idx < 0) pl.idx = playable.length;
-  playing = true; $('#play').textContent = '⏸';
+  playing = true; setPlayIcon();
   timer = setInterval(schedule, 25); schedule();
   raf = requestAnimationFrame(frame);
 }
 function stopPlayback(silent) {
   playing = false; clearInterval(timer); cancelAnimationFrame(raf);
-  $('#play').textContent = '▶';
+  setPlayIcon();
   flashNotes([]);
   if (!silent && pl) { /* Cursor bleibt stehen */ }
 }
@@ -1157,15 +1141,19 @@ $('#scroller').addEventListener('touchmove', () => { lastUserScroll = Date.now()
 $('#scroller').addEventListener('wheel', () => { lastUserScroll = Date.now(); }, { passive: true });
 
 // ---------- Transport ----------
+const ICON_PLAY = '<svg viewBox="0 0 20 20"><path d="M5 3.2v13.6c0 .6.7 1 1.2.7l10.6-6.8c.5-.3.5-1 0-1.3L6.2 2.5C5.7 2.2 5 2.6 5 3.2z"/></svg>';
+const ICON_STOP = '<svg viewBox="0 0 20 20"><rect x="4" y="3" width="4.2" height="14" rx="1"/><rect x="11.8" y="3" width="4.2" height="14" rx="1"/></svg>';
+function setPlayIcon() { const b = $('#play'); b.innerHTML = playing ? ICON_STOP : ICON_PLAY; b.title = playing ? 'Anhalten' : 'Abspielen'; }
+setPlayIcon();
+// Spielt ab der aktuellen Stelle (Cursor); nach dem Öffnen steht er am Anfang
 $('#play').onclick = () => { if (playing) stopPlayback(); else startPlayback(playhead); };
-$('#toStart').onclick = () => { const was = playing; stopPlayback(); playhead = selMeasure ? (selMeasure - 1) * MEASURE : 0; updateCursor(); $('#scroller').scrollTo({ top: 1, behavior: 'smooth' }); if (was) startPlayback(playhead); };
-function syncLoopBtn() { $('#loopBtn').classList.toggle('act', loopOn); }
-$('#loopBtn').onclick = () => { loopOn = !loopOn; syncLoopBtn(); toast(loopOn ? 'Schleife: aktueller Takt' : 'Schleife aus'); if (playing) startPlayback(playhead); };
+function syncLoopBtn() {}
 const tempo = $('#tempo');
-tempo.value = S.bpm; $('#tempoVal').textContent = S.bpm + ' bpm';
+const showTempo = () => { $('#tempoVal').textContent = S.tempoPct + ' %'; };
+tempo.value = S.tempoPct; showTempo();
 tempo.oninput = () => {
   const t = playing ? curTick() : null;
-  S.bpm = +tempo.value; $('#tempoVal').textContent = S.bpm + ' bpm'; save();
+  S.tempoPct = +tempo.value; showTempo(); save();
   if (playing && t != null) { pl.t0Tick = t; pl.t0Time = audio.now(); pl.prev = null; }
 };
 $$('.chip').forEach(c => {

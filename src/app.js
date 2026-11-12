@@ -16,7 +16,7 @@ const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)' };
 const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel' };
 
 // ---------- Einstellungen ----------
-const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, bpm: 46, instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
+const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, tempoPct: 75, instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
 let S = Object.assign({}, DEFAULTS);
 try { Object.assign(S, JSON.parse(localStorage.getItem('bach.settings') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('bach.settings', JSON.stringify(S)); } catch (e) {} };
@@ -455,7 +455,8 @@ const audio = {
 };
 
 // ---------- Wiedergabe ----------
-const spt = () => 60 / S.bpm / BEAT; // Sekunden pro Tick
+const BASE_BPM = 60; // punktierte Viertel bei 100 %
+const spt = () => 60 / (BASE_BPM * S.tempoPct / 100) / BEAT; // Sekunden pro Tick
 let playing = false, pl = null, timer = null, raf = null, onSet = [], lastUserScroll = 0;
 function startPlayback(from, until) {
   audio.ensure();
@@ -465,13 +466,13 @@ function startPlayback(from, until) {
   pl = { t0Tick: from, t0Time: audio.now() + 0.08, prev: null, idx: playable.findIndex(n => n.onset >= from),
     end: until || (loopOn ? loopStart + MEASURE : TOTAL), loopStart };
   if (pl.idx < 0) pl.idx = playable.length;
-  playing = true; $('#play').textContent = '⏸';
+  playing = true; setPlayIcon();
   timer = setInterval(schedule, 25); schedule();
   raf = requestAnimationFrame(frame);
 }
 function stopPlayback(silent) {
   playing = false; clearInterval(timer); cancelAnimationFrame(raf);
-  $('#play').textContent = '▶';
+  setPlayIcon();
   flashNotes([]);
   if (!silent && pl) { /* Cursor bleibt stehen */ }
 }
@@ -524,15 +525,19 @@ $('#scroller').addEventListener('touchmove', () => { lastUserScroll = Date.now()
 $('#scroller').addEventListener('wheel', () => { lastUserScroll = Date.now(); }, { passive: true });
 
 // ---------- Transport ----------
+const ICON_PLAY = '<svg viewBox="0 0 20 20"><path d="M5 3.2v13.6c0 .6.7 1 1.2.7l10.6-6.8c.5-.3.5-1 0-1.3L6.2 2.5C5.7 2.2 5 2.6 5 3.2z"/></svg>';
+const ICON_STOP = '<svg viewBox="0 0 20 20"><rect x="4" y="3" width="4.2" height="14" rx="1"/><rect x="11.8" y="3" width="4.2" height="14" rx="1"/></svg>';
+function setPlayIcon() { const b = $('#play'); b.innerHTML = playing ? ICON_STOP : ICON_PLAY; b.title = playing ? 'Anhalten' : 'Abspielen'; }
+setPlayIcon();
+// Spielt ab der aktuellen Stelle (Cursor); nach dem Öffnen steht er am Anfang
 $('#play').onclick = () => { if (playing) stopPlayback(); else startPlayback(playhead); };
-$('#toStart').onclick = () => { const was = playing; stopPlayback(); playhead = selMeasure ? (selMeasure - 1) * MEASURE : 0; updateCursor(); $('#scroller').scrollTo({ top: 1, behavior: 'smooth' }); if (was) startPlayback(playhead); };
-function syncLoopBtn() { $('#loopBtn').classList.toggle('act', loopOn); }
-$('#loopBtn').onclick = () => { loopOn = !loopOn; syncLoopBtn(); toast(loopOn ? 'Schleife: aktueller Takt' : 'Schleife aus'); if (playing) startPlayback(playhead); };
+function syncLoopBtn() {}
 const tempo = $('#tempo');
-tempo.value = S.bpm; $('#tempoVal').textContent = S.bpm + ' bpm';
+const showTempo = () => { $('#tempoVal').textContent = S.tempoPct + ' %'; };
+tempo.value = S.tempoPct; showTempo();
 tempo.oninput = () => {
   const t = playing ? curTick() : null;
-  S.bpm = +tempo.value; $('#tempoVal').textContent = S.bpm + ' bpm'; save();
+  S.tempoPct = +tempo.value; showTempo(); save();
   if (playing && t != null) { pl.t0Tick = t; pl.t0Time = audio.now(); pl.prev = null; }
 };
 $$('.chip').forEach(c => {
