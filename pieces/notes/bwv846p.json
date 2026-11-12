@@ -1,0 +1,29 @@
+{
+  "sections": [
+    { "h": "Entstehung", "p": [
+      "Eine kürzere Frühfassung (BWV 846a) steht im <i>Clavierbüchlein vor Wilhelm Friedemann Bach</i>, das Bach ab 1720 in Köthen für den Unterricht seines ältesten, damals etwa zehnjährigen Sohnes anlegte. 1722 überarbeitete und erweiterte er das Stück und stellte es an den Anfang des ersten Teils des Wohltemperierten Klaviers.",
+      "Bach war zu dieser Zeit Hofkapellmeister bei Fürst Leopold von Anhalt-Köthen. Der reformierte Hof brauchte kaum Kirchenmusik – die Köthener Jahre wurden so zur großen Zeit der Instrumental- und Klaviermusik. Privat waren es schwere Jahre: 1720 starb seine erste Frau Maria Barbara, 1721 heiratete er Anna Magdalena.",
+      "Das Titelblatt von 1722 nennt den doppelten Zweck der Sammlung: „Zum Nutzen und Gebrauch der Lehr-begierigen Musicalischen Jugend, als auch derer in diesem studio schon habil seyenden besonders zum Zeitvertreib.“"
+    ]},
+    { "h": "Was das Stück besonders macht", "p": [
+      "Es gibt kein Thema und keine ausgeschriebene Melodie. Jeder Takt ist ein einziger Akkord, gebrochen in immer derselben Figur und zweimal gespielt: Basston, dann ein gehaltener Ton der Mittelstimme, darüber drei Töne, die sich wiederholen. Der eigentliche Gehalt liegt allein in der Folge der Harmonien – ein fünfstimmiger Choralsatz, der in Bewegung aufgelöst ist.",
+      "Gerade weil die Oberstimme nur angedeutet ist, haben spätere Komponisten Melodien hineingehört: Charles Gounod legte Mitte des 19. Jahrhunderts seine „Méditation“ darüber, aus der das bekannte „Ave Maria“ wurde. Heinrich Schenker machte das Präludium zu einem Musterbeispiel seiner Analysemethode."
+    ]},
+    { "h": "Charakter", "p": [
+      "Ruhig strömend, gleichmäßig wie ein Atem. Die Spannung entsteht nicht durch Motive, sondern durch Dissonanz und Auflösung: Septakkorde und verminderte Akkorde ziehen, Dreiklänge lösen. Bewährt hat sich ein leiser Grundklang, der mit der Harmonik an- und abschwillt – nicht jeder Takt gleich laut."
+    ]},
+    { "h": "Passagen zum Hinhören", "p": [
+      "{T1-4} Die ganze Tonart in vier Takten: I – ii⁷ (d-Moll-Septakkord über liegendem c) – V⁶₅ – I. Der Bass bleibt fast liegen, die Oberstimmen bewegen sich nur in kleinen Schritten.",
+      "{T5-11} Ausweichung zur Dominante G-Dur, die in {T11} erreicht ist.",
+      "{T12-19} Der Rückweg nach C-Dur über verminderte Septakkorde ({T12}: cis–e–g–b über G, {T14}: h–d–f–as über F) und eine absteigende Bassführung; C-Dur ist in {T19} wieder erreicht.",
+      "{T20-23} Die chromatische Zone: C⁷ als Dominante zu F ({T20}), F-Dur mit großer Septime ({T21}), dann zwei verminderte Septakkorde über Fis ({T22}) und As ({T23}). Der Bass springt dabei eine verminderte Terz von fis nach as. Manche älteren Ausgaben fügen hier einen Takt ein, den „Schwencke-Takt“, der diesen Sprung glätten sollte – er stammt nicht von Bach.",
+      "{T24-31} Dominant-Orgelpunkt: acht Takte lang liegt G im Bass, darüber wechseln die Harmonien und steigern die Erwartung des Schlusses.",
+      "{T32-35} Tonika-Orgelpunkt auf C. Über dem liegenden Bass erklingen noch einmal C⁷, F und G⁷, bevor die Figur aufbricht und das Stück in einem einzigen C-Dur-Akkord endet."
+    ]}
+  ],
+  "sources": [
+    { "t": "Bach-Vereniging: Das Wohltemperierte Klavier I Nr. 1", "u": "https://www.bachvereniging.nl/en/bwv/bwv-846" },
+    { "t": "uDiscover Music: Bach’s Prelude in C major", "u": "https://www.udiscovermusic.com/classical-features/bach-prelude-c-major/" },
+    { "t": "Wikipedia: Prelude and Fugue in C major, BWV 846", "u": "https://en.wikipedia.org/wiki/Prelude_and_Fugue_in_C_major,_BWV_846" }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "sections": [
+    { "h": "Entstehung", "p": [
+      "Die Fuge entstand mit dem ersten Teil des Wohltemperierten Klaviers, den Bach 1722 als Hofkapellmeister in Köthen abschloss. Als erste der 24 Fugen ist sie zugleich Visitenkarte der Sammlung: ein Lehrstück für die „Lehr-begierige Musicalische Jugend“ und doch kunstvoll genug für Kenner."
+    ]},
+    { "h": "Was das Stück besonders macht", "p": [
+      "Die Fuge kommt fast ohne Zwischenspiele und ohne festen Kontrapunkt aus – sie lebt beinahe ausschließlich vom Thema. Das Thema hat 14 Töne: ein ruhiger Aufstieg c–d–e–f, ein schneller Zweiunddreißigstel-Schleifer und dann größere Sprünge. Die Zweiunddreißigstel kommen fast nur im Thema vor und wirken so wie ein Erkennungszeichen: Wo dieser kleine Wirbel erklingt, beginnt gerade ein Einsatz.",
+      "Ungewöhnlich ist schon die Exposition: Alt ({T1}, Dux auf c), Sopran ({T2}, Comes auf g), Tenor ({T4}, Comes auf g), Bass ({T5}, Dux auf c) – also Dux–Comes–Comes–Dux statt des üblichen Wechsels.",
+      "Danach steigert Bach die Dichte allein durch Engführungen: Die Stimmen setzen ein, bevor die vorige das Thema beendet hat, oft nur einen Schlag später. Zählt man die Einsätze, kommt man auf 24 – so viele, wie die Sammlung Tonarten hat. Ob das gewollt ist, ist offen; ebenso die Deutung der 14 Themennoten als Zahl des Namens BACH (2+1+3+8). Die niederländische Bach-Gesellschaft vermutet zudem einen Anklang an das Renaissance-Lied „L’homme armé“."
+    ]},
+    { "h": "Charakter", "p": [
+      "Gelassen und feierlich, eher schreitend als eilend. Nach dem schwebenden Präludium wirkt die Fuge wie ein ruhiges, dichtes Gespräch von vier Stimmen, das sich allmählich verdichtet. Wichtig beim Üben: Jeder Themeneinsatz soll hörbar sein, ohne dass die anderen Stimmen verschwinden – der Hörfilter und die Stimmen-Schalter in der Ansicht helfen dabei."
+    ]},
+    { "h": "Passagen zum Hinhören", "p": [
+      "{T7} Erste Engführung: Sopran beginnt auf c, der Tenor folgt nur einen Schlag später.",
+      "{T10-12} Weitere Engführungen (Bass und Alt im Abstand eines Schlages); die Musik wendet sich nach a-Moll, mit einem Einsatz auf e im Tenor ({T12}).",
+      "{T14} Kadenz nach a-Moll – der deutlichste Einschnitt der Fuge. Unmittelbar danach setzen Alt und Tenor wieder eng hintereinander ein.",
+      "{T16-17} Höhepunkt der Engführungskunst: Sopran, Alt, Tenor und Bass bringen das Thema innerhalb von gut einem Takt nacheinander – eine vierstimmige Engführung, mit Einsätzen auf c, g, a und d.",
+      "{T19-21} Engführung in a-Moll (Tenor, dann Alt), weitere Einsätze im Sopran und Tenor führen in die Dominante G-Dur.",
+      "{T24-27} Schlussteil über einem Tonika-Orgelpunkt: Der Bass hält das C bis zum Ende. Darüber erklingt das Thema noch einmal im Tenor und – zur Subdominante gewendet – im Alt auf f. Die letzten Takte sind themenfrei und lassen die Fuge ruhig ausklingen."
+    ]}
+  ],
+  "sources": [
+    { "t": "teoria.com: Analysis of Bach’s fugue BWV 846", "u": "https://teoria.com/en/articles/BWV846/" },
+    { "t": "Earsense: WTC I No. 1 – Fugue", "u": "https://www.earsense.org/Earsense/WTC/Book1/01/words.html" },
+    { "t": "Bach-Vereniging: Das Wohltemperierte Klavier I Nr. 1", "u": "https://www.bachvereniging.nl/en/bwv/bwv-846" }
+  ]
+}

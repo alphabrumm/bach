@@ -21,7 +21,7 @@ function toast(msg, ms = 2200) { const t = $('#toast'); t.textContent = msg; t.c
 
 // ---------- Ansichten ----------
 function show(id) { $$('.view').forEach(v => v.classList.toggle('show', v.id === id)); hideCards(); }
-function hideCards() { if (typeof clearChordMarks === 'function') clearChordMarks(); $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#page').style.paddingBottom = ''; }
+function hideCards() { if (typeof clearChordMarks === 'function') clearChordMarks(); $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#aboutPanel').classList.remove('show'); $('#page').style.paddingBottom = ''; }
 
 // Scroll-Bereiche nie ganz oben/unten (Safari-Wischgeste beendet sonst das Vollbild)
 function keepOffEdges(el) {
@@ -148,6 +148,7 @@ async function openPiece(id) {
   $('#pageHead').innerHTML = `<h2>${meta.title || ''}</h2><div class="meta">${[meta.keyName, meta.bwv ? 'BWV ' + meta.bwv : '', meta.voicesLabel].filter(Boolean).join(' · ')}</div>`;
   $('#score').innerHTML = '<div id="loading">Notenstecher bei der Arbeit …</div>';
   $('#secLayer').innerHTML = ''; $('#cursor').style.display = 'none'; layout = null; rendered = false;
+  $('#aboutBtn').style.display = 'none';
   try {
     const [p] = await Promise.all([fetch('pieces/' + id + '.json').then(r => { if (!r.ok) throw new Error('Stück fehlt'); return r.json(); }), initVerovio()]);
     piece = p;
@@ -157,6 +158,7 @@ async function openPiece(id) {
     VOICE_NAMES = model.voiceCount === 2 ? { 1: 'Oberstimme', 3: 'Unterstimme' } : { 1: 'Sopran', 2: 'Alt', 4: 'Tenor', 3: 'Bass' };
     loadSections(id); buildChips(); syncPanel();
     playhead = piece.pickup ? MEASURE - piece.pickup : 0;
+    loadAbout(id, meta);
     try { localStorage.setItem('bach.last', id); } catch (e) {}
     $('#scroller').scrollTop = 1;
     render(); rendered = true;
@@ -483,7 +485,7 @@ function showRangeInfo() {
 }
 function openInfo(html, onAct) {
   clearChordMarks();
-  $('#viewPanel').classList.remove('show'); const sp = $('#secPanel'); if (sp) sp.classList.remove('show');
+  $('#viewPanel').classList.remove('show'); $('#aboutPanel').classList.remove('show'); const sp = $('#secPanel'); if (sp) sp.classList.remove('show');
   $('#infoBody').innerHTML = html;
   $('#infoBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) onAct(b.dataset.act); };
   $('#info').classList.add('show');
@@ -717,7 +719,7 @@ function renderSecList() {
       <span class="nm">${sec.name}<br><i>T. ${sec.a}${sec.b !== sec.a ? '–' + sec.b : ''} · ${RATINGS[sec.rating].name}</i></span>
       <span class="tm">${fmtTime(sec.total)}</span></button>`).join('') + `<div class="small" style="margin-top:8px">Gesamt geübt: ${fmtTime(total)}</div>`;
 }
-$('#practiceBtn').onclick = () => { $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); renderSecList(); $('#secPanel').classList.toggle('show'); };
+$('#practiceBtn').onclick = () => { $('#aboutPanel').classList.remove('show'); $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); renderSecList(); $('#secPanel').classList.toggle('show'); };
 $('#secList').addEventListener('click', e => {
   const b = e.target.closest('.secitem'); if (!b) return;
   const sec = sections.find(x => x.id === b.dataset.id); $('#secPanel').classList.remove('show');
@@ -1141,7 +1143,34 @@ $('#instr').value = S.instr;
 $('#instr').onchange = () => { S.instr = $('#instr').value; save(); audio.ensure(); if (S.instr === 'grand') audio.loadSamples(); };
 
 // ---------- Ansicht-Panel ----------
-$('#viewBtn').onclick = () => { $('#info').classList.remove('show'); $('#secPanel').classList.remove('show'); $('#viewPanel').classList.toggle('show'); };
+// ---------- Über das Stück (i) ----------
+let aboutFor = null;
+async function loadAbout(id, meta) {
+  aboutFor = id;
+  let d = null;
+  try { const r = await fetch('pieces/notes/' + id + '.json'); if (r.ok) d = await r.json(); } catch (e) {}
+  if (aboutFor !== id) return;
+  $('#aboutBtn').style.display = d ? '' : 'none';
+  if (!d) return;
+  const mref = (a, b) => `<button class="mref" data-a="${a}" data-b="${b || a}">T. ${a}${b && b !== a ? '–' + b : ''}</button>`;
+  const fmt = t => t.replace(/(\(?)\{T(\d+)(?:-(\d+))?\}([),:;.]*)/g, (_, o, a, b, c) => `<span class="nw">${o}${mref(+a, b ? +b : +a)}${c}</span>`);
+  $('#aboutBody').innerHTML = `<h3>${meta.title || ''}</h3><div class="sub">${[meta.keyName, meta.bwv ? 'BWV ' + meta.bwv : ''].filter(Boolean).join(' · ')}</div>` +
+    d.sections.map(s => `<h4>${s.h}</h4>` + s.p.map(p => `<p>${fmt(p)}</p>`).join('')).join('') +
+    (d.sources && d.sources.length ? `<div class="src">Quellen: ${d.sources.map(s => `<a href="${s.u}" target="_blank" rel="noopener">${s.t}</a>`).join(' · ')}</div>` : '');
+}
+$('#aboutBtn').onclick = () => { $('#info').classList.remove('show'); $('#secPanel').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#aboutPanel').classList.toggle('show'); $('#aboutPanel').scrollTop = 0; };
+$('#aboutX').onclick = () => $('#aboutPanel').classList.remove('show');
+$('#aboutBody').addEventListener('click', e => {
+  const b = e.target.closest('.mref'); if (!b || !layout) return;
+  const off = PIECE && PIECE.pickup ? 1 : 0;   // gedruckte Taktnummer → interner Takt
+  const a = +b.dataset.a + off, z = +b.dataset.b + off;
+  $('#aboutPanel').classList.remove('show');
+  endMarkMode(); selNote = null; selRange = { a, b: z }; loopOn = false;
+  playhead = (a - 1) * MEASURE; markSelection(); updateCursor(); showRangeInfo();
+  const m = layout.measures[a]; if (m) $('#scroller').scrollTo({ top: Math.max(1, m.t + $('#page').offsetTop - 140), behavior: 'smooth' });
+});
+
+$('#viewBtn').onclick = () => { $('#aboutPanel').classList.remove('show'); $('#info').classList.remove('show'); $('#secPanel').classList.remove('show'); $('#viewPanel').classList.toggle('show'); };
 function syncPanel() {
   $$('#colSeg button').forEach(b => b.classList.toggle('act', b.dataset.c === S.col));
   $('#harmSw').classList.toggle('act', S.harm);

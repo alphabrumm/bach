@@ -202,6 +202,20 @@ input{-webkit-user-select:text;user-select:text}
 #practiceChip{background:#3f7d4f;color:#fff8ea;border-color:#3f7d4f;font-variant-numeric:tabular-nums}
 #viewPanel{top:calc(var(--safe-t) + 58px);bottom:auto;right:12px;left:auto;transform:translate(0,-10px);width:min(340px,calc(100% - 24px))}
 #viewPanel.show{transform:translate(0,0)}
+#aboutPanel{top:calc(var(--safe-t) + 58px);bottom:auto;right:12px;left:auto;transform:translate(0,-10px);width:min(560px,calc(100% - 24px));
+  max-height:calc(100% - var(--safe-t) - var(--safe-b) - 80px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+#aboutPanel.show{transform:translate(0,0)}
+#aboutBody h3{font-size:22px;font-weight:500;margin:2px 34px 2px 0;font-variant:small-caps;letter-spacing:.03em}
+#aboutBody .sub{font-style:italic;color:var(--ink2);font-size:15px;margin-bottom:6px}
+#aboutBody h4{font-size:17px;font-weight:600;font-variant:small-caps;letter-spacing:.05em;color:var(--ink2);margin:14px 0 4px;border-bottom:1px solid rgba(107,88,67,.25);padding-bottom:2px}
+#aboutBody p{font-size:17px;line-height:1.45;margin:0 0 8px;text-align:left;hyphens:auto;-webkit-hyphens:auto}
+#aboutBody .mref{display:inline-block;border:1px solid rgba(138,106,46,.55);color:#7a5a22;background:rgba(255,255,255,.35);border-radius:7px;
+  padding:0 6px;margin:0 1px;font-size:15px;font-variant-numeric:tabular-nums;line-height:1.5}
+#aboutBody .nw{white-space:nowrap}
+#aboutBody .src{font-size:13px;color:var(--ink2);margin-top:12px;line-height:1.5}
+#aboutBody .src a{color:var(--ink2)}
+.ibadge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1.5px solid currentColor;border-radius:50%;
+  font-style:italic;font-weight:600;font-size:16px;line-height:1;font-family:'EB Garamond',serif;vertical-align:-1px}
 .opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(107,88,67,.2);font-size:17px}
 .opt:last-child{border-bottom:0}
 .seg{display:flex;border:1px solid rgba(107,88,67,.45);border-radius:9px;overflow:hidden}
@@ -266,6 +280,7 @@ input{-webkit-user-select:text;user-select:text}
       <div class="spacer"></div>
       <button class="tb" id="handChip" style="display:none" title="Hörfilter aufheben"></button>
       <button class="tb" id="practiceChip" style="display:none" title="Läuft gerade"></button>
+      <button class="tb" id="aboutBtn" title="Über das Stück" style="display:none"><span class="ibadge">i</span></button>
       <button class="tb dirtyable" id="practiceBtn" title="Übe-Abschnitte">Üben</button>
       <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>
       <button class="tb fsBtn" title="Vollbild">⤢</button>
@@ -288,6 +303,8 @@ input{-webkit-user-select:text;user-select:text}
 <div class="card sheet" id="secPanel"><div class="lbl">Übe-Abschnitte</div><div id="secList"></div>
   <div class="btns" style="margin-top:10px"><button class="backupBtn dirtyable">Sichern …</button></div></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+
+<div class="card sheet" id="aboutPanel"><button class="x" id="aboutX">×</button><div id="aboutBody"></div></div>
 
 <div class="card sheet" id="viewPanel">
   <div class="opt"><span>Färbung</span>
