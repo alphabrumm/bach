@@ -128,12 +128,18 @@ class Parser {
     if (tk === '~') { const l = this.lastNotes(st); l.forEach(n => n.tieStart = true); return; }
     if (tk.startsWith('\\clef:')) { this.ctx.clefs.push({ voice: st.voice, staff: st.staff, t: st.t, clef: tk.slice(6) }); return; }
     if (tk.startsWith('\\change:')) { const n = this.staffNames[tk.slice(8)]; if (n) st.staff = n; return; }
+    if (tk === '\\transpose') {
+      const a = this.toks[this.i++], b = this.toks[this.i++];
+      const dnOf = x => { const m = /^([a-g])\w*?([',]*)$/.exec(x); return STEPS.indexOf(m[1]) + 7 * (3 + (m[2].match(/'/g) || []).length - (m[2].match(/,/g) || []).length); };
+      const old = st.transDn || 0; st.transDn = old + dnOf(b) - dnOf(a);
+      this.item(st); st.transDn = old; return;
+    }
     if (tk === '\\relative') {
       let ref = 'f';
       if (!/^[{<\\]/.test(this.toks[this.i])) ref = this.toks[this.i++];
       const m = /^([a-g])\w*?([',]*)$/.exec(ref);
       st.prev = STEPS.indexOf(m[1]) + 7 * (3 + (m[2].match(/'/g) || []).length - (m[2].match(/,/g) || []).length);
-      return this.item(st);
+      const oldRel = st.rel; st.rel = true; this.item(st); st.rel = oldRel; return;
     }
     if (tk === '\\key') { const nm = this.toks[this.i++], md = this.toks[this.i++].slice(1); this.ctx.key = this.ctx.key || parseKey(nm, md); return; }
     if (tk === '\\time') { const [n, d] = this.toks[this.i++].split('/').map(Number); this.ctx.time = this.ctx.time || { num: n, den: d }; return; }
@@ -205,9 +211,11 @@ class Parser {
   pitch(m, st) {
     const step = STEPS.indexOf(m[1]);
     const alter = { undefined: 0, is: 1, isis: 2, es: -1, eses: -2, s: -1 }[m[2]];
-    let dn = step + 7 * Math.round((st.prev - step) / 7);
+    // relativ (Bezug = vorige Note) oder absolut (c = C3, c' = C4)
+    let dn = !st.rel || st.prev == null ? step + 21 : step + 7 * Math.round((st.prev - step) / 7);
     dn += ((m[3].match(/'/g) || []).length - (m[3].match(/,/g) || []).length) * 7;
-    const oct = Math.floor(dn / 7);
+    const out = dn + (st.transDn || 0); // \transpose um ganze Oktaven
+    const oct = Math.floor(out / 7);
     return { step, alter, oct, dn, midi: 12 * (oct + 1) + SEMI[step] + alter };
   }
   note(m, st) {
@@ -242,7 +250,7 @@ class Parser {
     let ref = st.prev;
     for (const n of notes) {
       const m = /^([a-g])(isis|eses|is|es|s)?([',]*)(!?)(\??)/.exec(n);
-      const p = this.pitch([null, m[1], m[2], m[3]], { prev: ref });
+      const p = this.pitch([null, m[1], m[2], m[3]], { prev: ref, transDn: st.transDn, rel: st.rel });
       ref = p.dn; if (first == null) first = p.dn;
       if (st.skip) continue;
       const e = { type: 'note', voice: st.voice, staff: st.staff, onset: st.t, ticks, dur: st.dur[0], dots: st.dur[1],

@@ -142,7 +142,7 @@ function scaleSet(key) {
   const base = key.minor ? [0, 2, 3, 5, 7, 8, 10, 11] : [0, 2, 4, 5, 7, 9, 11];
   return new Set(base.map(x => (x + key.tonic) % 12));
 }
-function detectChord(model, from, to, key) {
+function detectChord(model, from, to, key, noLook) {
   const w = new Array(12).fill(0);
   let bass = null;
   const sub = UNIT / 2; // Unterteilung: Töne zwischen den Hauptwerten sind oft Durchgänge
@@ -174,6 +174,12 @@ function detectChord(model, from, to, key) {
     if (pcs.every(p => sc.has(p))) s += 0.12 * total;
     s *= c.prior;
     if (!best || s > best.score) best = { root: r, q: c.q, pcs, score: s, bass };
+  }
+  // Terz fehlt in diesem Schlag (z. B. Präludium C-Dur: d–a–d, das f kommt erst danach)?
+  // Dann entscheidet der nächste Schlag über Dur/Moll, sofern derselbe Grundton bleibt.
+  if (best && !noLook && w[(best.root + (CHORDS.find(c => c.q === best.q).iv[1])) % 12] === 0) {
+    const ext = detectChord(model, from, to + BEAT, key, true);
+    if (ext && ext.root === best.root) { best.q = ext.q; best.pcs = ext.pcs; }
   }
   if (best && best.q === 'dim7') {
     const cands = [0, 3, 6, 9].map(i => (best.root + i) % 12);

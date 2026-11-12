@@ -59,7 +59,6 @@ button{font-family:inherit;color:inherit;cursor:pointer}
   clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
 .book.dim{filter:saturate(.6) brightness(.72)}
 .book.dim::after{content:'in Vorbereitung';position:absolute;left:0;right:0;bottom:-30px;font-size:13px;color:#a8977b;font-style:italic}
-.book.new{background:transparent;border:2px dashed rgba(201,164,92,.4);box-shadow:none;color:#bba98c}
 
 /* ---------- Bucheinband + Seite ---------- */
 .cover{flex:1;min-height:0;display:flex;flex-direction:column;padding:calc(var(--safe-t) + 8px) 10px calc(var(--safe-b) + 10px)}
@@ -454,7 +453,7 @@ function scaleSet(key) {
   const base = key.minor ? [0, 2, 3, 5, 7, 8, 10, 11] : [0, 2, 4, 5, 7, 9, 11];
   return new Set(base.map(x => (x + key.tonic) % 12));
 }
-function detectChord(model, from, to, key) {
+function detectChord(model, from, to, key, noLook) {
   const w = new Array(12).fill(0);
   let bass = null;
   const sub = UNIT / 2; // Unterteilung: Töne zwischen den Hauptwerten sind oft Durchgänge
@@ -486,6 +485,12 @@ function detectChord(model, from, to, key) {
     if (pcs.every(p => sc.has(p))) s += 0.12 * total;
     s *= c.prior;
     if (!best || s > best.score) best = { root: r, q: c.q, pcs, score: s, bass };
+  }
+  // Terz fehlt in diesem Schlag (z. B. Präludium C-Dur: d–a–d, das f kommt erst danach)?
+  // Dann entscheidet der nächste Schlag über Dur/Moll, sofern derselbe Grundton bleibt.
+  if (best && !noLook && w[(best.root + (CHORDS.find(c => c.q === best.q).iv[1])) % 12] === 0) {
+    const ext = detectChord(model, from, to + BEAT, key, true);
+    if (ext && ext.root === best.root) { best.q = ext.q; best.pcs = ext.pcs; }
   }
   if (best && best.q === 'dim7') {
     const cands = [0, 3, 6, 9].map(i => (best.root + i) % 12);
@@ -819,7 +824,7 @@ $$('.fsBtn').forEach(b => b.addEventListener('click', () => {
 const BOOKS = [
   { id: 'inv', t: 'Inventionen & Sinfonien', s: 'BWV 772–801', c: '#2f4a3a', active: true,
     sub: 'Aufrichtige Anleitung · Köthen 1723 · BWV 772–801', h: ['Inventionen', 'Sinfonien'] },
-  { id: 'wtk1', t: 'Das Wohltemperierte Klavier', s: 'Teil I · BWV 846–869', c: '#5b2626', active: true,
+  { id: 'wtk1', t: 'Das Wohltemperierte Klavier', cover: 'Das<br>Wohl<br>Temperierte<br>Klavier', s: 'Teil I<br>BWV 846–869', c: '#5b2626', active: true,
     sub: 'Teil I · Köthen 1722 · BWV 846–869', h: ['Präludien', 'Fugen'] },
   { t: 'Französische Suiten', s: 'BWV 812–817', c: '#273956' },
   { id: 'gold', t: 'Goldberg-Variationen', s: 'BWV 988', c: '#4b3a26', active: true,
@@ -827,12 +832,11 @@ const BOOKS = [
 ];
 $('#shelf').innerHTML = BOOKS.map((b, i) => `
   <button class="book linen ${b.active ? '' : 'dim'}" style="--c:${b.c}" data-i="${i}">
-    <div class="frame"><div class="orn">❦</div><div class="t">${b.t}</div><div class="s">${b.s}</div><div class="orn">·</div></div>
+    <div class="frame"><div class="orn">❦</div><div class="t">${b.cover || b.t}</div><div class="s">${b.s}</div><div class="orn">·</div></div>
     ${b.active ? '<div class="ribbon"></div>' : ''}
-  </button>`).join('') + `<button class="book new" id="newBook"><div class="frame" style="border:0"><div class="t" style="font-size:40px">+</div><div class="s">Neues Notenbuch</div></div></button>`;
+  </button>`).join('');
 $('#shelf').addEventListener('click', e => {
   const b = e.target.closest('.book'); if (!b) return;
-  if (b.id === 'newBook') return toast('Eigene Notenbücher kommen in einer späteren Version');
   const book = BOOKS[+b.dataset.i];
   if (!book.active) return toast('Dieses Buch ist noch in Vorbereitung');
   openBook(book);
@@ -1812,14 +1816,15 @@ function playOrnamented(n, when, len, vel) {
   }
   const o = n.orn;
   const up = () => auxPitch(n, 1), down = () => auxPitch(n, -1);
-  const seq = list => { list.forEach(m => { play(m, t, dt * 1.08, vel * 0.85); t += dt; L -= dt; }); };
+  const seq = (list, f = 1) => { list.forEach(m => { play(m, t, dt * 1.08, vel * 0.85 * f); t += dt; L -= dt; }); };
   if (o === 'trill' || o === 'trillmord') {
-    if (L < 4 * dt) seq([up(), n.midi]);
+    const TR = 0.7; // echte Triller deutlich leiser
+    if (L < 4 * dt) seq([up(), n.midi], TR);
     else {
       const u = up(), tail = o === 'trillmord' ? 2 : 0;
       let k = Math.floor((L * 0.8) / dt) - tail; if (k % 2) k--; k = Math.max(2, k);
-      for (let i = 0; i < k; i++) { play(i % 2 ? n.midi : u, t, dt * 1.08, vel * (i === 0 ? 1 : 0.8)); t += dt; L -= dt; }
-      if (tail) seq([down(), n.midi]);
+      for (let i = 0; i < k; i++) { play(i % 2 ? n.midi : u, t, dt * 1.08, vel * TR * (i === 0 ? 1 : 0.8)); t += dt; L -= dt; }
+      if (tail) seq([down(), n.midi], TR);
     }
   } else if (o === 'prall') {
     seq(L < 5 * dt ? [up(), n.midi] : [up(), n.midi, up()]);

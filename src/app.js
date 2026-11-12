@@ -50,7 +50,7 @@ $$('.fsBtn').forEach(b => b.addEventListener('click', () => {
 const BOOKS = [
   { id: 'inv', t: 'Inventionen & Sinfonien', s: 'BWV 772–801', c: '#2f4a3a', active: true,
     sub: 'Aufrichtige Anleitung · Köthen 1723 · BWV 772–801', h: ['Inventionen', 'Sinfonien'] },
-  { id: 'wtk1', t: 'Das Wohltemperierte Klavier', s: 'Teil I · BWV 846–869', c: '#5b2626', active: true,
+  { id: 'wtk1', t: 'Das Wohltemperierte Klavier', cover: 'Das<br>Wohl<br>Temperierte<br>Klavier', s: 'Teil I<br>BWV 846–869', c: '#5b2626', active: true,
     sub: 'Teil I · Köthen 1722 · BWV 846–869', h: ['Präludien', 'Fugen'] },
   { t: 'Französische Suiten', s: 'BWV 812–817', c: '#273956' },
   { id: 'gold', t: 'Goldberg-Variationen', s: 'BWV 988', c: '#4b3a26', active: true,
@@ -58,12 +58,11 @@ const BOOKS = [
 ];
 $('#shelf').innerHTML = BOOKS.map((b, i) => `
   <button class="book linen ${b.active ? '' : 'dim'}" style="--c:${b.c}" data-i="${i}">
-    <div class="frame"><div class="orn">❦</div><div class="t">${b.t}</div><div class="s">${b.s}</div><div class="orn">·</div></div>
+    <div class="frame"><div class="orn">❦</div><div class="t">${b.cover || b.t}</div><div class="s">${b.s}</div><div class="orn">·</div></div>
     ${b.active ? '<div class="ribbon"></div>' : ''}
-  </button>`).join('') + `<button class="book new" id="newBook"><div class="frame" style="border:0"><div class="t" style="font-size:40px">+</div><div class="s">Neues Notenbuch</div></div></button>`;
+  </button>`).join('');
 $('#shelf').addEventListener('click', e => {
   const b = e.target.closest('.book'); if (!b) return;
-  if (b.id === 'newBook') return toast('Eigene Notenbücher kommen in einer späteren Version');
   const book = BOOKS[+b.dataset.i];
   if (!book.active) return toast('Dieses Buch ist noch in Vorbereitung');
   openBook(book);
@@ -1043,14 +1042,15 @@ function playOrnamented(n, when, len, vel) {
   }
   const o = n.orn;
   const up = () => auxPitch(n, 1), down = () => auxPitch(n, -1);
-  const seq = list => { list.forEach(m => { play(m, t, dt * 1.08, vel * 0.85); t += dt; L -= dt; }); };
+  const seq = (list, f = 1) => { list.forEach(m => { play(m, t, dt * 1.08, vel * 0.85 * f); t += dt; L -= dt; }); };
   if (o === 'trill' || o === 'trillmord') {
-    if (L < 4 * dt) seq([up(), n.midi]);
+    const TR = 0.7; // echte Triller deutlich leiser
+    if (L < 4 * dt) seq([up(), n.midi], TR);
     else {
       const u = up(), tail = o === 'trillmord' ? 2 : 0;
       let k = Math.floor((L * 0.8) / dt) - tail; if (k % 2) k--; k = Math.max(2, k);
-      for (let i = 0; i < k; i++) { play(i % 2 ? n.midi : u, t, dt * 1.08, vel * (i === 0 ? 1 : 0.8)); t += dt; L -= dt; }
-      if (tail) seq([down(), n.midi]);
+      for (let i = 0; i < k; i++) { play(i % 2 ? n.midi : u, t, dt * 1.08, vel * TR * (i === 0 ? 1 : 0.8)); t += dt; L -= dt; }
+      if (tail) seq([down(), n.midi], TR);
     }
   } else if (o === 'prall') {
     seq(L < 5 * dt ? [up(), n.midi] : [up(), n.midi, up()]);
