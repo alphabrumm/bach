@@ -16,7 +16,7 @@ const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)' };
 const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel' };
 
 // ---------- Einstellungen ----------
-const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, tempoPct: 75, instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
+const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
 let S = Object.assign({}, DEFAULTS);
 try { Object.assign(S, JSON.parse(localStorage.getItem('bach.settings') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('bach.settings', JSON.stringify(S)); } catch (e) {} };
@@ -404,6 +404,69 @@ function flashNotes(ids) {
   ids.forEach(id => { const el = document.getElementById(id); el && el.classList.add('on'); });
 }
 
+// ---------- Raumklang ----------
+// Synthetische Raumimpulsantworten: frühe Reflexionen per Spiegelquellen-Modell (Quaderraum)
+// + diffuser Nachhall mit frequenzabhängiger Abklingzeit (Höhen klingen schneller ab).
+const ROOMS = {
+  zimmer: { name: 'Zimmer', dim: [5.2, 4.1, 2.7], src: [1.6, 2.4, 1.1], mic: [3.4, 1.9, 1.2], rt: 0.42, hfRatio: 0.6, lfRatio: 1.1, pre: 0.002, wet: 0.30, dry: 0.95, order: 4 },
+  halle:  { name: 'Halle',  dim: [34, 22, 15],   src: [17, 6, 1.4],    mic: [15.5, 15, 1.6], rt: 1.9, hfRatio: 0.55, lfRatio: 1.2, pre: 0.016, wet: 0.36, dry: 0.85, order: 3 },
+  kirche: { name: 'Kirche', dim: [52, 19, 24],   src: [12, 9.5, 1.4],  mic: [24, 8.5, 1.7],  rt: 4.2, hfRatio: 0.42, lfRatio: 1.3, pre: 0.028, wet: 0.46, dry: 0.74, order: 3 },
+};
+function buildIR(ctx, P) {
+  const sr = ctx.sampleRate, len = Math.ceil(sr * (P.rt * 1.35 + 0.1));
+  const ir = ctx.createBuffer(2, len, sr);
+  const [Lx, Ly, Lz] = P.dim, V = Lx * Ly * Lz, S = 2 * (Lx * Ly + Lx * Lz + Ly * Lz);
+  const alpha = Math.min(0.9, Math.max(0.02, 0.161 * V / (S * P.rt)));
+  const R = Math.sqrt(1 - alpha), c = 343;
+  const ears = [-0.12, 0.12]; // zwei Mikrofone, leicht versetzt -> Stereobild
+  const direct = Math.hypot(P.src[0] - P.mic[0], P.src[1] - P.mic[1], P.src[2] - P.mic[2]);
+  const erEnd = Math.min(0.12, 0.02 + P.rt * 0.04);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    const mic = [P.mic[0] + ears[ch], P.mic[1], P.mic[2]];
+    // --- frühe Reflexionen ---
+    const N = P.order;
+    for (let nx = -N; nx <= N; nx++) for (let ny = -N; ny <= N; ny++) for (let nz = -N; nz <= N; nz++) {
+      for (const px of [0, 1]) for (const py of [0, 1]) for (const pz of [0, 1]) {
+        const refl = Math.abs(2 * nx - px) + Math.abs(2 * ny - py) + Math.abs(2 * nz - pz);
+        if (refl === 0 || refl > N) continue;
+        const ix = (1 - 2 * px) * P.src[0] + 2 * nx * Lx, iy = (1 - 2 * py) * P.src[1] + 2 * ny * Ly, iz = (1 - 2 * pz) * P.src[2] + 2 * nz * Lz;
+        const dist = Math.hypot(ix - mic[0], iy - mic[1], iz - mic[2]);
+        const t = P.pre + (dist - direct) / c;
+        if (t < 0 || t > erEnd) continue;
+        const amp = Math.pow(R, refl) * direct / dist * 0.9;
+        const pos = t * sr, i0 = Math.floor(pos), fr = pos - i0;
+        // Wandreflexionen dämpfen Höhen: Impuls etwas verschmiert, je öfter reflektiert
+        const spread = 1 + refl;
+        for (let k = 0; k < spread * 2 && i0 + k < len; k++) d[i0 + k] += amp * (k === 0 ? 1 - fr : 1) * Math.exp(-k / spread) / spread * 1.6;
+      }
+    }
+    // --- diffuser Nachhall in drei Bändern ---
+    const tm = erEnd * 0.6;
+    const bands = [{ rt: P.rt * P.lfRatio, lp: 300 }, { rt: P.rt, lp: 3000 }, { rt: P.rt * P.hfRatio, lp: 0 }];
+    const lowA = Math.exp(-2 * Math.PI * 300 / sr), midA = Math.exp(-2 * Math.PI * 3000 / sr);
+    let l1 = 0, l2 = 0;
+    const tailGain = 0.5 * Math.pow(R, 2);
+    for (let i = 0; i < len; i++) {
+      const t = i / sr;
+      if (t < P.pre + tm * 0.3) continue;
+      const n = Math.random() * 2 - 1;
+      l1 = (1 - lowA) * n + lowA * l1;          // tief
+      l2 = (1 - midA) * n + midA * l2;          // bis 3 kHz
+      const low = l1, mid = l2 - l1, high = n - l2;
+      const tt = t - P.pre;
+      const env = b => Math.exp(-6.91 * tt / b.rt);
+      const fadeIn = Math.min(1, (t - P.pre - tm * 0.3) / (tm * 1.2 + 0.005));
+      d[i] += tailGain * fadeIn * (low * env(bands[0]) * 1.6 + mid * env(bands[1]) + high * env(bands[2]) * 0.55);
+    }
+  }
+  // Energie normieren, damit die Räume gleich laut wirken (Mischung über wet)
+  let e = 0; for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) e += d[i] * d[i]; }
+  const g = 1 / Math.sqrt(e / 2 + 1e-9) * 0.35;
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] *= g; }
+  return ir;
+}
+
 // ---------- Audio ----------
 const audio = {
   ctx: null, out: null, buffers: {}, loading: null, waves: {},
@@ -415,17 +478,38 @@ const audio = {
       const master = ctx.createGain(); master.gain.value = 0.85;
       const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3;
       master.connect(comp); comp.connect(ctx.destination);
-      // Hall aus synthetischer Impulsantwort
-      const len = ctx.sampleRate * 2.4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
-      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
-      const conv = ctx.createConvolver(); conv.buffer = ir;
-      const wet = ctx.createGain(); wet.gain.value = 0.22;
-      this.out = ctx.createGain(); this.out.connect(master); this.out.connect(conv); conv.connect(wet); wet.connect(master);
+      // Raumklang: trocken + Faltungshall
+      this.master = master;
+      this.out = ctx.createGain();
+      this.dry = ctx.createGain(); this.wet = ctx.createGain();
+      this.out.connect(this.dry); this.dry.connect(master); this.wet.connect(master);
+      this.irCache = {};
+      this.setRoom(S.room, true);
       const b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0); // iOS entsperren
       this.makeWaves();
       if (S.instr === 'grand') this.loadSamples();
     }
     if (this.ctx.state !== 'running') this.ctx.resume();
+  },
+  async setRoom(room, instant) {
+    const ctx = this.ctx; if (!ctx) return;
+    const P = ROOMS[room] || ROOMS.halle;
+    let buf = this.irCache[room];
+    if (!buf) {
+      try { // gemessene Impulsantwort im Repo (ir/zimmer.wav …) hat Vorrang
+        const r = await fetch('ir/' + room + '.wav');
+        if (r.ok) { const ab = await r.arrayBuffer(); buf = await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)).catch(() => null); }
+      } catch (e) {}
+      if (!buf) buf = buildIR(ctx, P);
+      this.irCache[room] = buf;
+    }
+    const conv = ctx.createConvolver(); conv.normalize = false; conv.buffer = buf;
+    this.out.connect(conv); conv.connect(this.wet);
+    const t = ctx.currentTime, k = instant ? 0.001 : 0.12;
+    if (this.conv) { const old = this.conv; setTimeout(() => { try { this.out.disconnect(old); old.disconnect(); } catch (e) {} }, 400); }
+    this.conv = conv;
+    this.dry.gain.setTargetAtTime(P.dry, t, k);
+    this.wet.gain.setTargetAtTime(P.wet, t, k);
   },
   makeWaves() {
     const mk = amps => { const re = new Float32Array(amps.length + 1), im = new Float32Array(amps.length + 1); amps.forEach((a, i) => im[i + 1] = a); return this.ctx.createPeriodicWave(re, im); };
@@ -585,6 +669,7 @@ $$('.chip').forEach(c => {
   const v = +c.dataset.v; c.classList.toggle('mute', S.mute.includes(v));
   c.onclick = () => { S.mute = S.mute.includes(v) ? S.mute.filter(x => x !== v) : S.mute.concat(v); c.classList.toggle('mute', S.mute.includes(v)); save(); };
 });
+$('#roomSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.room = b.dataset.r; save(); syncPanel(); if (audio.ctx) audio.setRoom(S.room); else audio.ensure(); toast('Raum: ' + ROOMS[S.room].name); };
 $('#instr').value = S.instr;
 $('#instr').onchange = () => { S.instr = $('#instr').value; save(); audio.ensure(); if (S.instr === 'grand') audio.loadSamples(); };
 
@@ -593,6 +678,7 @@ $('#viewBtn').onclick = () => { $('#info').classList.remove('show'); $('#viewPan
 function syncPanel() {
   $$('#colSeg button').forEach(b => b.classList.toggle('act', b.dataset.c === S.col));
   $('#harmSw').classList.toggle('act', S.harm);
+  $$('#roomSeg button').forEach(b => b.classList.toggle('act', b.dataset.r === S.room));
   $('#ghostSw').classList.toggle('act', S.ghosts);
   $('#ghostCount').textContent = `(${model.notes.filter(n => n.ghost).length} Stellen)`;
   $('#sampleBase').value = S.sampleBase;
