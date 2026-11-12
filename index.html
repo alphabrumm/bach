@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2a211b">
+<title>Bach · Notenbücher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f5eddb; --paper2:#efe4cc; --ink:#2b2119; --ink2:#6b5843; --gold:#c9a45c; --gold2:#e6c886;
+  --desk:#2a211b; --v1:#9b2d2a; --v2:#2f6b4f; --v3:#2d4f86; --sel:#d08a1e; --on:#c2410c;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  --noise:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.34  0 0 0 0 0.24  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--desk);color:var(--ink);
+  font-family:'EB Garamond',Garamond,'Times New Roman',serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{font-family:inherit;color:inherit;cursor:pointer}
+.view{position:fixed;inset:0;display:none;flex-direction:column}
+.view.show{display:flex}
+.scroller{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+
+/* ---------- Leinen ---------- */
+.linen{background-color:var(--c,#2f4a3a);
+  background-image:var(--noise),
+   repeating-linear-gradient(0deg,rgba(255,255,255,.045) 0 1px,transparent 1px 3px),
+   repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 1px,transparent 1px 3px),
+   radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.08),transparent 60%);}
+
+/* ---------- Bibliothek ---------- */
+#library{background:radial-gradient(ellipse at 50% 0%,#4a3a2c 0%,#2a211b 65%)}
+.libhead{padding:calc(var(--safe-t) + 28px) 28px 6px;text-align:center;color:#eadbc0}
+.libhead h1{font-weight:500;font-size:34px;letter-spacing:.06em;margin:0;font-variant:small-caps}
+.libhead p{margin:4px 0 0;font-style:italic;color:#bba98c;font-size:17px}
+.shelf{display:flex;flex-wrap:wrap;gap:30px 26px;justify-content:center;align-items:flex-end;
+  padding:34px 24px 0;margin:10px auto 0;max-width:900px;position:relative}
+.board{height:16px;margin:0 auto 40px;max-width:940px;width:calc(100% - 20px);border-radius:3px;
+  background:linear-gradient(#6b4f37,#4a3626 60%,#2e2118);box-shadow:0 10px 18px rgba(0,0,0,.5)}
+.book{width:150px;height:222px;border:0;padding:0;position:relative;border-radius:3px 9px 9px 3px;
+  box-shadow:inset 14px 0 12px -6px rgba(0,0,0,.45),inset -2px 0 2px rgba(255,255,255,.08),4px 6px 14px rgba(0,0,0,.55);
+  transition:transform .25s ease;color:var(--gold2);text-align:center}
+.book:active{transform:translateY(-6px) scale(1.02)}
+.book .frame{position:absolute;inset:14px 12px 14px 22px;border:1px solid rgba(201,164,92,.55);border-radius:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px}
+.book .t{font-size:19px;line-height:1.15;font-variant:small-caps;letter-spacing:.04em;
+  text-shadow:0 1px 0 rgba(0,0,0,.6),0 -1px 0 rgba(255,235,190,.15)}
+.book .s{font-size:13px;font-style:italic;margin-top:8px;color:#d9bd84;opacity:.9}
+.book .orn{font-size:16px;margin:6px 0;opacity:.8}
+.book .ribbon{position:absolute;bottom:-14px;left:70%;width:10px;height:30px;background:linear-gradient(#8e1f1f,#6d1414);
+  clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
+.book.dim{filter:saturate(.6) brightness(.72)}
+.book.dim::after{content:'in Vorbereitung';position:absolute;left:0;right:0;bottom:-30px;font-size:13px;color:#a8977b;font-style:italic}
+.book.new{background:transparent;border:2px dashed rgba(201,164,92,.4);box-shadow:none;color:#bba98c}
+
+/* ---------- Bucheinband + Seite ---------- */
+.cover{flex:1;display:flex;flex-direction:column;padding:calc(var(--safe-t) + 8px) 10px calc(var(--safe-b) + 10px)}
+.topbar{display:flex;align-items:center;gap:8px;padding:4px 6px 8px;color:var(--gold2);min-height:44px}
+.topbar .title{flex:1;text-align:center;font-size:19px;font-variant:small-caps;letter-spacing:.05em;
+  text-shadow:0 1px 0 rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb{background:rgba(0,0,0,.18);border:1px solid rgba(201,164,92,.35);border-radius:10px;height:38px;min-width:42px;
+  padding:0 12px;font-size:17px;color:var(--gold2)}
+.tb:active{background:rgba(0,0,0,.35)}
+.sheet{background-color:var(--paper);background-image:var(--noise),
+  radial-gradient(ellipse at 50% 40%,transparent 55%,rgba(120,90,50,.13) 100%);
+  border-radius:3px 6px 6px 3px;box-shadow:0 3px 14px rgba(0,0,0,.45),inset 8px 0 14px -10px rgba(80,55,25,.5)}
+.page-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
+.toc{padding:28px 30px 60px;max-width:860px;margin:0 auto}
+.toc h2{font-weight:500;font-size:30px;text-align:center;margin:6px 0 0;font-variant:small-caps;letter-spacing:.05em}
+.toc .sub{text-align:center;font-style:italic;color:var(--ink2);margin-bottom:14px}
+.rule{text-align:center;color:var(--gold);letter-spacing:.6em;margin:8px 0 18px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px 34px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.cols h3{font-weight:500;font-variant:small-caps;letter-spacing:.06em;border-bottom:1px solid rgba(107,88,67,.35);margin:6px 0 6px;padding-bottom:4px}
+.entry{display:flex;align-items:baseline;gap:8px;padding:7px 2px;font-size:18px;border:0;background:none;width:100%;text-align:left;color:var(--ink)}
+.entry .dots{flex:1;border-bottom:1px dotted rgba(107,88,67,.5);transform:translateY(-4px)}
+.entry .bwv{font-size:15px;color:var(--ink2);font-style:italic}
+.entry.off{color:#a3937c}
+.entry.on{font-weight:600}
+.entry.on .num::before{content:'❧ ';color:var(--v1)}
+
+/* ---------- Notenblatt ---------- */
+#scoreView .cover{padding-bottom:0}
+#scroller{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:4px 4px 0 0;touch-action:pan-y}
+#page{position:relative;margin:0 auto;min-height:100%;padding:18px 0 140px;touch-action:pan-y}
+#pageHead{text-align:center;padding:10px 20px 0}
+#pageHead h2{margin:0;font-weight:500;font-size:28px;font-variant:small-caps;letter-spacing:.05em}
+#pageHead .meta{font-style:italic;color:var(--ink2);font-size:16px}
+#score{position:relative}
+#score svg{display:block;margin:0 auto;color:var(--ink);fill:var(--ink)}
+#score svg g.note.sel,#score svg g.note.sel *{fill:var(--sel)!important;color:var(--sel)!important}
+#score svg g.note.on,#score svg g.note.on *{fill:var(--on)!important;color:var(--on)!important}
+.col-voices #score svg g.v1,.col-voices #score svg g.v1 *{fill:var(--v1);color:var(--v1)}
+.col-voices #score svg g.v2,.col-voices #score svg g.v2 *{fill:var(--v2);color:var(--v2)}
+.col-voices #score svg g.v3,.col-voices #score svg g.v3 *{fill:var(--v3);color:var(--v3)}
+.col-hands #score svg g.st1,.col-hands #score svg g.st1 *{fill:var(--v1);color:var(--v1)}
+.col-hands #score svg g.st2,.col-hands #score svg g.st2 *{fill:var(--v3);color:var(--v3)}
+#score svg g.ghost,#score svg g.ghost *{fill:#b07a3a!important;color:#b07a3a!important;opacity:.75}
+#score svg g.harm text,#score svg g.harm tspan{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
+#cursor{position:absolute;width:2px;margin-left:-1px;background:var(--on);opacity:.75;border-radius:1px;pointer-events:none;display:none;
+  box-shadow:0 0 6px rgba(194,65,12,.5)}
+#msel{position:absolute;pointer-events:none;display:none;background:rgba(208,138,30,.10);border:1px solid rgba(208,138,30,.45);border-radius:4px}
+#loading{text-align:center;padding:60px 20px;font-style:italic;color:var(--ink2);font-size:19px}
+#hint{position:absolute;left:0;right:0;text-align:center;font-style:italic;color:var(--ink2);font-size:15px;bottom:110px;opacity:.8}
+
+/* ---------- Transport ---------- */
+#transport{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+  padding:8px 10px calc(var(--safe-b) + 8px);background:linear-gradient(rgba(42,33,27,.0),rgba(42,33,27,.25));color:var(--gold2)}
+#transport .grp{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.22);border:1px solid rgba(201,164,92,.3);border-radius:12px;padding:4px 6px}
+#transport button{background:none;border:0;color:var(--gold2);font-size:20px;min-width:40px;height:38px;border-radius:9px}
+#transport button:active,#transport button.act{background:rgba(201,164,92,.22)}
+#play{font-size:24px!important;min-width:52px!important}
+.chip{font-size:15px!important;min-width:34px!important;font-weight:600}
+.chip.mute{opacity:.35;text-decoration:line-through}
+.chip[data-v="1"]{color:#e7a39f!important}.chip[data-v="2"]{color:#9fd3b8!important}.chip[data-v="3"]{color:#a9c1ec!important}
+#tempo{width:110px;accent-color:var(--gold)}
+#tempoVal{font-size:15px;min-width:54px;text-align:center}
+select{font-family:inherit;font-size:16px;background:transparent;color:var(--gold2);border:0;height:36px}
+select option{color:#000}
+
+/* ---------- Info-Karte & Ansicht ---------- */
+.card{position:fixed;left:50%;transform:translate(-50%,20px);bottom:calc(var(--safe-b) + 70px);width:min(560px,calc(100% - 24px));
+  opacity:0;pointer-events:none;transition:.22s ease;z-index:20;padding:16px 18px 14px}
+.card.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.card .x{position:absolute;right:8px;top:6px;border:0;background:none;font-size:24px;color:var(--ink2);width:40px;height:40px}
+.card h4{margin:0 34px 2px 0;font-weight:500;font-size:24px}
+.card .lbl{font-variant:small-caps;letter-spacing:.05em;color:var(--ink2);font-size:15px}
+.card .row{display:flex;gap:10px;margin:6px 0;font-size:17px;line-height:1.3}
+.card .row .k{min-width:96px;color:var(--ink2);font-style:italic}
+.card .beats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.card .beat{border:1px solid rgba(107,88,67,.3);border-radius:8px;padding:6px 4px;text-align:center;font-size:16px}
+.card .beat b{display:block;font-size:19px;font-weight:600}
+.card .beat i{color:var(--ink2);font-size:14px}
+.card .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.card .btns button{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;padding:7px 12px;font-size:16px}
+.card .ghostnote{background:rgba(176,122,58,.12);border-left:3px solid #b07a3a;padding:6px 10px;border-radius:4px;margin-top:6px;font-size:16px}
+.card .vdot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;transform:translateY(-1px)}
+#viewPanel{top:calc(var(--safe-t) + 58px);bottom:auto;right:12px;left:auto;transform:translate(0,-10px);width:min(340px,calc(100% - 24px))}
+#viewPanel.show{transform:translate(0,0)}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(107,88,67,.2);font-size:17px}
+.opt:last-child{border-bottom:0}
+.seg{display:flex;border:1px solid rgba(107,88,67,.45);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:none;padding:6px 10px;font-size:15px}
+.seg button.act{background:var(--ink);color:var(--paper)}
+.sw{width:50px;height:30px;border-radius:15px;border:0;background:#cbbd9f;position:relative}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw.act{background:var(--v2)}.sw.act::after{left:23px}
+.opt input[type=text]{width:100%;font-family:inherit;font-size:14px;padding:6px;border:1px solid rgba(107,88,67,.4);border-radius:6px;background:rgba(255,255,255,.5)}
+.small{font-size:13px;color:var(--ink2);font-style:italic}
+#toast{position:fixed;left:50%;top:calc(var(--safe-t) + 64px);transform:translateX(-50%);background:rgba(42,33,27,.92);color:var(--gold2);
+  padding:8px 16px;border-radius:10px;font-size:16px;opacity:0;transition:.3s;pointer-events:none;z-index:40}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- Bibliothek -->
+<section id="library" class="view show">
+  <div class="scroller" id="libScroll">
+    <div class="libhead">
+      <h1>Meine Notenbücher</h1>
+      <p>Johann Sebastian Bach</p>
+    </div>
+    <div class="shelf" id="shelf"></div>
+    <div class="board"></div>
+    <div style="height:40px"></div>
+  </div>
+  <div style="position:fixed;right:14px;top:calc(var(--safe-t) + 12px)"><button class="tb fsBtn" title="Vollbild">⤢</button></div>
+</section>
+
+<!-- Inhaltsverzeichnis -->
+<section id="bookView" class="view linen" style="--c:#2f4a3a">
+  <div class="cover">
+    <div class="topbar">
+      <button class="tb" id="tocBack">‹ Regal</button>
+      <div class="title">Inventionen &amp; Sinfonien</div>
+      <button class="tb fsBtn" title="Vollbild">⤢</button>
+    </div>
+    <div class="page-scroll sheet" id="tocScroll">
+      <div class="toc">
+        <h2>Inventionen &amp; Sinfonien</h2>
+        <div class="sub">Aufrichtige Anleitung · Köthen 1723 · BWV 772–801</div>
+        <div class="rule">❦ ❦ ❦</div>
+        <div class="cols">
+          <div><h3>Inventionen</h3><div id="tocInv"></div></div>
+          <div><h3>Sinfonien</h3><div id="tocSin"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Notenblatt -->
+<section id="scoreView" class="view linen" style="--c:#2f4a3a">
+  <div class="cover">
+    <div class="topbar">
+      <button class="tb" id="scoreBack">‹ Inhalt</button>
+      <div class="title">Sinfonia 2 · c-Moll</div>
+      <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>
+      <button class="tb fsBtn" title="Vollbild">⤢</button>
+    </div>
+    <div id="scroller" class="sheet">
+      <div id="page">
+        <div id="pageHead"><h2>Sinfonia 2</h2><div class="meta">c-Moll · BWV 788 · 3 Stimmen</div></div>
+        <div id="score"><div id="loading">Notenstecher bei der Arbeit …</div></div>
+        <div id="msel"></div>
+        <div id="cursor"></div>
+        <div class="small" style="text-align:center;padding:24px 20px 0">Notentext: Mutopia Project (Public Domain) · Notensatz: Verovio · Flügel: Salamander Grand Piano von Alexander Holm (CC-BY 3.0)</div>
+      </div>
+    </div>
+    <div id="transport">
+      <div class="grp">
+        <button id="toStart" title="Zum Anfang">⏮</button>
+        <button id="play" title="Abspielen">▶</button>
+        <button id="loopBtn" title="Takt-Schleife">⟲</button>
+      </div>
+      <div class="grp">
+        <span style="font-size:15px;padding-left:4px">♩.</span>
+        <input type="range" id="tempo" min="24" max="80" step="1">
+        <span id="tempoVal"></span>
+      </div>
+      <div class="grp">
+        <button class="chip" data-v="1" title="Sopran stumm/an">S</button>
+        <button class="chip" data-v="2" title="Alt stumm/an">A</button>
+        <button class="chip" data-v="3" title="Bass stumm/an">B</button>
+      </div>
+      <div class="grp">
+        <select id="instr">
+          <option value="grand">Konzertflügel</option>
+          <option value="piano">Flügel (synthetisch)</option>
+          <option value="harpsichord">Cembalo (synthetisch)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
+
+<div class="card sheet" id="viewPanel">
+  <div class="opt"><span>Färbung</span>
+    <div class="seg" id="colSeg"><button data-c="none">aus</button><button data-c="voices">Stimmen</button><button data-c="hands">Hände</button></div></div>
+  <div class="opt"><span>Harmonik im Notenbild</span><button class="sw" id="harmSw"></button></div>
+  <div class="opt"><span>Geister-Vorzeichen <span class="small" id="ghostCount"></span></span><button class="sw" id="ghostSw"></button></div>
+  <div class="opt"><span>Notengröße</span><div class="seg"><button id="zoomOut">A−</button><button id="zoomIn">A+</button></div></div>
+  <div class="opt" style="display:block"><div>Klangquelle Flügel (Samples)</div>
+    <input type="text" id="sampleBase" spellcheck="false" autocapitalize="off">
+    <div class="small">Ordner mit A1.mp3, C2.mp3, Ds2.mp3, Fs2.mp3 … (Salamander-Benennung). Standard: Tone.js-Salamander.</div></div>
+  <div class="small" style="margin-top:6px">Harmonik ist eine automatische Schätzung pro punktierter Viertel und kann irren.</div>
+</div>
+<div id="toast"></div>
+
+<script>
+const DATA = [[{"type":"note","onset":0,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":6,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":12,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":18,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":24,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":30,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":36,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":54,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":72,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":78,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":84,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":90,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":96,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":102,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80},{"type":"note","onset":108,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":0,"oct":4,"midi":71},{"type":"note","onset":114,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80},{"type":"note","onset":120,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":126,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":132,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":138,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":144,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":162,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieStart":true},{"type":"note","onset":180,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieEnd":true},{"type":"note","onset":186,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":0,"oct":4,"midi":71},{"type":"note","onset":192,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":198,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":204,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":210,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":216,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":222,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":228,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":234,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":240,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":246,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":252,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79,"tieStart":true},{"type":"note","onset":288,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79,"tieEnd":true},{"type":"note","onset":300,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":306,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":318,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":324,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"rest","onset":336,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":342,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1},{"type":"rest","onset":360,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":366,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"note","onset":372,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":378,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":390,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":396,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"rest","onset":408,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":414,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1},{"type":"note","onset":432,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75,"trill":true,"tieStart":true},{"type":"note","onset":468,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75,"tieStart":true,"tieEnd":true},{"type":"note","onset":504,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75,"tieEnd":true},{"type":"note","onset":516,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":522,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74,"tieStart":true},{"type":"note","onset":540,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74,"tieEnd":true},{"type":"note","onset":546,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":549,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":552,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":555,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":558,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":561,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":564,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":567,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":570,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":573,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":576,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":1,"oct":4,"midi":66},{"type":"note","onset":582,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":5,"midi":81},{"type":"note","onset":585,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":588,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":1,"oct":5,"midi":78},{"type":"note","onset":591,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":0,"oct":5,"midi":76},{"type":"note","onset":594,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":597,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":600,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":603,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":606,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":609,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":612,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":648,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":666,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":3,"alter":1,"oct":5,"midi":78},{"type":"note","onset":684,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"rest","onset":702,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1},{"type":"rest","onset":720,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1},{"type":"note","onset":756,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":762,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":768,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":774,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":780,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":786,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":792,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":810,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":828,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":834,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69,"forced":true},{"type":"note","onset":840,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":846,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":852,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":858,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":864,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":1,"oct":4,"midi":66},{"type":"note","onset":870,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":876,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":882,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":888,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":894,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":900,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"rest","onset":912,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":918,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1},{"type":"rest","onset":936,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1},{"type":"note","onset":939,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":942,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":945,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":948,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":951,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":954,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":957,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":960,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":963,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":966,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":969,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":972,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"rest","onset":984,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":990,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1},{"type":"rest","onset":1008,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1},{"type":"note","onset":1011,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1014,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1017,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":1020,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1023,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1026,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1029,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1032,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1035,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1038,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1041,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69,"forced":true,"cautionary":true},{"type":"note","onset":1044,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"rest","onset":1056,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":1062,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":1068,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"note","onset":1074,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1080,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"rest","onset":1092,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":1098,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":1104,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"note","onset":1110,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1116,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"rest","onset":1128,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":1134,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":1140,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"note","onset":1146,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1152,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1164,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1170,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70,"tieStart":true},{"type":"note","onset":1188,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70,"tieEnd":true},{"type":"note","onset":1200,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1206,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieStart":true},{"type":"note","onset":1224,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieEnd":true},{"type":"note","onset":1242,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70,"tieStart":true},{"type":"note","onset":1260,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70,"tieEnd":true},{"type":"note","onset":1266,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69,"forced":true},{"type":"note","onset":1272,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1278,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":3,"alter":1,"oct":4,"midi":66},{"type":"note","onset":1296,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1302,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1308,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1314,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1320,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1326,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":-1,"oct":5,"midi":73},{"type":"note","onset":1332,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":1,"alter":-1,"oct":5,"midi":73,"tieStart":true},{"type":"note","onset":1368,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":-1,"oct":5,"midi":73,"tieEnd":true},{"type":"note","onset":1374,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1380,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":0,"oct":5,"midi":76},{"type":"note","onset":1386,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":0,"oct":5,"midi":76},{"type":"note","onset":1392,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1398,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":1404,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80,"tieStart":true},{"type":"note","onset":1440,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80,"tieStart":true,"tieEnd":true},{"type":"note","onset":1458,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80,"tieEnd":true},{"type":"note","onset":1461,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":5,"midi":82},{"type":"note","onset":1464,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80},{"type":"note","onset":1467,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":1470,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":1473,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1476,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1479,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1482,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1485,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1488,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1491,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1494,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1497,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1500,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":1503,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":1506,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80},{"type":"note","onset":1509,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":5,"midi":82},{"type":"note","onset":1512,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":6,"midi":84},{"type":"note","onset":1515,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":5,"midi":82},{"type":"note","onset":1518,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80},{"type":"note","onset":1521,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":1524,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":1527,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1530,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":1533,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":1536,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80},{"type":"note","onset":1539,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":6,"midi":84},{"type":"note","onset":1542,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":5,"midi":82},{"type":"note","onset":1545,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80},{"type":"note","onset":1548,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79,"tieStart":true},{"type":"note","onset":1584,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79,"tieEnd":true},{"type":"note","onset":1596,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":1602,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":1608,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1614,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":6,"midi":84},{"type":"note","onset":1620,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77,"tieStart":true},{"type":"note","onset":1656,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77,"tieEnd":true},{"type":"note","onset":1668,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":1674,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":1680,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1686,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":0,"oct":5,"midi":83},{"type":"note","onset":1692,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75,"tieStart":true},{"type":"note","onset":1728,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75,"tieEnd":true},{"type":"note","onset":1734,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80},{"type":"note","onset":1737,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":1740,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":1743,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1746,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1749,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1752,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1755,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1758,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":0,"oct":4,"midi":71},{"type":"note","onset":1761,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":1764,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":6,"alter":0,"oct":4,"midi":71},{"type":"note","onset":1782,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1800,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77,"tieStart":true},{"type":"note","onset":1836,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77,"tieEnd":true},{"type":"note","onset":1848,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75,"tieStart":true},{"type":"note","onset":1854,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75,"tieEnd":true},{"type":"note","onset":1860,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1866,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":1872,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":6,"alter":0,"oct":4,"midi":71},{"type":"note","onset":1890,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1908,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1920,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieStart":true},{"type":"note","onset":1926,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieEnd":true},{"type":"note","onset":1938,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":0,"oct":4,"midi":71},{"type":"note","onset":1944,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1956,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":1962,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1974,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1980,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"rest","onset":1992,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":1998,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1},{"type":"rest","onset":2016,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"rest","onset":2022,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1},{"type":"note","onset":2028,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":2034,"ticks":12,"dur":4,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":2046,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":2052,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":2055,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":2058,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":2061,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":2064,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":2067,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":2070,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":2073,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":5,"alter":-1,"oct":5,"midi":80},{"type":"note","onset":2076,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":2079,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":2082,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":2085,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":2088,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"trill":true,"tieStart":true},{"type":"note","onset":2124,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieStart":true,"tieEnd":true},{"type":"note","onset":2160,"ticks":18,"dur":4,"dots":1,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieEnd":true},{"type":"note","onset":2178,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":0,"oct":4,"midi":71},{"type":"note","onset":2184,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":2190,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":2196,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67,"tieStart":true},{"type":"note","onset":2232,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":4,"midi":67,"tieEnd":true},{"type":"note","onset":2235,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":6,"alter":0,"oct":4,"midi":71},{"type":"note","onset":2238,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":2241,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":2244,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":2247,"ticks":3,"dur":16,"dots":0,"voice":1,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":2250,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":4,"alter":0,"oct":5,"midi":79},{"type":"note","onset":2256,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":2262,"ticks":6,"dur":8,"dots":0,"voice":1,"staff":1,"step":6,"alter":0,"oct":4,"midi":71},{"type":"note","onset":2268,"ticks":36,"dur":2,"dots":1,"voice":1,"staff":1,"step":0,"alter":0,"oct":5,"midi":72}],[{"type":"space","onset":0,"ticks":24,"dur":2,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":24,"ticks":48,"dur":1,"dots":0,"voice":2,"staff":1},{"type":"space","onset":72,"ticks":24,"dur":2,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":96,"ticks":48,"dur":1,"dots":0,"voice":2,"staff":1},{"type":"note","onset":144,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":150,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":156,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":162,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":168,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":174,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":180,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":198,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":216,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":222,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":228,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":234,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":240,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":246,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":252,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":0,"oct":3,"midi":59},{"type":"note","onset":258,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":264,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":270,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":276,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":282,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":288,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"rest","onset":300,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":306,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"rest","onset":324,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1},{"type":"note","onset":327,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":330,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":333,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":336,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":339,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":342,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":345,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":348,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":351,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":354,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":357,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":360,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"rest","onset":372,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":378,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"rest","onset":396,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1},{"type":"note","onset":399,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":402,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":405,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":408,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":411,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":414,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":417,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":420,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":423,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":426,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":429,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":432,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"rest","onset":444,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":450,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":456,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":462,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":468,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70,"tieStart":true},{"type":"note","onset":486,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70,"tieEnd":true},{"type":"note","onset":498,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":504,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68,"tieStart":true},{"type":"note","onset":522,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68,"tieEnd":true},{"type":"note","onset":534,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":540,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"rest","onset":552,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":558,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"rest","onset":576,"ticks":36,"dur":2,"dots":1,"voice":2,"staff":1},{"type":"rest","onset":612,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"note","onset":630,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":648,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":1,"oct":4,"midi":66},{"type":"note","onset":654,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":0,"oct":4,"midi":64},{"type":"note","onset":660,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":666,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":672,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":678,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69,"forced":true},{"type":"note","onset":684,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":690,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":696,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":702,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":708,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":714,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":720,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":726,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":732,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":738,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":744,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":750,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":1,"oct":4,"midi":66},{"type":"note","onset":756,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"rest","onset":768,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":774,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"rest","onset":786,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":792,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"rest","onset":804,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":810,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":3,"alter":1,"oct":4,"midi":66},{"type":"rest","onset":822,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":828,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"rest","onset":840,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":846,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"rest","onset":864,"ticks":36,"dur":2,"dots":1,"voice":2,"staff":1},{"type":"note","onset":900,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":906,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":912,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":918,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":924,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":930,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":936,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"rest","onset":948,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":954,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"note","onset":972,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":978,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":984,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69,"forced":true},{"type":"note","onset":990,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":996,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1002,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1008,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"rest","onset":1020,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":1026,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"note","onset":1044,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1050,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":1056,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1062,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1068,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1074,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1080,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1086,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":1092,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1098,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1104,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1110,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1116,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1122,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1128,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1134,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1140,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1146,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":1152,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"rest","onset":1164,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":1170,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":1176,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":1182,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1188,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63,"tieStart":true},{"type":"note","onset":1206,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63,"tieEnd":true},{"type":"note","onset":1218,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":1224,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":1,"oct":4,"midi":66},{"type":"note","onset":1230,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1233,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1236,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1239,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":1242,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1245,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":4,"midi":69},{"type":"note","onset":1248,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1251,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1254,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63,"forced":true},{"type":"note","onset":1257,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1260,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63,"tieStart":true},{"type":"note","onset":1278,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63,"tieEnd":true},{"type":"note","onset":1284,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":1290,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1296,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"rest","onset":1308,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":1314,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"rest","onset":1332,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":1338,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":1344,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1350,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1362,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1368,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":2,"alter":0,"oct":4,"midi":64},{"type":"rest","onset":1380,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":1386,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"rest","onset":1404,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1},{"type":"note","onset":1407,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":5,"midi":77},{"type":"note","onset":1410,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1413,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":-1,"oct":5,"midi":73},{"type":"note","onset":1416,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1419,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1422,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":1425,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1428,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":1431,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1434,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1437,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1440,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62,"forced":true},{"type":"note","onset":1446,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":1452,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1458,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1464,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1470,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":1476,"ticks":36,"dur":2,"dots":1,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68,"tieStart":true},{"type":"note","onset":1512,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68,"tieEnd":true},{"type":"note","onset":1518,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1524,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1530,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1536,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":1542,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1548,"ticks":36,"dur":2,"dots":1,"voice":2,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75,"tieStart":true},{"type":"note","onset":1584,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75,"tieEnd":true},{"type":"note","onset":1590,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieStart":true},{"type":"note","onset":1602,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieEnd":true},{"type":"note","onset":1614,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":5,"midi":75},{"type":"note","onset":1620,"ticks":36,"dur":2,"dots":1,"voice":2,"staff":1,"step":1,"alter":0,"oct":5,"midi":74,"tieStart":true},{"type":"note","onset":1656,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":5,"midi":74,"tieEnd":true},{"type":"note","onset":1662,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":6,"alter":0,"oct":4,"midi":71,"tieStart":true},{"type":"note","onset":1674,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":6,"alter":0,"oct":4,"midi":71,"tieEnd":true},{"type":"note","onset":1686,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":5,"midi":74},{"type":"note","onset":1692,"ticks":36,"dur":2,"dots":1,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieStart":true},{"type":"note","onset":1728,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72,"tieEnd":true},{"type":"rest","onset":1740,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":1746,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"rest","onset":1764,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":1770,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1773,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1776,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1779,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1782,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1785,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1788,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1791,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":3,"midi":58,"forced":true},{"type":"note","onset":1794,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":3,"midi":56,"forced":true},{"type":"note","onset":1797,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":1800,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":1812,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68,"tieStart":true},{"type":"note","onset":1818,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68,"tieEnd":true},{"type":"note","onset":1824,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1830,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":0,"oct":4,"midi":71,"tieStart":true},{"type":"note","onset":1836,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":0,"oct":4,"midi":71,"tieEnd":true},{"type":"note","onset":1842,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1848,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":5,"midi":72},{"type":"note","onset":1854,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68,"forced":true,"tieStart":true},{"type":"note","onset":1872,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68,"tieEnd":true},{"type":"note","onset":1878,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1884,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1890,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1896,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1902,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1908,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1920,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1926,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1944,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"rest","onset":1956,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":1962,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1},{"type":"rest","onset":1980,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1},{"type":"note","onset":1983,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1986,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1989,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1992,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1995,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1998,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":2001,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":2004,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":2007,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":2010,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":2013,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":2016,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":2022,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":2028,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":2034,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":2040,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":2046,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":2052,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":2058,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":2064,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":2070,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":2076,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":2082,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":6,"alter":-1,"oct":4,"midi":70},{"type":"note","onset":2088,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"rest","onset":2106,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":2112,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":2118,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":2124,"ticks":18,"dur":4,"dots":1,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67,"tieStart":true},{"type":"note","onset":2142,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67,"tieEnd":true},{"type":"note","onset":2154,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":2160,"ticks":36,"dur":2,"dots":1,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65,"tieStart":true},{"type":"note","onset":2196,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65,"tieEnd":true},{"type":"note","onset":2199,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":2202,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":2205,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":6,"alter":0,"oct":3,"midi":59},{"type":"note","onset":2208,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":2211,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":2214,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":2217,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":2220,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":2223,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":2226,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":2229,"ticks":3,"dur":16,"dots":0,"voice":2,"staff":1,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":2232,"ticks":12,"dur":4,"dots":0,"voice":2,"staff":1,"step":4,"alter":0,"oct":4,"midi":67},{"type":"rest","onset":2244,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"rest","onset":2250,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1},{"type":"note","onset":2256,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":2262,"ticks":6,"dur":8,"dots":0,"voice":2,"staff":1,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":2268,"ticks":36,"dur":2,"dots":1,"voice":2,"staff":1,"step":2,"alter":0,"oct":4,"midi":64}],[{"type":"note","onset":0,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":18,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":36,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":0,"oct":3,"midi":59},{"type":"note","onset":42,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":48,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":54,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":60,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":66,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":72,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":84,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":90,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56,"forced":true},{"type":"note","onset":102,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":108,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":120,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":126,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":6,"alter":0,"oct":3,"midi":59},{"type":"note","onset":138,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":144,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"rest","onset":156,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":162,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2},{"type":"rest","onset":180,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2},{"type":"space","onset":216,"ticks":24,"dur":2,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":240,"ticks":48,"dur":1,"dots":0,"voice":3,"staff":2},{"type":"note","onset":288,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":294,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":300,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":306,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":312,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":318,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":324,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"rest","onset":342,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2},{"type":"note","onset":360,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":366,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":372,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":378,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":384,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":390,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":396,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"rest","onset":414,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2},{"type":"note","onset":432,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":438,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":444,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":450,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":456,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":462,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":468,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":474,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":480,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":486,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":492,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":498,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":504,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":510,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":516,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":522,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":528,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":534,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":540,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":558,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":576,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":594,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":3,"alter":1,"oct":3,"midi":54},{"type":"note","onset":612,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":618,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":624,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":630,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":636,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":642,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":648,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":666,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":684,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":690,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":696,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":702,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":708,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":714,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63,"forced":true},{"type":"note","onset":720,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":1,"oct":3,"midi":54},{"type":"note","onset":726,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":732,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":738,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":744,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":750,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":756,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":774,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55,"tieStart":true},{"type":"note","onset":792,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55,"tieEnd":true},{"type":"note","onset":798,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":1,"oct":3,"midi":54},{"type":"note","onset":804,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":810,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":816,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":822,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":828,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":834,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":840,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":846,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":852,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":858,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":864,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":870,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":876,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":882,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":888,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":894,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":1,"oct":3,"midi":54},{"type":"note","onset":900,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":912,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":918,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":930,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":936,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"rest","onset":948,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":954,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2},{"type":"rest","onset":972,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":978,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"note","onset":984,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":990,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":1002,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":1008,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"rest","onset":1020,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":1026,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2},{"type":"note","onset":1044,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46,"trill":true,"tieStart":true},{"type":"note","onset":1080,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46,"tieStart":true,"tieEnd":true},{"type":"note","onset":1116,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46,"tieEnd":true},{"type":"note","onset":1134,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45,"tieStart":true},{"type":"note","onset":1152,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45,"tieEnd":true},{"type":"note","onset":1158,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":1161,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1164,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"note","onset":1167,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45},{"type":"note","onset":1170,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1173,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45},{"type":"note","onset":1176,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1179,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":2,"midi":41},{"type":"note","onset":1182,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":2,"midi":39},{"type":"note","onset":1185,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":2,"midi":38},{"type":"note","onset":1188,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":2,"midi":36},{"type":"note","onset":1194,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":1197,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":1200,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1203,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"note","onset":1206,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45},{"type":"note","onset":1209,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"note","onset":1212,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45},{"type":"note","onset":1215,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1218,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":1,"oct":2,"midi":42},{"type":"note","onset":1221,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":0,"oct":2,"midi":40},{"type":"note","onset":1224,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":1,"alter":0,"oct":2,"midi":38},{"type":"rest","onset":1242,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":1248,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2},{"type":"note","onset":1251,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1254,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45},{"type":"note","onset":1257,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"note","onset":1260,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1263,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"note","onset":1266,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1269,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":1272,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":1275,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1278,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":1281,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":1284,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":1287,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1290,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"note","onset":1293,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45},{"type":"note","onset":1296,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"rest","onset":1308,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":1314,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2},{"type":"rest","onset":1332,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"note","onset":1338,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":1341,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56,"forced":true},{"type":"note","onset":1344,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":1347,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53,"forced":true},{"type":"note","onset":1350,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":0,"oct":3,"midi":52},{"type":"note","onset":1353,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":1356,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":0,"oct":3,"midi":52},{"type":"note","onset":1359,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50,"forced":true},{"type":"note","onset":1362,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1365,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"note","onset":1368,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":2,"midi":44},{"type":"note","onset":1371,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":1374,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":0,"oct":3,"midi":52},{"type":"note","onset":1377,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":1380,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1383,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"note","onset":1386,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":2,"midi":44},{"type":"note","onset":1389,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":2,"midi":46},{"type":"note","onset":1392,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":2,"midi":44},{"type":"note","onset":1395,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1398,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":2,"midi":41},{"type":"note","onset":1401,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":0,"oct":2,"midi":40},{"type":"note","onset":1404,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":2,"midi":41},{"type":"rest","onset":1416,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":1422,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2},{"type":"rest","onset":1440,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2},{"type":"rest","onset":1476,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":1482,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"note","onset":1488,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1494,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1506,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1512,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1524,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":4,"midi":68},{"type":"note","onset":1530,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":4,"midi":67},{"type":"note","onset":1542,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1548,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1551,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":1554,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":1557,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":1560,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1563,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1566,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1569,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":4,"midi":65},{"type":"note","onset":1572,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1575,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1578,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1581,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":1584,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56,"tieStart":true},{"type":"note","onset":1620,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56,"tieEnd":true},{"type":"note","onset":1623,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":1626,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":1629,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":1632,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":0,"oct":3,"midi":59},{"type":"note","onset":1635,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1638,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1641,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":4,"midi":63},{"type":"note","onset":1644,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1647,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1650,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":0,"oct":3,"midi":59},{"type":"note","onset":1653,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":1656,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55,"tieStart":true},{"type":"note","onset":1692,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55,"tieEnd":true},{"type":"note","onset":1695,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":1698,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":1701,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":1704,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":1707,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":0,"oct":3,"midi":59},{"type":"note","onset":1710,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1713,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":4,"midi":62},{"type":"note","onset":1716,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":1719,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"note","onset":1722,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":1725,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":1728,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53,"tieStart":true},{"type":"note","onset":1764,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53,"tieEnd":true},{"type":"note","onset":1782,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51,"tieStart":true},{"type":"note","onset":1800,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51,"tieEnd":true},{"type":"note","onset":1803,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":1806,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":1809,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":1812,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":1815,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1818,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":0,"oct":2,"midi":47},{"type":"note","onset":1821,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1824,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":6,"alter":0,"oct":2,"midi":47},{"type":"note","onset":1827,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45},{"type":"note","onset":1830,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1833,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":2,"midi":41},{"type":"note","onset":1836,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":2,"alter":-1,"oct":2,"midi":39},{"type":"note","onset":1854,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":3,"alter":0,"oct":2,"midi":41},{"type":"note","onset":1872,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1890,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2,"step":5,"alter":0,"oct":2,"midi":45},{"type":"note","onset":1908,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":0,"oct":2,"midi":47},{"type":"note","onset":1914,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1920,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1926,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":2,"midi":44},{"type":"note","onset":1932,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":2,"midi":41},{"type":"note","onset":1938,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1944,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1950,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":1956,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":1962,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":1968,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1974,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":1980,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":1986,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":1992,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":1998,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":2004,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":2010,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":2016,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":6,"alter":-1,"oct":3,"midi":58},{"type":"rest","onset":2028,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2},{"type":"rest","onset":2034,"ticks":18,"dur":4,"dots":1,"voice":3,"staff":2},{"type":"rest","onset":2052,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2},{"type":"note","onset":2088,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":2094,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":2100,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":2106,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":-1,"oct":3,"midi":56},{"type":"note","onset":2112,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":2118,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":2124,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":2130,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":2136,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":2142,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":2148,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":2154,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":4,"midi":60},{"type":"note","onset":2160,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":2166,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":2172,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":2178,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":2184,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":5,"alter":0,"oct":3,"midi":57},{"type":"note","onset":2190,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":6,"alter":0,"oct":3,"midi":59},{"type":"note","onset":2196,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51,"tieStart":true},{"type":"note","onset":2232,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51,"tieEnd":true},{"type":"note","onset":2235,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":2238,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":3,"alter":0,"oct":3,"midi":53},{"type":"note","onset":2241,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":2,"alter":-1,"oct":3,"midi":51},{"type":"note","onset":2244,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":1,"alter":0,"oct":3,"midi":50},{"type":"note","onset":2247,"ticks":3,"dur":16,"dots":0,"voice":3,"staff":2,"step":0,"alter":0,"oct":3,"midi":48},{"type":"note","onset":2250,"ticks":12,"dur":4,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":3,"midi":55},{"type":"note","onset":2262,"ticks":6,"dur":8,"dots":0,"voice":3,"staff":2,"step":4,"alter":0,"oct":2,"midi":43},{"type":"note","onset":2268,"ticks":36,"dur":2,"dots":1,"voice":3,"staff":2,"step":0,"alter":0,"oct":2,"midi":36}]];
+</script>
+<script>
+// ===== Musikalische Analyse + MEI-Erzeugung (läuft im Browser und in Node) =====
+const MEASURE = 72, BEAT = 18; // Ticks: Ganze = 48, 12/8-Takt = 72, punktierte Viertel = 18
+const STEP_NAMES = 'cdefgab';
+const KEY_ALTER = { 6: -1, 2: -1, 5: -1 }; // c-Moll: b, e, a erniedrigt (step-Index)
+
+function buildModel(voicesRaw) {
+  const notes = [], events = [];
+  voicesRaw.forEach((evs, vi) => {
+    let k = 0;
+    evs.forEach(e => {
+      const o = Object.assign({}, e);
+      o.id = (e.type === 'note' ? 'n' : e.type === 'rest' ? 'r' : 's') + (vi + 1) + '_' + (k++);
+      o.measure = Math.floor(e.onset / MEASURE) + 1;
+      o.pos = e.onset % MEASURE;
+      if (o.staff == null) o.staff = vi === 2 ? 2 : 1;
+      o.layerStaff = vi === 2 ? 2 : 1;
+      events.push(o);
+      if (o.type === 'note') { o.pc = ((o.midi % 12) + 12) % 12; notes.push(o); }
+    });
+  });
+  // Haltebogen-Ketten: Gesamtdauer für die Wiedergabe
+  const byVoice = [1, 2, 3].map(v => notes.filter(n => n.voice === v).sort((a, b) => a.onset - b.onset));
+  byVoice.forEach(list => {
+    list.forEach((n, i) => { n.prev = list[i - 1] || null; n.next = list[i + 1] || null; });
+    list.forEach(n => {
+      if (n.tieEnd) return;
+      let total = n.ticks, cur = n;
+      while (cur.tieStart && cur.next) { cur = cur.next; total += cur.ticks; }
+      n.playTicks = total;
+    });
+  });
+  const measures = Math.max(...events.map(e => e.measure));
+  return { notes, events, measures, byVoice };
+}
+
+// ---------- Tonart pro Takt (Krumhansl-Kessler + Viterbi-Glättung) ----------
+const KK_MAJ = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+const KK_MIN = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+function corr(a, b) {
+  const ma = a.reduce((s, x) => s + x, 0) / 12, mb = b.reduce((s, x) => s + x, 0) / 12;
+  let n = 0, da = 0, db = 0;
+  for (let i = 0; i < 12; i++) { n += (a[i] - ma) * (b[i] - mb); da += (a[i] - ma) ** 2; db += (b[i] - mb) ** 2; }
+  return da && db ? n / Math.sqrt(da * db) : 0;
+}
+function pcHist(notes, from, to) {
+  const h = new Array(12).fill(0);
+  for (const n of notes) {
+    const s = Math.max(n.onset, from), e = Math.min(n.onset + n.ticks, to);
+    if (e > s) h[n.pc] += e - s;
+  }
+  return h;
+}
+function analyzeKeys(model) {
+  const M = model.measures, scores = [];
+  for (let m = 1; m <= M; m++) {
+    const h = new Array(12).fill(0);
+    [[m - 1, 0.4], [m, 1], [m + 1, 0.4]].forEach(([mm, w]) => {
+      if (mm < 1 || mm > M) return;
+      pcHist(model.notes, (mm - 1) * MEASURE, mm * MEASURE).forEach((x, i) => h[i] += w * x);
+    });
+    const row = [];
+    for (let t = 0; t < 12; t++) {
+      const rot = p => p.map((_, i) => p[(i - t + 12) % 12]);
+      row.push(corr(h, rot(KK_MAJ)), corr(h, rot(KK_MIN)));
+    }
+    scores.push(row); // Index: t*2 + (0=Dur,1=Moll)
+  }
+  // Viterbi: Tonartwechsel kosten etwas, damit die Anzeige nicht flackert
+  const K = 24, PEN = 0.22;
+  let best = scores[0].map((s, k) => s + (k === 1 ? 0.3 : 0)); // Start: c-Moll bevorzugen
+  const back = [];
+  for (let m = 1; m < M; m++) {
+    const nb = [], bk = [];
+    for (let k = 0; k < K; k++) {
+      let bv = -1e9, bi = 0;
+      for (let j = 0; j < K; j++) { const v = best[j] - (j === k ? 0 : PEN); if (v > bv) { bv = v; bi = j; } }
+      nb.push(bv + scores[m][k]); bk.push(bi);
+    }
+    best = nb; back.push(bk);
+  }
+  let k = 1; // Ende: Tonika c-Moll erzwingen ist zu stark – Maximum nehmen
+  k = best.indexOf(Math.max(...best));
+  const path = [k];
+  for (let m = M - 2; m >= 0; m--) { k = back[m][k]; path.unshift(k); }
+  return path.map(k => ({ tonic: Math.floor(k / 2), minor: k % 2 === 1 }));
+}
+
+// ---------- Akkorde pro Zählzeit ----------
+const CHORDS = [
+  { q: 'maj', iv: [0, 4, 7], prior: 1.0 },
+  { q: 'min', iv: [0, 3, 7], prior: 1.0 },
+  { q: 'dim', iv: [0, 3, 6], prior: 0.85 },
+  { q: 'dom7', iv: [0, 4, 7, 10], prior: 0.97, sev: 10 },
+  { q: 'dim7', iv: [0, 3, 6, 9], prior: 0.9, sev: 9 },
+  { q: 'hdim7', iv: [0, 3, 6, 10], prior: 0.82, sev: 10 },
+  { q: 'min7', iv: [0, 3, 7, 10], prior: 0.75, sev: 10 },
+];
+function scaleSet(key) {
+  const base = key.minor ? [0, 2, 3, 5, 7, 8, 10, 11] : [0, 2, 4, 5, 7, 9, 11];
+  return new Set(base.map(x => (x + key.tonic) % 12));
+}
+function detectChord(model, from, to, key) {
+  const w = new Array(12).fill(0);
+  let bass = null;
+  const sounding = model.notes.filter(n => n.onset < to && n.onset + n.ticks > from);
+  for (const n of sounding) {
+    const s = Math.max(n.onset, from), e = Math.min(n.onset + n.ticks, to);
+    let x = e - s;
+    if (n.onset < from) x *= 0.75;             // gehaltener Ton zählt etwas weniger
+    if (n.onset === from) x *= 1.4;            // Ton auf der Zählzeit zählt mehr
+    if (n.ticks <= 3 && n.onset % 6 !== 0) x *= 0.6; // Sechzehntel zwischen den Achteln: oft Durchgang
+    w[n.pc] += x;
+  }
+  const early = sounding.filter(n => n.onset < from + 7);
+  if (early.length) bass = early.reduce((a, b) => (b.midi < a.midi ? b : a)).pc;
+  const total = w.reduce((a, b) => a + b, 0);
+  if (!total) return null;
+  const sc = scaleSet(key);
+  let best = null;
+  for (let r = 0; r < 12; r++) for (const c of CHORDS) {
+    const pcs = c.iv.map(i => (i + r) % 12);
+    if (c.sev != null && w[(r + c.sev) % 12] < total * 0.06) continue;
+    const third = (r + c.iv[1]) % 12;
+    let s = 0;
+    pcs.forEach(p => s += w[p]);
+    for (let p = 0; p < 12; p++) if (!pcs.includes(p)) s -= 0.75 * w[p];
+    if (w[r] === 0) s -= 0.35 * total;
+    if (w[third] === 0) s -= 0.3 * total;
+    if (bass === r) s += 0.18 * total;
+    if (pcs.every(p => sc.has(p))) s += 0.12 * total;
+    s *= c.prior;
+    if (!best || s > best.score) best = { root: r, q: c.q, pcs, score: s, bass };
+  }
+  // Verminderter Septakkord ist symmetrisch: Grundton als Leitton deuten
+  if (best && best.q === 'dim7') {
+    const cands = [0, 3, 6, 9].map(i => (best.root + i) % 12);
+    const lt = (key.tonic + 11) % 12;
+    let r = cands.find(c => c === lt);
+    if (r == null) r = cands.find(c => (c - key.tonic + 12) % 12 === 6); // vii°7/V
+    if (r == null) r = cands.find(c => sc.has((c + 1) % 12));
+    if (r != null) { best.root = r; best.pcs = [0, 3, 6, 9].map(i => (i + r) % 12); }
+  }
+  return best;
+}
+
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+function romanFor(ch, key) {
+  const iv = (ch.root - key.tonic + 12) % 12;
+  const maj = { 0: [0, ''], 1: [1, '♭'], 2: [1, ''], 3: [2, '♭'], 4: [2, ''], 5: [3, ''], 6: [3, '♯'], 7: [4, ''], 8: [5, '♭'], 9: [5, ''], 10: [6, '♭'], 11: [6, ''] };
+  const min = { 0: [0, ''], 1: [1, '♭'], 2: [1, ''], 3: [2, ''], 4: [2, '♯'], 5: [3, ''], 6: [3, '♯'], 7: [4, ''], 8: [5, ''], 9: [5, '♯'], 10: [6, ''], 11: [6, '♯'] };
+  let [deg, acc] = (key.minor ? min : maj)[iv];
+  if (key.minor && iv === 11) acc = ''; // Leitton-Akkord vii° ohne Vorzeichen
+  let r = ROMAN[deg];
+  const lower = ['min', 'dim', 'dim7', 'hdim7', 'min7'].includes(ch.q);
+  if (lower) r = r.toLowerCase();
+  const suf = { maj: '', min: '', dim: '°', dom7: '7', dim7: '°7', hdim7: 'ø7', min7: '7' }[ch.q];
+  return acc + r + suf;
+}
+function isDiatonic(ch, key) { const sc = scaleSet(key); return ch.pcs.every(p => sc.has(p)); }
+function chordRoman(ch, key) {
+  if (ch.root === key.tonic) return romanFor(ch, key) + (key.minor && ch.q === 'maj' ? ' (picardische Terz)' : '');
+  if (!isDiatonic(ch, key)) {
+    // Zwischendominante: (V oder V7) einer leitereigenen Stufe ≠ I
+    if (ch.q === 'maj' || ch.q === 'dom7') {
+      const target = (ch.root + 5) % 12;
+      const tIv = (target - key.tonic + 12) % 12;
+      if (tIv !== 0 && scaleSet(key).has(target)) {
+        const tq = diatonicQuality(target, key);
+        return (ch.q === 'dom7' ? 'V7' : 'V') + '/' + romanFor({ root: target, q: tq }, key);
+      }
+    }
+    if (ch.q === 'dim7' || ch.q === 'dim') {
+      const target = (ch.root + 1) % 12;
+      const tIv = (target - key.tonic + 12) % 12;
+      if (tIv !== 0 && scaleSet(key).has(target)) {
+        return 'vii' + (ch.q === 'dim7' ? '°7' : '°') + '/' + romanFor({ root: target, q: diatonicQuality(target, key) }, key);
+      }
+    }
+  }
+  return romanFor(ch, key);
+}
+function diatonicQuality(root, key) {
+  const sc = scaleSet(key);
+  const nat = key.minor ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11];
+  const nat12 = new Set(nat.map(x => (x + key.tonic) % 12));
+  const third = [3, 4].find(i => nat12.has((root + i) % 12));
+  const fifth = [6, 7].find(i => nat12.has((root + i) % 12));
+  if (third === 4) return 'maj';
+  if (fifth === 6) return 'dim';
+  return 'min';
+}
+
+// ---------- Deutsche Namen ----------
+const PC_NAMES_FLAT = ['c', 'des', 'd', 'es', 'e', 'f', 'ges', 'g', 'as', 'a', 'b', 'h'];
+const PC_NAMES_SHARP = ['c', 'cis', 'd', 'dis', 'e', 'f', 'fis', 'g', 'gis', 'a', 'ais', 'h'];
+function germanStepName(step, alter) {
+  const L = STEP_NAMES[step];
+  if (alter === 0) return L === 'b' ? 'h' : L;
+  if (alter === 1) return (L === 'b' ? 'h' : L) + 'is';
+  if (alter === 2) return (L === 'b' ? 'h' : L) + 'isis';
+  if (alter === -1) return { b: 'b', e: 'es', a: 'as' }[L] || L + 'es';
+  if (alter === -2) return { b: 'heses', e: 'eses', a: 'asas' }[L] || L + 'eses';
+}
+function helmholtz(n) {
+  let s = germanStepName(n.step, n.alter);
+  const o = n.oct;
+  if (o >= 4) return s + "'".repeat(o - 3);
+  if (o === 3) return s;
+  s = s[0].toUpperCase() + s.slice(1);
+  if (o === 2) return s;
+  return s + ','.repeat(2 - o);
+}
+function pcSpelling(pc, model, from, to) {
+  const n = model.notes.find(n => n.pc === pc && n.onset < to && n.onset + n.ticks > from);
+  if (n) return germanStepName(n.step, n.alter);
+  return [1, 3, 8, 10].includes(pc) ? PC_NAMES_FLAT[pc] : PC_NAMES_SHARP[pc];
+}
+function keyName(key) {
+  const majN = ['C', 'Des', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
+  const minN = ['c', 'cis', 'd', 'es', 'e', 'f', 'fis', 'g', 'gis', 'a', 'b', 'h'];
+  return key.minor ? minN[key.tonic] + '-Moll' : majN[key.tonic] + '-Dur';
+}
+function keyShort(key) {
+  const majN = ['C', 'Des', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
+  const minN = ['c', 'cis', 'd', 'es', 'e', 'f', 'fis', 'g', 'gis', 'a', 'b', 'h'];
+  return key.minor ? minN[key.tonic] : majN[key.tonic];
+}
+function chordName(ch, model, from, to) {
+  let r = pcSpelling(ch.root, model, from, to);
+  const upper = ['maj', 'dom7'].includes(ch.q);
+  r = upper ? r[0].toUpperCase() + r.slice(1) : r;
+  const suf = { maj: '', min: '', dim: '°', dom7: '7', dim7: '°7', hdim7: 'ø7', min7: '7' }[ch.q];
+  return r + suf;
+}
+const QUALITY_TEXT = { maj: 'Dur-Dreiklang', min: 'Moll-Dreiklang', dim: 'verminderter Dreiklang', dom7: 'Dominantseptakkord', dim7: 'verminderter Septakkord', hdim7: 'halbverminderter Septakkord', min7: 'Moll-Septakkord' };
+
+function analyzeHarmony(model) {
+  const keys = analyzeKeys(model);
+  const beats = [];
+  for (let m = 1; m <= model.measures; m++) {
+    for (let b = 0; b < 4; b++) {
+      const from = (m - 1) * MEASURE + b * BEAT, to = from + BEAT;
+      const key = keys[m - 1];
+      const ch = detectChord(model, from, to, key);
+      if (ch) {
+        ch.roman = chordRoman(ch, key);
+        ch.name = chordName(ch, model, from, to);
+        ch.quality = QUALITY_TEXT[ch.q];
+      }
+      beats.push({ measure: m, beat: b, from, to, key, chord: ch });
+    }
+  }
+  return { keys, beats };
+}
+
+// Rolle einer Note im Akkord ihrer Zählzeit
+function noteRole(n, harmony) {
+  const bt = harmony.beats[Math.floor(n.onset / BEAT)];
+  if (!bt || !bt.chord) return { text: 'keine Akkordschätzung' };
+  const ch = bt.chord;
+  const iv = (n.pc - ch.root + 12) % 12;
+  if (ch.pcs.includes(n.pc)) {
+    const name = iv === 0 ? 'Grundton' : (iv === 3 || iv === 4) ? 'Terz' : (iv === 6 || iv === 7) ? 'Quinte' : 'Septime';
+    return { chordTone: true, text: name + ' des Akkords' };
+  }
+  const p = n.prev && n.prev.onset + n.prev.ticks === n.onset ? n.prev : null;
+  const q = n.next && n.onset + n.ticks === n.next.onset ? n.next : null;
+  const d1 = p ? n.midi - p.midi : null, d2 = q ? q.midi - n.midi : null;
+  const step = d => d != null && Math.abs(d) >= 1 && Math.abs(d) <= 2;
+  const strong = n.onset % BEAT === 0;
+  if (strong && step(d2) && (p && (p.midi === n.midi || step(d1)))) return { text: 'Vorhalt (auf der Zählzeit, löst sich stufenweise auf)' };
+  if (step(d1) && step(d2) && Math.sign(d1) === Math.sign(d2)) return { text: 'Durchgangston' };
+  if (step(d1) && step(d2) && Math.sign(d1) !== Math.sign(d2)) return { text: 'Wechselnote (Nebennote)' };
+  if (step(d2)) return { text: 'akkordfremd, löst sich stufenweise auf' };
+  return { text: 'akkordfremder Ton' };
+}
+
+// ---------- Vorzeichen: geschrieben / takt-gültig ("Geister") ----------
+function computeAccidentals(model) {
+  for (let m = 1; m <= model.measures; m++) {
+    for (const staff of [1, 2]) {
+      const list = model.notes.filter(n => n.measure === m && n.staff === staff).sort((a, b) => a.onset - b.onset || a.voice - b.voice);
+      const state = {};
+      for (const n of list) {
+        const k = n.step + ':' + n.oct;
+        const cur = k in state ? state[k] : (KEY_ALTER[n.step] || 0);
+        n.showAcc = false; n.ghost = false;
+        if (n.tieEnd) { continue; }
+        if (n.alter !== cur || n.forced || n.cautionary) n.showAcc = true;
+        else if (k in state && n.alter !== (KEY_ALTER[n.step] || 0)) n.ghost = true; // gilt nur wegen eines früheren Vorzeichens im Takt
+        state[k] = n.alter;
+      }
+    }
+  }
+}
+
+// ---------- MEI ----------
+const ACC = { '-2': 'ff', '-1': 'f', '0': 'n', '1': 's', '2': 'x' };
+function buildMEI(model, harmony, opts) {
+  const out = [];
+  out.push('<?xml version="1.0" encoding="UTF-8"?>');
+  out.push('<mei xmlns="http://www.music-encoding.org/ns/mei" meiversion="4.0.1"><meiHead><fileDesc><titleStmt><title>Sinfonia 2</title></titleStmt><pubStmt/></fileDesc></meiHead>');
+  out.push('<music><body><mdiv><score>');
+  out.push('<scoreDef meter.count="12" meter.unit="8" key.sig="3f"><staffGrp symbol="brace" bar.thru="true">');
+  out.push('<staffDef n="1" lines="5" clef.shape="G" clef.line="2"/><staffDef n="2" lines="5" clef.shape="F" clef.line="4"/>');
+  out.push('</staffGrp></scoreDef><section>');
+  const beamId = { n: 0 };
+  for (let m = 1; m <= model.measures; m++) {
+    out.push(`<measure n="${m}" xml:id="m${m}"${m === model.measures ? ' right="end"' : ''}>`);
+    const layers = [[1, 1, 1], [1, 2, 2], [2, 1, 3]]; // staff, layer, voice
+    let curStaff = 0;
+    for (const [st, ly, v] of layers) {
+      if (st !== curStaff) { if (curStaff) out.push('</staff>'); out.push(`<staff n="${st}">`); curStaff = st; }
+      out.push(`<layer n="${ly}">`);
+      const evs = model.events.filter(e => e.voice === v && e.measure === m).sort((a, b) => a.onset - b.onset);
+      // Balken pro punktierter Viertel
+      const groups = []; let g = null;
+      evs.forEach(e => {
+        const beamable = e.type === 'note' && e.dur >= 8;
+        const beat = Math.floor(e.pos / BEAT);
+        const fits = Math.floor((e.pos + e.ticks - 1) / BEAT) === beat;
+        if (beamable && fits && g && g.beat === beat) g.items.push(e);
+        else { g = beamable && fits ? { beat, items: [e] } : null; groups.push(g || { items: [e], single: true }); }
+      });
+      for (const grp of groups) {
+        const beam = !grp.single && grp.items.length > 1;
+        if (beam) out.push(`<beam xml:id="b${v}_${beamId.n++}" type="v${v}">`);
+        for (const e of grp.items) out.push(eventXML(e, opts));
+        if (beam) out.push('</beam>');
+      }
+      out.push('</layer>');
+    }
+    out.push('</staff>');
+    // Ornamente
+    model.notes.filter(n => n.measure === m && n.trill).forEach(n => out.push(`<trill startid="#${n.id}" place="above"/>`));
+    // Harmonik
+    if (opts.harm) {
+      for (let b = 0; b < 4; b++) {
+        const bt = harmony.beats[(m - 1) * 4 + b];
+        if (!bt.chord) continue;
+        const prev = harmony.beats[(m - 1) * 4 + b - 1];
+        const keyChanged = !prev || prev.key.tonic !== bt.key.tonic || prev.key.minor !== bt.key.minor;
+        if (!keyChanged && prev && prev.chord && prev.chord.roman === bt.chord.roman) continue;
+        const txt = (keyChanged ? keyShort(bt.key) + ': ' : '') + bt.chord.roman;
+        out.push(`<harm xml:id="h${m}_${b}" staff="2" tstamp="${1 + b * 3}" place="below">${esc(txt)}</harm>`);
+      }
+    }
+    out.push('</measure>');
+  }
+  out.push('</section></score></mdiv></body></music></mei>');
+  return out.join('');
+}
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function eventXML(e, opts) {
+  const d = `dur="${e.dur}"${e.dots ? ` dots="${e.dots}"` : ''}`;
+  if (e.type === 'space') return `<space xml:id="${e.id}" ${d}/>`;
+  if (e.type === 'rest') return `<rest xml:id="${e.id}" ${d}/>`;
+  let a = `<note xml:id="${e.id}" pname="${STEP_NAMES[e.step]}" oct="${e.oct}" ${d}`;
+  if (e.staff !== e.layerStaff) a += ` staff="${e.staff}"`;
+  if (e.tieStart && e.tieEnd) a += ' tie="m"'; else if (e.tieStart) a += ' tie="i"'; else if (e.tieEnd) a += ' tie="t"';
+  let inner = '';
+  if (e.showAcc) {
+    if (e.cautionary) inner = `<accid accid="${ACC[e.alter]}" func="caution" enclose="paren"/>`;
+    else a += ` accid="${ACC[e.alter]}"`;
+  } else {
+    if (e.alter !== 0) a += ` accid.ges="${ACC[e.alter]}"`;
+    if (opts.ghosts && e.ghost) inner = `<accid xml:id="ga_${e.id}" accid="${ACC[e.alter]}" func="edit" enclose="paren"/>`;
+  }
+  return inner ? a + '>' + inner + '</note>' : a + '/>';
+}
+
+
+</script>
+<script>
+// ===================== App =====================
+(function () {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+// ---------- Modell & Analyse ----------
+const model = buildModel(DATA);
+computeAccidentals(model);
+const harmony = analyzeHarmony(model);
+const evById = new Map(model.events.map(e => [e.id, e]));
+const playable = model.notes.filter(n => !n.tieEnd).sort((a, b) => a.onset - b.onset || a.voice - b.voice);
+const TOTAL = model.measures * MEASURE;
+const VOICE_NAMES = { 1: 'Sopran', 2: 'Alt', 3: 'Bass' };
+const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)' };
+const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel' };
+
+// ---------- Einstellungen ----------
+const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, bpm: 46, instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
+let S = Object.assign({}, DEFAULTS);
+try { Object.assign(S, JSON.parse(localStorage.getItem('bach.settings') || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem('bach.settings', JSON.stringify(S)); } catch (e) {} };
+
+function toast(msg, ms = 2200) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms); }
+
+// ---------- Ansichten ----------
+function show(id) { $$('.view').forEach(v => v.classList.toggle('show', v.id === id)); hideCards(); }
+function hideCards() { $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); }
+
+// Scroll-Bereiche nie ganz oben/unten (Safari-Wischgeste beendet sonst das Vollbild)
+function keepOffEdges(el) {
+  const fix = () => {
+    const max = el.scrollHeight - el.clientHeight;
+    if (max < 4) return;
+    if (el.scrollTop <= 0) el.scrollTop = 1;
+    else if (el.scrollTop >= max) el.scrollTop = max - 1;
+  };
+  el.addEventListener('scroll', fix, { passive: true });
+  el.addEventListener('touchstart', fix, { passive: true });
+  setTimeout(fix, 300);
+}
+['#libScroll', '#tocScroll', '#scroller'].forEach(s => keepOffEdges($(s)));
+
+$$('.fsBtn').forEach(b => b.addEventListener('click', () => {
+  const d = document, el = d.documentElement;
+  const inFs = d.fullscreenElement || d.webkitFullscreenElement;
+  try {
+    if (inFs) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
+    else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+  } catch (e) { toast('Vollbild wird hier nicht unterstützt'); }
+}));
+
+// ---------- Bibliothek ----------
+const BOOKS = [
+  { id: 'inv', t: 'Inventionen & Sinfonien', s: 'BWV 772–801', c: '#2f4a3a', active: true },
+  { t: 'Das Wohltemperierte Klavier', s: 'Teil I · BWV 846–869', c: '#5b2626' },
+  { t: 'Französische Suiten', s: 'BWV 812–817', c: '#273956' },
+  { t: 'Goldberg-Variationen', s: 'BWV 988', c: '#4b3a26' },
+];
+$('#shelf').innerHTML = BOOKS.map((b, i) => `
+  <button class="book linen ${b.active ? '' : 'dim'}" style="--c:${b.c}" data-i="${i}">
+    <div class="frame"><div class="orn">❦</div><div class="t">${b.t}</div><div class="s">${b.s}</div><div class="orn">·</div></div>
+    ${b.active ? '<div class="ribbon"></div>' : ''}
+  </button>`).join('') + `<button class="book new" id="newBook"><div class="frame" style="border:0"><div class="t" style="font-size:40px">+</div><div class="s">Neues Notenbuch</div></div></button>`;
+$('#shelf').addEventListener('click', e => {
+  const b = e.target.closest('.book'); if (!b) return;
+  if (b.id === 'newBook') return toast('Eigene Notenbücher kommen in einer späteren Version');
+  const book = BOOKS[+b.dataset.i];
+  if (!book.active) return toast('Dieses Buch ist noch in Vorbereitung');
+  show('bookView');
+});
+
+// ---------- Inhalt ----------
+const KEYS = ['C-Dur', 'c-Moll', 'D-Dur', 'd-Moll', 'Es-Dur', 'E-Dur', 'e-Moll', 'F-Dur', 'f-Moll', 'G-Dur', 'g-Moll', 'A-Dur', 'a-Moll', 'B-Dur', 'h-Moll'];
+const tocEntry = (kind, i, bwv, on) => `<button class="entry ${on ? 'on' : 'off'}" ${on ? 'data-open="788"' : ''}>
+  <span class="num">${kind} ${i + 1}</span><span>${KEYS[i]}</span><span class="dots"></span><span class="bwv">BWV ${bwv}</span></button>`;
+$('#tocInv').innerHTML = KEYS.map((k, i) => tocEntry('Inventio', i, 772 + i, false)).join('');
+$('#tocSin').innerHTML = KEYS.map((k, i) => tocEntry('Sinfonia', i, 787 + i, i === 1)).join('');
+$('#bookView').addEventListener('click', e => {
+  const en = e.target.closest('.entry'); if (!en) return;
+  if (en.dataset.open) { show('scoreView'); ensureRendered(); }
+  else toast('Dieses Stück ist noch nicht im Buch');
+});
+$('#tocBack').onclick = () => show('library');
+$('#scoreBack').onclick = () => { stopPlayback(); show('bookView'); };
+
+// ---------- Verovio ----------
+let tk = null, verovioReady = null;
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+}
+function initVerovio() {
+  if (verovioReady) return verovioReady;
+  const urls = ['https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js',
+    'https://cdn.jsdelivr.net/npm/verovio@4.3.1/dist/verovio-toolkit-wasm.js'];
+  verovioReady = (async () => {
+    for (const u of urls) {
+      try {
+        await loadScript(u);
+        if (!window.verovio) continue;
+        await new Promise(res => {
+          const m = verovio.module;
+          if (m.calledRun || (m.asm && m._malloc)) return res();
+          const prev = m.onRuntimeInitialized;
+          m.onRuntimeInitialized = () => { prev && prev(); res(); };
+          setTimeout(res, 15000);
+        });
+        tk = new verovio.toolkit();
+        return tk;
+      } catch (e) { console.warn('Verovio-Quelle fehlgeschlagen', u, e); }
+    }
+    throw new Error('Verovio konnte nicht geladen werden');
+  })();
+  return verovioReady;
+}
+
+let rendered = false;
+async function ensureRendered() {
+  if (rendered) return;
+  try { await initVerovio(); render(); rendered = true; }
+  catch (e) { $('#loading').textContent = 'Der Notenstecher (Verovio) konnte nicht geladen werden. Bitte Internetverbindung prüfen.'; }
+}
+
+let layout = null;
+function render() {
+  const pageEl = $('#page');
+  const w = Math.min($('#scroller').clientWidth, 1100);
+  pageEl.style.width = w + 'px';
+  const scale = Math.round(S.zoom * Math.max(28, Math.min(48, w / 19)));
+  const mei = buildMEI(model, harmony, { harm: S.harm, ghosts: S.ghosts });
+  tk.setOptions({
+    pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale,
+    breaks: 'auto', header: 'none', footer: 'none',
+    pageMarginLeft: 40, pageMarginRight: 40, pageMarginTop: 30, pageMarginBottom: 40,
+    spacingSystem: S.harm ? 10 : 6, svgViewBox: false,
+  });
+  tk.loadData(mei);
+  let svg = '';
+  const pc = tk.getPageCount();
+  for (let p = 1; p <= pc; p++) svg += tk.renderToSVG(p, {});
+  $('#score').innerHTML = svg;
+  decorate();
+  requestAnimationFrame(() => { computeLayout(); updateCursor(); markSelection(); });
+}
+
+function decorate() {
+  const root = $('#score');
+  for (const e of model.events) {
+    if (e.type === 'space') continue;
+    const el = document.getElementById(e.id);
+    if (el) el.classList.add('v' + e.voice, 'st' + e.staff);
+    if (e.ghost) { const g = document.getElementById('ga_' + e.id); if (g) g.classList.add('ghost'); }
+  }
+  root.querySelectorAll('g.beam').forEach(b => { const m = /^b(\d)_/.exec(b.id); if (m) b.classList.add('v' + m[1], 'st' + (m[1] === '3' ? 2 : 1)); });
+  $('#scoreView').classList.remove('col-voices', 'col-hands');
+  if (S.col !== 'none') $('#scoreView').classList.add('col-' + S.col);
+}
+
+// Positionen der Noten / Systeme / Takte für Antippen und Scrubbing
+function computeLayout() {
+  const pr = $('#page').getBoundingClientRect();
+  const rel = r => ({ l: r.left - pr.left, r: r.right - pr.left, t: r.top - pr.top, b: r.bottom - pr.top });
+  const systems = $$('#score g.system').map(s => rel(s.getBoundingClientRect()));
+  const sysEls = $$('#score g.system');
+  const measures = {};
+  $$('#score g.measure').forEach(m => {
+    const n = +m.id.slice(1); if (!n) return;
+    // Takt-Rechteck: Systemlinien-Bereich (ohne Harmonik-Text darunter)
+    const staves = m.querySelectorAll('g.staff');
+    let r = rel(m.getBoundingClientRect());
+    if (staves.length) { const a = rel(staves[0].getBoundingClientRect()), b = rel(staves[staves.length - 1].getBoundingClientRect()); r = { l: r.l, r: r.r, t: a.t, b: b.b }; }
+    measures[n] = Object.assign(r, { sys: sysEls.indexOf(m.closest('g.system')) });
+  });
+  const heads = [];
+  for (const e of model.events) {
+    if (e.type === 'space') continue;
+    const el = document.getElementById(e.id); if (!el) continue;
+    const h = el.querySelector('.notehead') || el;
+    const r = rel(h.getBoundingClientRect());
+    if (!r.r && !r.l) continue;
+    heads.push({ e, x: (r.l + r.r) / 2, y: (r.t + r.b) / 2 });
+  }
+  // Zeitachse je System: (t, x)-Stützpunkte
+  const sysPts = systems.map(() => []);
+  const firstX = new Map();
+  heads.forEach(h => { if (h.e.staff !== h.e.layerStaff) return; const k = h.e.onset; if (!firstX.has(k) || h.x < firstX.get(k)) firstX.set(k, h.x); });
+  for (let n = 1; n <= model.measures; n++) {
+    const m = measures[n]; if (!m) continue;
+    const pts = sysPts[m.sys];
+    const t0 = (n - 1) * MEASURE;
+    const inner = [...firstX.entries()].filter(([t]) => t >= t0 && t < t0 + MEASURE).sort((a, b) => a[0] - b[0]);
+    if (!inner.length || inner[0][0] !== t0) pts.push({ t: t0, x: m.l + 12 });
+    inner.forEach(([t, x]) => pts.push({ t, x }));
+    pts.push({ t: t0 + MEASURE - 0.001, x: m.r - 6 });
+  }
+  sysPts.forEach(p => { p.sort((a, b) => a.t - b.t); for (let i = 1; i < p.length; i++) if (p[i].x < p[i - 1].x) p[i].x = p[i - 1].x; });
+  layout = { systems, measures, heads, sysPts };
+}
+function tickToPos(t) {
+  if (!layout) return null;
+  t = Math.max(0, Math.min(TOTAL - 0.01, t));
+  const m = layout.measures[Math.floor(t / MEASURE) + 1]; if (!m) return null;
+  const pts = layout.sysPts[m.sys];
+  let x = pts[0].x;
+  for (let i = 0; i < pts.length - 1; i++) if (t >= pts[i].t && t <= pts[i + 1].t) {
+    const a = pts[i], b = pts[i + 1]; x = a.x + (b.x - a.x) * ((t - a.t) / (b.t - a.t || 1)); break;
+  } else if (t > pts[i + 1].t) x = pts[i + 1].x;
+  const sys = layout.systems[m.sys];
+  return { x, top: m.t - 6, h: m.b - m.t + 12, sys: m.sys };
+}
+function posToTick(x, y) {
+  if (!layout) return 0;
+  let si = 0, bd = 1e9;
+  layout.systems.forEach((s, i) => { const d = y < s.t ? s.t - y : y > s.b ? y - s.b : 0; if (d < bd) { bd = d; si = i; } });
+  const pts = layout.sysPts[si]; if (!pts.length) return 0;
+  if (x <= pts[0].x) return pts[0].t;
+  for (let i = 0; i < pts.length - 1; i++) if (x >= pts[i].x && x <= pts[i + 1].x) {
+    const a = pts[i], b = pts[i + 1]; return a.t + (b.t - a.t) * ((x - a.x) / (b.x - a.x || 1));
+  }
+  return pts[pts.length - 1].t;
+}
+
+// ---------- Cursor & Auswahl ----------
+let playhead = 0, selNote = null, selMeasure = null, loopOn = false;
+function updateCursor() {
+  const c = $('#cursor'), p = tickToPos(playhead);
+  if (!p) { c.style.display = 'none'; return; }
+  c.style.display = 'block'; c.style.left = p.x + 'px'; c.style.top = p.top + 'px'; c.style.height = p.h + 'px';
+}
+function markSelection() {
+  $$('#score g.note.sel').forEach(el => el.classList.remove('sel'));
+  if (selNote) { const el = document.getElementById(selNote.id); el && el.classList.add('sel'); }
+  const ms = $('#msel');
+  if (selMeasure && layout && layout.measures[selMeasure]) {
+    const m = layout.measures[selMeasure];
+    Object.assign(ms.style, { display: 'block', left: m.l + 'px', top: (m.t - 8) + 'px', width: (m.r - m.l) + 'px', height: (m.b - m.t + 16) + 'px' });
+  } else ms.style.display = 'none';
+}
+
+// ---------- Info-Karte ----------
+function beatLabel(e) {
+  const b = Math.floor(e.pos / BEAT) + 1, sub = Math.floor((e.pos % BEAT) / 6) + 1, six = (e.pos % 6) / 3;
+  return `Zählzeit ${b}` + (sub > 1 || six ? ` · ${sub}. Achtel${six ? ' +' : ''}` : '');
+}
+function durName(e) {
+  let t = (e.dots ? 'punktierte ' : '') + DUR_NAMES[e.dur];
+  if (e.tieStart) t += ' (übergebunden)';
+  return t;
+}
+const ACC_SIGN = { '-1': '♭', '0': '♮', '1': '♯' };
+function showNoteInfo(n) {
+  const bt = harmony.beats[Math.floor(n.onset / BEAT)];
+  const role = noteRole(n, harmony);
+  const ch = bt.chord;
+  let h = `<div class="lbl"><span class="vdot" style="background:${VOICE_COLORS[n.voice]}"></span>${VOICE_NAMES[n.voice]} · ${n.staff === 1 ? 'rechte' : 'linke'} Hand</div>
+    <h4>${helmholtz(n)}</h4>
+    <div class="row"><span class="k">Ort</span><span>Takt ${n.measure}, ${beatLabel(n)}</span></div>
+    <div class="row"><span class="k">Dauer</span><span>${durName(n)}</span></div>
+    <div class="row"><span class="k">Harmonie</span><span>${ch ? `${ch.name} – ${keyName(bt.key)}: <b>${ch.roman}</b>` : '–'}</span></div>
+    <div class="row"><span class="k">Rolle</span><span>${role.text}</span></div>`;
+  if (n.ghost) h += `<div class="ghostnote">⚠ Takt-gültiges Vorzeichen: Hier steht kein Zeichen, aber das ${ACC_SIGN[n.alter]} von weiter vorn im Takt gilt noch – also <b>${helmholtz(n)}</b>.</div>`;
+  h += `<div class="btns"><button data-act="hear">♪ anhören</button><button data-act="from">▶ ab hier spielen</button><button data-act="measure">Takt ${n.measure}</button></div>`;
+  openInfo(h, act => {
+    if (act === 'hear') { audio.ensure(); audio.note(n.midi, audio.now() + 0.02, Math.min(1.5, n.playTicks * spt()) || 0.6, 0.8, n.voice); }
+    if (act === 'from') startPlayback(n.onset);
+    if (act === 'measure') selectMeasure(n.measure);
+  });
+}
+function showMeasureInfo(m) {
+  const bs = harmony.beats.filter(b => b.measure === m);
+  const keys = [...new Set(bs.map(b => keyName(b.key)))].join(' → ');
+  const ghosts = model.notes.filter(n => n.measure === m && n.ghost);
+  let h = `<div class="lbl">Takt ${m} von ${model.measures}</div><h4>${keys}</h4>
+    <div class="beats">${bs.map((b, i) => `<div class="beat"><i>${i + 1}</i><b>${b.chord ? b.chord.roman : '–'}</b>${b.chord ? b.chord.name : ''}</div>`).join('')}</div>`;
+  if (ghosts.length) h += `<div class="ghostnote">⚠ ${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => helmholtz(n)).join(', ')}</div>`;
+  h += `<div class="small" style="margin-top:6px">Automatische Schätzung je punktierter Viertel.</div>
+    <div class="btns"><button data-act="play">▶ Takt spielen</button><button data-act="loop">${loopOn ? '⟲ Schleife aus' : '⟲ Schleife'}</button><button data-act="from">ab hier</button></div>`;
+  openInfo(h, act => {
+    if (act === 'play') { loopOn = false; syncLoopBtn(); startPlayback((m - 1) * MEASURE, m * MEASURE); }
+    if (act === 'loop') { loopOn = !loopOn; syncLoopBtn(); if (loopOn) startPlayback((m - 1) * MEASURE); else stopPlayback(); showMeasureInfo(m); }
+    if (act === 'from') startPlayback((m - 1) * MEASURE);
+  });
+}
+function openInfo(html, onAct) {
+  $('#viewPanel').classList.remove('show');
+  $('#infoBody').innerHTML = html;
+  $('#infoBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) onAct(b.dataset.act); };
+  $('#info').classList.add('show');
+}
+$('#infoX').onclick = () => { $('#info').classList.remove('show'); };
+
+function selectNote(n) { selNote = n; selMeasure = null; playhead = n.onset; markSelection(); updateCursor(); showNoteInfo(n); }
+function selectMeasure(m) { selMeasure = m; selNote = null; playhead = (m - 1) * MEASURE; markSelection(); updateCursor(); showMeasureInfo(m); }
+
+// ---------- Gesten: Antippen & Scrubbing ----------
+const pageEl = $('#page');
+let g = null;
+pageEl.addEventListener('pointerdown', e => {
+  if (!layout) return;
+  audio.ensure();
+  const pr = pageEl.getBoundingClientRect();
+  g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, scrub: false, lastTick: null, pr };
+});
+pageEl.addEventListener('pointermove', e => {
+  if (!g || e.pointerId !== g.id) return;
+  const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+  if (!g.scrub && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+    g.scrub = true; try { pageEl.setPointerCapture(e.pointerId); } catch (_) {}
+    if (playing) stopPlayback();
+    $('#info').classList.remove('show');
+    selNote = null; markSelection();
+  }
+  if (g.scrub) {
+    e.preventDefault();
+    const pr = pageEl.getBoundingClientRect();
+    const t = posToTick(e.clientX - pr.left, (g.y0 - g.pr.top));
+    scrubTo(t);
+  }
+});
+const endG = e => {
+  audio.ensure();
+  if (!g || e.pointerId !== g.id) return;
+  if (!g.scrub && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) < 10) tapAt(e.clientX - g.pr.left, e.clientY - g.pr.top);
+  if (g.scrub) clearTimeout(holdTimer);
+  g = null;
+};
+pageEl.addEventListener('pointerup', endG);
+pageEl.addEventListener('pointercancel', () => { g = null; clearTimeout(holdTimer); });
+
+function tapAt(x, y) {
+  let best = null, bd = 26;
+  for (const h of layout.heads) { if (h.e.type !== 'note') continue; const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = h.e; } }
+  if (best) {
+    const n = best.tieEnd ? findTieStart(best) : best;
+    selectNote(best);
+    audio.note(n.midi, audio.now() + 0.01, Math.min(1.2, n.playTicks * spt()), 0.8, n.voice);
+    return;
+  }
+  for (const [k, m] of Object.entries(layout.measures)) {
+    if (x >= m.l && x <= m.r && y >= m.t - 30 && y <= m.b + 30) { selectMeasure(+k); return; }
+  }
+  hideCards(); selNote = null; selMeasure = null; markSelection();
+}
+function findTieStart(n) { let c = n; while (c.tieEnd && c.prev) c = c.prev; return c; }
+
+let holdTimer = null;
+function scrubTo(t) {
+  const prev = playhead;
+  playhead = t; updateCursor();
+  const lo = Math.min(prev, t), hi = Math.max(prev, t);
+  if (hi > lo) {
+    const crossed = playable.filter(n => n.onset > lo && n.onset <= hi && !S.mute.includes(n.voice));
+    crossed.slice(-6).forEach(n => audio.note(n.midi, audio.now() + 0.005, Math.min(0.5, n.ticks * spt()), 0.62, n.voice));
+    flashNotes(crossed.map(n => n.id));
+  }
+  clearTimeout(holdTimer);
+  holdTimer = setTimeout(() => { // Finger ruht: Zusammenklang erklingt
+    const snd = playable.filter(n => n.onset <= playhead && n.onset + n.playTicks > playhead && !S.mute.includes(n.voice));
+    snd.forEach(n => audio.note(n.midi, audio.now() + 0.01, 1.3, 0.5, n.voice));
+    flashNotes(snd.map(n => n.id));
+  }, 380);
+}
+let flashSet = [];
+function flashNotes(ids) {
+  flashSet.forEach(id => { const el = document.getElementById(id); el && el.classList.remove('on'); });
+  flashSet = ids;
+  ids.forEach(id => { const el = document.getElementById(id); el && el.classList.add('on'); });
+}
+
+// ---------- Audio ----------
+const audio = {
+  ctx: null, out: null, buffers: {}, loading: null, waves: {},
+  now() { return this.ctx ? this.ctx.currentTime : 0; },
+  ensure() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = this.ctx = new AC();
+      const master = ctx.createGain(); master.gain.value = 0.85;
+      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3;
+      master.connect(comp); comp.connect(ctx.destination);
+      // Hall aus synthetischer Impulsantwort
+      const len = ctx.sampleRate * 2.4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+      const conv = ctx.createConvolver(); conv.buffer = ir;
+      const wet = ctx.createGain(); wet.gain.value = 0.22;
+      this.out = ctx.createGain(); this.out.connect(master); this.out.connect(conv); conv.connect(wet); wet.connect(master);
+      const b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0); // iOS entsperren
+      this.makeWaves();
+      if (S.instr === 'grand') this.loadSamples();
+    }
+    if (this.ctx.state !== 'running') this.ctx.resume();
+  },
+  makeWaves() {
+    const mk = amps => { const re = new Float32Array(amps.length + 1), im = new Float32Array(amps.length + 1); amps.forEach((a, i) => im[i + 1] = a); return this.ctx.createPeriodicWave(re, im); };
+    this.waves.piano = mk(Array.from({ length: 18 }, (_, i) => (1 / Math.pow(i + 1, 1.7)) * (i === 1 ? 1.4 : 1)));
+    this.waves.harp = mk(Array.from({ length: 28 }, (_, i) => Math.abs(Math.sin(Math.PI * (i + 1) * 0.14)) / Math.pow(i + 1, 0.75)));
+  },
+  sampleList() {
+    const names = ['C', 'Ds', 'Fs', 'A'], res = [];
+    for (let o = 1; o <= 7; o++) names.forEach((nm, i) => { const midi = 12 * (o + 1) + [0, 3, 6, 9][i]; if (midi >= 33 && midi <= 96) res.push({ midi, file: nm + o + '.mp3' }); });
+    return res;
+  },
+  loadSamples() {
+    if (this.loading) return this.loading;
+    const base = S.sampleBase.endsWith('/') ? S.sampleBase : S.sampleBase + '/';
+    const list = this.sampleList(); let done = 0;
+    toast('Flügel wird geladen …', 1500);
+    this.loading = Promise.all(list.map(s => fetch(base + s.file).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(ab => new Promise((res, rej) => this.ctx.decodeAudioData(ab, res, rej)))
+      .then(buf => { this.buffers[s.midi] = buf; done++; })))
+      .then(() => { toast('Konzertflügel bereit'); })
+      .catch(e => { console.warn(e); this.loading = null; this.buffers = {}; toast('Flügel-Samples nicht erreichbar – nutze synthetischen Klang', 3500); });
+    return this.loading;
+  },
+  note(midi, when, dur, vel, voice) {
+    if (!this.ctx) return;
+    const inst = S.instr;
+    const keys = Object.keys(this.buffers);
+    if (inst === 'grand' && keys.length) return this.sample(midi, when, dur, vel, keys);
+    if (inst === 'harpsichord') return this.harpsi(midi, when, dur);
+    return this.synth(midi, when, dur, vel);
+  },
+  sample(midi, when, dur, vel, keys) {
+    let best = +keys[0]; for (const k of keys) if (Math.abs(k - midi) < Math.abs(best - midi)) best = +k;
+    const ctx = this.ctx, src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = this.buffers[best]; src.playbackRate.value = Math.pow(2, (midi - best) / 12);
+    g.gain.setValueAtTime(vel * 0.9, when);
+    g.gain.setTargetAtTime(0, when + dur, 0.11);
+    src.connect(g); g.connect(this.out); src.start(when); src.stop(when + dur + 1.2);
+  },
+  synth(midi, when, dur, vel) {
+    const ctx = this.ctx, f = 440 * Math.pow(2, (midi - 69) / 12);
+    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), g2 = ctx.createGain();
+    o1.setPeriodicWave(this.waves.piano); o2.setPeriodicWave(this.waves.piano);
+    o1.frequency.value = f; o2.frequency.value = f; o2.detune.value = 3; g2.gain.value = 0.5;
+    lp.type = 'lowpass'; lp.Q.value = 0.6;
+    lp.frequency.setValueAtTime(Math.min(16000, f * 9), when); lp.frequency.setTargetAtTime(f * 2.2, when, 0.35);
+    const tau = 0.7 * Math.pow(2, (60 - midi) / 24), a = vel * 0.32;
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(a, when + 0.006);
+    g.gain.setTargetAtTime(a * 0.04, when + 0.01, tau);
+    g.gain.setTargetAtTime(0, when + dur, 0.09);
+    o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(this.out);
+    o1.start(when); o2.start(when); o1.stop(when + dur + 0.7); o2.stop(when + dur + 0.7);
+  },
+  harpsi(midi, when, dur) {
+    const ctx = this.ctx, f = 440 * Math.pow(2, (midi - 69) / 12);
+    const o = ctx.createOscillator(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
+    o.setPeriodicWave(this.waves.harp); o.frequency.value = f;
+    hp.type = 'highpass'; hp.frequency.value = 140;
+    g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(0.2, when + 0.002);
+    g.gain.setTargetAtTime(0.05, when + 0.004, 0.3 * Math.pow(2, (60 - midi) / 30));
+    g.gain.setTargetAtTime(0, when + dur, 0.035);
+    o.connect(hp); hp.connect(g); g.connect(this.out); o.start(when); o.stop(when + dur + 0.4);
+  },
+};
+
+// ---------- Wiedergabe ----------
+const spt = () => 60 / S.bpm / BEAT; // Sekunden pro Tick
+let playing = false, pl = null, timer = null, raf = null, onSet = [], lastUserScroll = 0;
+function startPlayback(from, until) {
+  audio.ensure();
+  stopPlayback(true);
+  if (from >= TOTAL - 1) from = 0;
+  const loopStart = loopOn ? Math.floor(from / MEASURE) * MEASURE : null;
+  pl = { t0Tick: from, t0Time: audio.now() + 0.08, prev: null, idx: playable.findIndex(n => n.onset >= from),
+    end: until || (loopOn ? loopStart + MEASURE : TOTAL), loopStart };
+  if (pl.idx < 0) pl.idx = playable.length;
+  playing = true; $('#play').textContent = '⏸';
+  timer = setInterval(schedule, 25); schedule();
+  raf = requestAnimationFrame(frame);
+}
+function stopPlayback(silent) {
+  playing = false; clearInterval(timer); cancelAnimationFrame(raf);
+  $('#play').textContent = '▶';
+  flashNotes([]);
+  if (!silent && pl) { /* Cursor bleibt stehen */ }
+}
+function schedule() {
+  if (!playing) return;
+  const s = spt(), now = audio.now();
+  const horizon = pl.t0Tick + (now + 0.18 - pl.t0Time) / s;
+  while (pl.idx < playable.length && playable[pl.idx].onset < Math.min(horizon, pl.end)) {
+    const n = playable[pl.idx++];
+    if (S.mute.includes(n.voice)) continue;
+    const when = pl.t0Time + (n.onset - pl.t0Tick) * s;
+    const len = Math.min(n.playTicks, pl.end - n.onset) * s;
+    const accent = n.onset % BEAT === 0 ? 1 : n.onset % 6 === 0 ? 0.88 : 0.78;
+    const vv = { 1: 0.95, 2: 0.78, 3: 0.88 }[n.voice];
+    audio.note(n.midi, Math.max(when, now), Math.max(0.05, len * 0.97), accent * vv, n.voice);
+  }
+  if (horizon >= pl.end) {
+    if (loopOn && pl.loopStart != null) {
+      pl.prev = { t0Tick: pl.t0Tick, t0Time: pl.t0Time };
+      pl.t0Time = pl.t0Time + (pl.end - pl.t0Tick) * s; pl.t0Tick = pl.loopStart;
+      pl.idx = playable.findIndex(n => n.onset >= pl.loopStart);
+    } else if (now > pl.t0Time + (pl.end - pl.t0Tick) * s + 0.2) {
+      playhead = Math.min(pl.end, TOTAL - 0.01); stopPlayback(); updateCursor();
+    }
+  }
+}
+function curTick() {
+  const now = audio.now(), s = spt();
+  if (now < pl.t0Time && pl.prev) return pl.prev.t0Tick + (now - pl.prev.t0Time) / s;
+  return pl.t0Tick + (now - pl.t0Time) / s;
+}
+function frame() {
+  if (!playing) return;
+  const t = Math.min(curTick(), pl.end - 0.01);
+  if (t >= 0) {
+    playhead = t; updateCursor();
+    const ids = model.notes.filter(n => n.onset <= t && n.onset + n.ticks > t && !S.mute.includes(n.voice)).map(n => n.id);
+    if (ids.join() !== onSet.join()) { flashNotes(ids); onSet = ids; }
+    autoScroll();
+  }
+  raf = requestAnimationFrame(frame);
+}
+function autoScroll() {
+  if (Date.now() - lastUserScroll < 2000) return;
+  const p = tickToPos(playhead), sc = $('#scroller'); if (!p) return;
+  const top = p.top + pageEl.offsetTop, bottom = top + p.h;
+  if (top < sc.scrollTop + 20 || bottom > sc.scrollTop + sc.clientHeight - 120) sc.scrollTo({ top: Math.max(1, top - sc.clientHeight * 0.22), behavior: 'smooth' });
+}
+$('#scroller').addEventListener('touchmove', () => { lastUserScroll = Date.now(); }, { passive: true });
+$('#scroller').addEventListener('wheel', () => { lastUserScroll = Date.now(); }, { passive: true });
+
+// ---------- Transport ----------
+$('#play').onclick = () => { if (playing) stopPlayback(); else startPlayback(playhead); };
+$('#toStart').onclick = () => { const was = playing; stopPlayback(); playhead = selMeasure ? (selMeasure - 1) * MEASURE : 0; updateCursor(); $('#scroller').scrollTo({ top: 1, behavior: 'smooth' }); if (was) startPlayback(playhead); };
+function syncLoopBtn() { $('#loopBtn').classList.toggle('act', loopOn); }
+$('#loopBtn').onclick = () => { loopOn = !loopOn; syncLoopBtn(); toast(loopOn ? 'Schleife: aktueller Takt' : 'Schleife aus'); if (playing) startPlayback(playhead); };
+const tempo = $('#tempo');
+tempo.value = S.bpm; $('#tempoVal').textContent = S.bpm + ' bpm';
+tempo.oninput = () => {
+  const t = playing ? curTick() : null;
+  S.bpm = +tempo.value; $('#tempoVal').textContent = S.bpm + ' bpm'; save();
+  if (playing && t != null) { pl.t0Tick = t; pl.t0Time = audio.now(); pl.prev = null; }
+};
+$$('.chip').forEach(c => {
+  const v = +c.dataset.v; c.classList.toggle('mute', S.mute.includes(v));
+  c.onclick = () => { S.mute = S.mute.includes(v) ? S.mute.filter(x => x !== v) : S.mute.concat(v); c.classList.toggle('mute', S.mute.includes(v)); save(); };
+});
+$('#instr').value = S.instr;
+$('#instr').onchange = () => { S.instr = $('#instr').value; save(); audio.ensure(); if (S.instr === 'grand') audio.loadSamples(); };
+
+// ---------- Ansicht-Panel ----------
+$('#viewBtn').onclick = () => { $('#info').classList.remove('show'); $('#viewPanel').classList.toggle('show'); };
+function syncPanel() {
+  $$('#colSeg button').forEach(b => b.classList.toggle('act', b.dataset.c === S.col));
+  $('#harmSw').classList.toggle('act', S.harm);
+  $('#ghostSw').classList.toggle('act', S.ghosts);
+  $('#ghostCount').textContent = `(${model.notes.filter(n => n.ghost).length} Stellen)`;
+  $('#sampleBase').value = S.sampleBase;
+}
+syncPanel();
+$('#colSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.col = b.dataset.c; save(); syncPanel(); decorate(); };
+$('#harmSw').onclick = () => { S.harm = !S.harm; save(); syncPanel(); rerender(); };
+$('#ghostSw').onclick = () => { S.ghosts = !S.ghosts; save(); syncPanel(); rerender(); };
+$('#zoomIn').onclick = () => { S.zoom = Math.min(1.6, +(S.zoom + 0.1).toFixed(2)); save(); rerender(); };
+$('#zoomOut').onclick = () => { S.zoom = Math.max(0.6, +(S.zoom - 0.1).toFixed(2)); save(); rerender(); };
+$('#sampleBase').onchange = () => { S.sampleBase = $('#sampleBase').value.trim() || DEFAULTS.sampleBase; save(); audio.buffers = {}; audio.loading = null; if (audio.ctx && S.instr === 'grand') audio.loadSamples(); };
+function rerender() { if (rendered && tk) render(); }
+let rz = null;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(rerender, 250); });
+})();
+
+</script>
+</body>
+</html>

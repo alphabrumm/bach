@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2a211b">
+<title>Bach · Notenbücher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f5eddb; --paper2:#efe4cc; --ink:#2b2119; --ink2:#6b5843; --gold:#c9a45c; --gold2:#e6c886;
+  --desk:#2a211b; --v1:#9b2d2a; --v2:#2f6b4f; --v3:#2d4f86; --sel:#d08a1e; --on:#c2410c;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  --noise:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.34  0 0 0 0 0.24  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--desk);color:var(--ink);
+  font-family:'EB Garamond',Garamond,'Times New Roman',serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{font-family:inherit;color:inherit;cursor:pointer}
+.view{position:fixed;inset:0;display:none;flex-direction:column}
+.view.show{display:flex}
+.scroller{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+
+/* ---------- Leinen ---------- */
+.linen{background-color:var(--c,#2f4a3a);
+  background-image:var(--noise),
+   repeating-linear-gradient(0deg,rgba(255,255,255,.045) 0 1px,transparent 1px 3px),
+   repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 1px,transparent 1px 3px),
+   radial-gradient(ellipse at 30% 20%,rgba(255,255,255,.08),transparent 60%);}
+
+/* ---------- Bibliothek ---------- */
+#library{background:radial-gradient(ellipse at 50% 0%,#4a3a2c 0%,#2a211b 65%)}
+.libhead{padding:calc(var(--safe-t) + 28px) 28px 6px;text-align:center;color:#eadbc0}
+.libhead h1{font-weight:500;font-size:34px;letter-spacing:.06em;margin:0;font-variant:small-caps}
+.libhead p{margin:4px 0 0;font-style:italic;color:#bba98c;font-size:17px}
+.shelf{display:flex;flex-wrap:wrap;gap:30px 26px;justify-content:center;align-items:flex-end;
+  padding:34px 24px 0;margin:10px auto 0;max-width:900px;position:relative}
+.board{height:16px;margin:0 auto 40px;max-width:940px;width:calc(100% - 20px);border-radius:3px;
+  background:linear-gradient(#6b4f37,#4a3626 60%,#2e2118);box-shadow:0 10px 18px rgba(0,0,0,.5)}
+.book{width:150px;height:222px;border:0;padding:0;position:relative;border-radius:3px 9px 9px 3px;
+  box-shadow:inset 14px 0 12px -6px rgba(0,0,0,.45),inset -2px 0 2px rgba(255,255,255,.08),4px 6px 14px rgba(0,0,0,.55);
+  transition:transform .25s ease;color:var(--gold2);text-align:center}
+.book:active{transform:translateY(-6px) scale(1.02)}
+.book .frame{position:absolute;inset:14px 12px 14px 22px;border:1px solid rgba(201,164,92,.55);border-radius:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px}
+.book .t{font-size:19px;line-height:1.15;font-variant:small-caps;letter-spacing:.04em;
+  text-shadow:0 1px 0 rgba(0,0,0,.6),0 -1px 0 rgba(255,235,190,.15)}
+.book .s{font-size:13px;font-style:italic;margin-top:8px;color:#d9bd84;opacity:.9}
+.book .orn{font-size:16px;margin:6px 0;opacity:.8}
+.book .ribbon{position:absolute;bottom:-14px;left:70%;width:10px;height:30px;background:linear-gradient(#8e1f1f,#6d1414);
+  clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%)}
+.book.dim{filter:saturate(.6) brightness(.72)}
+.book.dim::after{content:'in Vorbereitung';position:absolute;left:0;right:0;bottom:-30px;font-size:13px;color:#a8977b;font-style:italic}
+.book.new{background:transparent;border:2px dashed rgba(201,164,92,.4);box-shadow:none;color:#bba98c}
+
+/* ---------- Bucheinband + Seite ---------- */
+.cover{flex:1;display:flex;flex-direction:column;padding:calc(var(--safe-t) + 8px) 10px calc(var(--safe-b) + 10px)}
+.topbar{display:flex;align-items:center;gap:8px;padding:4px 6px 8px;color:var(--gold2);min-height:44px}
+.topbar .title{flex:1;text-align:center;font-size:19px;font-variant:small-caps;letter-spacing:.05em;
+  text-shadow:0 1px 0 rgba(0,0,0,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb{background:rgba(0,0,0,.18);border:1px solid rgba(201,164,92,.35);border-radius:10px;height:38px;min-width:42px;
+  padding:0 12px;font-size:17px;color:var(--gold2)}
+.tb:active{background:rgba(0,0,0,.35)}
+.sheet{background-color:var(--paper);background-image:var(--noise),
+  radial-gradient(ellipse at 50% 40%,transparent 55%,rgba(120,90,50,.13) 100%);
+  border-radius:3px 6px 6px 3px;box-shadow:0 3px 14px rgba(0,0,0,.45),inset 8px 0 14px -10px rgba(80,55,25,.5)}
+.page-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
+.toc{padding:28px 30px 60px;max-width:860px;margin:0 auto}
+.toc h2{font-weight:500;font-size:30px;text-align:center;margin:6px 0 0;font-variant:small-caps;letter-spacing:.05em}
+.toc .sub{text-align:center;font-style:italic;color:var(--ink2);margin-bottom:14px}
+.rule{text-align:center;color:var(--gold);letter-spacing:.6em;margin:8px 0 18px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px 34px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.cols h3{font-weight:500;font-variant:small-caps;letter-spacing:.06em;border-bottom:1px solid rgba(107,88,67,.35);margin:6px 0 6px;padding-bottom:4px}
+.entry{display:flex;align-items:baseline;gap:8px;padding:7px 2px;font-size:18px;border:0;background:none;width:100%;text-align:left;color:var(--ink)}
+.entry .dots{flex:1;border-bottom:1px dotted rgba(107,88,67,.5);transform:translateY(-4px)}
+.entry .bwv{font-size:15px;color:var(--ink2);font-style:italic}
+.entry.off{color:#a3937c}
+.entry.on{font-weight:600}
+.entry.on .num::before{content:'❧ ';color:var(--v1)}
+
+/* ---------- Notenblatt ---------- */
+#scoreView .cover{padding-bottom:0}
+#scroller{position:relative;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:4px 4px 0 0;touch-action:pan-y}
+#page{position:relative;margin:0 auto;min-height:100%;padding:18px 0 140px;touch-action:pan-y}
+#pageHead{text-align:center;padding:10px 20px 0}
+#pageHead h2{margin:0;font-weight:500;font-size:28px;font-variant:small-caps;letter-spacing:.05em}
+#pageHead .meta{font-style:italic;color:var(--ink2);font-size:16px}
+#score{position:relative}
+#score svg{display:block;margin:0 auto;color:var(--ink);fill:var(--ink)}
+#score svg g.note.sel,#score svg g.note.sel *{fill:var(--sel)!important;color:var(--sel)!important}
+#score svg g.note.on,#score svg g.note.on *{fill:var(--on)!important;color:var(--on)!important}
+.col-voices #score svg g.v1,.col-voices #score svg g.v1 *{fill:var(--v1);color:var(--v1)}
+.col-voices #score svg g.v2,.col-voices #score svg g.v2 *{fill:var(--v2);color:var(--v2)}
+.col-voices #score svg g.v3,.col-voices #score svg g.v3 *{fill:var(--v3);color:var(--v3)}
+.col-hands #score svg g.st1,.col-hands #score svg g.st1 *{fill:var(--v1);color:var(--v1)}
+.col-hands #score svg g.st2,.col-hands #score svg g.st2 *{fill:var(--v3);color:var(--v3)}
+#score svg g.ghost,#score svg g.ghost *{fill:#b07a3a!important;color:#b07a3a!important;opacity:.75}
+#score svg g.harm text,#score svg g.harm tspan{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
+#cursor{position:absolute;width:2px;margin-left:-1px;background:var(--on);opacity:.75;border-radius:1px;pointer-events:none;display:none;
+  box-shadow:0 0 6px rgba(194,65,12,.5)}
+#msel{position:absolute;pointer-events:none;display:none;background:rgba(208,138,30,.10);border:1px solid rgba(208,138,30,.45);border-radius:4px}
+#loading{text-align:center;padding:60px 20px;font-style:italic;color:var(--ink2);font-size:19px}
+#hint{position:absolute;left:0;right:0;text-align:center;font-style:italic;color:var(--ink2);font-size:15px;bottom:110px;opacity:.8}
+
+/* ---------- Transport ---------- */
+#transport{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+  padding:8px 10px calc(var(--safe-b) + 8px);background:linear-gradient(rgba(42,33,27,.0),rgba(42,33,27,.25));color:var(--gold2)}
+#transport .grp{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.22);border:1px solid rgba(201,164,92,.3);border-radius:12px;padding:4px 6px}
+#transport button{background:none;border:0;color:var(--gold2);font-size:20px;min-width:40px;height:38px;border-radius:9px}
+#transport button:active,#transport button.act{background:rgba(201,164,92,.22)}
+#play{font-size:24px!important;min-width:52px!important}
+.chip{font-size:15px!important;min-width:34px!important;font-weight:600}
+.chip.mute{opacity:.35;text-decoration:line-through}
+.chip[data-v="1"]{color:#e7a39f!important}.chip[data-v="2"]{color:#9fd3b8!important}.chip[data-v="3"]{color:#a9c1ec!important}
+#tempo{width:110px;accent-color:var(--gold)}
+#tempoVal{font-size:15px;min-width:54px;text-align:center}
+select{font-family:inherit;font-size:16px;background:transparent;color:var(--gold2);border:0;height:36px}
+select option{color:#000}
+
+/* ---------- Info-Karte & Ansicht ---------- */
+.card{position:fixed;left:50%;transform:translate(-50%,20px);bottom:calc(var(--safe-b) + 70px);width:min(560px,calc(100% - 24px));
+  opacity:0;pointer-events:none;transition:.22s ease;z-index:20;padding:16px 18px 14px}
+.card.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.card .x{position:absolute;right:8px;top:6px;border:0;background:none;font-size:24px;color:var(--ink2);width:40px;height:40px}
+.card h4{margin:0 34px 2px 0;font-weight:500;font-size:24px}
+.card .lbl{font-variant:small-caps;letter-spacing:.05em;color:var(--ink2);font-size:15px}
+.card .row{display:flex;gap:10px;margin:6px 0;font-size:17px;line-height:1.3}
+.card .row .k{min-width:96px;color:var(--ink2);font-style:italic}
+.card .beats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.card .beat{border:1px solid rgba(107,88,67,.3);border-radius:8px;padding:6px 4px;text-align:center;font-size:16px}
+.card .beat b{display:block;font-size:19px;font-weight:600}
+.card .beat i{color:var(--ink2);font-size:14px}
+.card .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.card .btns button{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;padding:7px 12px;font-size:16px}
+.card .ghostnote{background:rgba(176,122,58,.12);border-left:3px solid #b07a3a;padding:6px 10px;border-radius:4px;margin-top:6px;font-size:16px}
+.card .vdot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;transform:translateY(-1px)}
+#viewPanel{top:calc(var(--safe-t) + 58px);bottom:auto;right:12px;left:auto;transform:translate(0,-10px);width:min(340px,calc(100% - 24px))}
+#viewPanel.show{transform:translate(0,0)}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(107,88,67,.2);font-size:17px}
+.opt:last-child{border-bottom:0}
+.seg{display:flex;border:1px solid rgba(107,88,67,.45);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:none;padding:6px 10px;font-size:15px}
+.seg button.act{background:var(--ink);color:var(--paper)}
+.sw{width:50px;height:30px;border-radius:15px;border:0;background:#cbbd9f;position:relative}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw.act{background:var(--v2)}.sw.act::after{left:23px}
+.opt input[type=text]{width:100%;font-family:inherit;font-size:14px;padding:6px;border:1px solid rgba(107,88,67,.4);border-radius:6px;background:rgba(255,255,255,.5)}
+.small{font-size:13px;color:var(--ink2);font-style:italic}
+#toast{position:fixed;left:50%;top:calc(var(--safe-t) + 64px);transform:translateX(-50%);background:rgba(42,33,27,.92);color:var(--gold2);
+  padding:8px 16px;border-radius:10px;font-size:16px;opacity:0;transition:.3s;pointer-events:none;z-index:40}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- Bibliothek -->
+<section id="library" class="view show">
+  <div class="scroller" id="libScroll">
+    <div class="libhead">
+      <h1>Meine Notenbücher</h1>
+      <p>Johann Sebastian Bach</p>
+    </div>
+    <div class="shelf" id="shelf"></div>
+    <div class="board"></div>
+    <div style="height:40px"></div>
+  </div>
+  <div style="position:fixed;right:14px;top:calc(var(--safe-t) + 12px)"><button class="tb fsBtn" title="Vollbild">⤢</button></div>
+</section>
+
+<!-- Inhaltsverzeichnis -->
+<section id="bookView" class="view linen" style="--c:#2f4a3a">
+  <div class="cover">
+    <div class="topbar">
+      <button class="tb" id="tocBack">‹ Regal</button>
+      <div class="title">Inventionen &amp; Sinfonien</div>
+      <button class="tb fsBtn" title="Vollbild">⤢</button>
+    </div>
+    <div class="page-scroll sheet" id="tocScroll">
+      <div class="toc">
+        <h2>Inventionen &amp; Sinfonien</h2>
+        <div class="sub">Aufrichtige Anleitung · Köthen 1723 · BWV 772–801</div>
+        <div class="rule">❦ ❦ ❦</div>
+        <div class="cols">
+          <div><h3>Inventionen</h3><div id="tocInv"></div></div>
+          <div><h3>Sinfonien</h3><div id="tocSin"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Notenblatt -->
+<section id="scoreView" class="view linen" style="--c:#2f4a3a">
+  <div class="cover">
+    <div class="topbar">
+      <button class="tb" id="scoreBack">‹ Inhalt</button>
+      <div class="title">Sinfonia 2 · c-Moll</div>
+      <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>
+      <button class="tb fsBtn" title="Vollbild">⤢</button>
+    </div>
+    <div id="scroller" class="sheet">
+      <div id="page">
+        <div id="pageHead"><h2>Sinfonia 2</h2><div class="meta">c-Moll · BWV 788 · 3 Stimmen</div></div>
+        <div id="score"><div id="loading">Notenstecher bei der Arbeit …</div></div>
+        <div id="msel"></div>
+        <div id="cursor"></div>
+        <div class="small" style="text-align:center;padding:24px 20px 0">Notentext: Mutopia Project (Public Domain) · Notensatz: Verovio · Flügel: Salamander Grand Piano von Alexander Holm (CC-BY 3.0)</div>
+      </div>
+    </div>
+    <div id="transport">
+      <div class="grp">
+        <button id="toStart" title="Zum Anfang">⏮</button>
+        <button id="play" title="Abspielen">▶</button>
+        <button id="loopBtn" title="Takt-Schleife">⟲</button>
+      </div>
+      <div class="grp">
+        <span style="font-size:15px;padding-left:4px">♩.</span>
+        <input type="range" id="tempo" min="24" max="80" step="1">
+        <span id="tempoVal"></span>
+      </div>
+      <div class="grp">
+        <button class="chip" data-v="1" title="Sopran stumm/an">S</button>
+        <button class="chip" data-v="2" title="Alt stumm/an">A</button>
+        <button class="chip" data-v="3" title="Bass stumm/an">B</button>
+      </div>
+      <div class="grp">
+        <select id="instr">
+          <option value="grand">Konzertflügel</option>
+          <option value="piano">Flügel (synthetisch)</option>
+          <option value="harpsichord">Cembalo (synthetisch)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
+
+<div class="card sheet" id="viewPanel">
+  <div class="opt"><span>Färbung</span>
+    <div class="seg" id="colSeg"><button data-c="none">aus</button><button data-c="voices">Stimmen</button><button data-c="hands">Hände</button></div></div>
+  <div class="opt"><span>Harmonik im Notenbild</span><button class="sw" id="harmSw"></button></div>
+  <div class="opt"><span>Geister-Vorzeichen <span class="small" id="ghostCount"></span></span><button class="sw" id="ghostSw"></button></div>
+  <div class="opt"><span>Notengröße</span><div class="seg"><button id="zoomOut">A−</button><button id="zoomIn">A+</button></div></div>
+  <div class="opt" style="display:block"><div>Klangquelle Flügel (Samples)</div>
+    <input type="text" id="sampleBase" spellcheck="false" autocapitalize="off">
+    <div class="small">Ordner mit A1.mp3, C2.mp3, Ds2.mp3, Fs2.mp3 … (Salamander-Benennung). Standard: Tone.js-Salamander.</div></div>
+  <div class="small" style="margin-top:6px">Harmonik ist eine automatische Schätzung pro punktierter Viertel und kann irren.</div>
+</div>
+<div id="toast"></div>
+
+<script>
+const DATA = /*DATA*/;
+</script>
+<script>
+/*ANALYSIS*/
+</script>
+<script>
+/*APP*/
+</script>
+</body>
+</html>
