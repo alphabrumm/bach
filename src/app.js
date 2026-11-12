@@ -172,7 +172,7 @@ function render() {
     pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale,
     breaks: 'auto', header: 'none', footer: 'none',
     pageMarginLeft: 40, pageMarginRight: 40, pageMarginTop: sections.length ? 120 : 40, pageMarginBottom: 40,
-    spacingSystem: S.harm ? 15 : 11, svgViewBox: false,
+    spacingSystem: S.harm ? 15 : 11, svgViewBox: false, smuflTextFont: 'embedded',
   });
   tk.loadData(mei);
   let svg = '';

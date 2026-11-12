@@ -107,7 +107,8 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .col-hands #score svg g.st1,.col-hands #score svg g.st1 *{fill:var(--v1);color:var(--v1)}
 .col-hands #score svg g.st2,.col-hands #score svg g.st2 *{fill:var(--v3);color:var(--v3)}
 #score svg g.ghost,#score svg g.ghost *{fill:#b07a3a!important;color:#b07a3a!important;opacity:.75}
-#score svg g.harm text,#score svg g.harm tspan{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
+#score svg g.harm text{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
+#score svg g.harm tspan{fill:#7a5530}
 #cursor{position:absolute;width:2px;margin-left:-1px;background:var(--on);opacity:.75;border-radius:1px;pointer-events:none;display:none;
   box-shadow:0 0 6px rgba(194,65,12,.5)}
 #msel{position:absolute;inset:0;pointer-events:none;display:none}
@@ -915,7 +916,7 @@ function render() {
     pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale,
     breaks: 'auto', header: 'none', footer: 'none',
     pageMarginLeft: 40, pageMarginRight: 40, pageMarginTop: sections.length ? 120 : 40, pageMarginBottom: 40,
-    spacingSystem: S.harm ? 15 : 11, svgViewBox: false,
+    spacingSystem: S.harm ? 15 : 11, svgViewBox: false, smuflTextFont: 'embedded',
   });
   tk.loadData(mei);
   let svg = '';
