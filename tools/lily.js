@@ -5,8 +5,10 @@
 const TPW = 96; // Ticks pro Ganze (Zweiunddreißigstel = 3, Triolen-Achtel = 8)
 const STEPS = 'cdefgab';
 const SEMI = [0, 2, 4, 5, 7, 9, 11];
+// Verzierungen: prall = Pralltriller (kurz, von oben), trill = Triller, trillmord = Triller mit Nachschlag
 const ORN = { prall: 'prall', mordent: 'mordent', downmordent: 'mordent', upmordent: 'prall', trill: 'trill', prallprall: 'trill',
-  downprall: 'prall', upprall: 'prall', prallup: 'prall', turn: 'turn', fermata: 'fermata', prallmordent: 'prall', lineprall: 'prall', reverseturn: 'turn', mordentprall: 'mordent' };
+  downprall: 'trill', upprall: 'trill', prallup: 'trill', turn: 'turn', fermata: 'fermata', prallmordent: 'trillmord', lineprall: 'prall',
+  reverseturn: 'turn', mordentprall: 'mordent' };
 const NOARG = new Set(['voiceOne', 'voiceTwo', 'voiceThree', 'voiceFour', 'oneVoice', 'stemUp', 'stemDown', 'stemNeutral', 'break', 'noBreak',
   'pageBreak', 'autoBeamOff', 'autoBeamOn', 'shiftOn', 'shiftOff', 'shiftOnn', 'tieUp', 'tieDown', 'tieNeutral', 'slurUp', 'slurDown',
   'slurNeutral', 'dynamicUp', 'dynamicDown', 'arpeggio', 'staccato', 'tenuto', 'accent', 'p', 'f', 'mf', 'mp', 'pp', 'ff', 'sf',
@@ -146,7 +148,7 @@ class Parser {
       st.scale = old; st.tuplet = oldT; return;
     }
     if (tk === '\\grace' || tk === '\\appoggiatura' || tk === '\\acciaccatura' || tk === '\\slashedGrace') {
-      const g = st.grace; st.grace = true; this.item(st); st.grace = g; return;
+      const g = st.grace; st.grace = tk === '\\appoggiatura' ? 'acc' : 'unacc'; this.item(st); st.grace = g; return;
     }
     if (tk === '\\repeat') {
       this.i++; this.i++; // volta N
@@ -162,9 +164,9 @@ class Parser {
         this.i++;
         const endI = this.i;
         alts.forEach((ai, k) => {
-          this.i = ai; const g = st.grace;
-          if (k < alts.length - 1) st.grace = true;
-          this.item(st); st.grace = g;
+          this.i = ai; const sk = st.skip;
+          if (k < alts.length - 1) st.skip = true;
+          this.item(st); st.skip = sk;
         });
         this.i = endI;
         rep.to = st.t; // Wiederholungszeichen nach der (übernommenen) 2. Klammer
@@ -218,10 +220,11 @@ class Parser {
     const p = this.pitch(m, st);
     st.prev = p.dn;
     if (m[7]) st.dur = [+m[7], m[8].length];
-    if (st.grace) return;
-    const ticks = this.durTicks(st.dur[0], st.dur[1]) * st.scale[0] / st.scale[1] * (m[9] ? +m[9] : 1);
+    if (st.skip) return;
+    const ticks = st.grace ? 0 : this.durTicks(st.dur[0], st.dur[1]) * st.scale[0] / st.scale[1] * (m[9] ? +m[9] : 1);
     const e = { type: 'note', voice: st.voice, staff: st.staff, onset: st.t, ticks, dur: st.dur[0], dots: st.dur[1],
       step: p.step, alter: p.alter, oct: p.oct, midi: p.midi, forced: !!m[5], cautionary: !!m[6] };
+    if (st.grace) { e.grace = st.grace; this.ev.push(e); return; } // Vorschlag: keine eigene Zeit
     if (st.tuplet) e.tuplet = st.tuplet;
     this.ev.push(e); st.last = [e];
     st.t += ticks;
@@ -241,18 +244,19 @@ class Parser {
       const m = /^([a-g])(isis|eses|is|es|s)?([',]*)(!?)(\??)/.exec(n);
       const p = this.pitch([null, m[1], m[2], m[3]], { prev: ref });
       ref = p.dn; if (first == null) first = p.dn;
-      if (st.grace) continue;
+      if (st.skip) continue;
       const e = { type: 'note', voice: st.voice, staff: st.staff, onset: st.t, ticks, dur: st.dur[0], dots: st.dur[1],
         step: p.step, alter: p.alter, oct: p.oct, midi: p.midi, forced: !!m[4], cautionary: !!m[5], chord: chordId };
       if (st.tuplet) e.tuplet = st.tuplet;
+      if (st.grace) { e.grace = st.grace; e.ticks = 0; }
       this.ev.push(e); list.push(e);
     }
     st.prev = first;
-    if (!st.grace) { st.last = list; st.t += ticks; }
+    if (!st.grace && !st.skip) { st.last = list; st.t += ticks; }
   }
   addRest(st, type, d, dots, mult, measureRest) {
     st.dur = [d, dots];
-    if (st.grace) return;
+    if (st.grace || st.skip) return;
     const ticks = this.durTicks(d, dots) * st.scale[0] / st.scale[1] * mult;
     const e = { type, voice: st.voice, staff: st.staff, onset: st.t, ticks, dur: d, dots, mrest: !!measureRest };
     if (st.tuplet) e.tuplet = st.tuplet;
@@ -347,7 +351,7 @@ function buildPiece(src, meta) {
   const out = [];
   for (const e of ev) {
     const m0 = Math.floor(e.onset / measure + 1e-9), m1 = Math.floor((e.onset + e.ticks) / measure - 1e-9);
-    if (m0 === m1 || e.mrest || e.type === 'space') { out.push(e); continue; }
+    if (m0 === m1 || e.mrest || e.type === 'space' || e.ticks === 0) { out.push(e); continue; }
     problems.push(`Hinweis: Note über Taktstrich geteilt (Stimme ${e.voice}, Takt ${m0 + 1})`);
     let t = e.onset, rest = e.ticks, firstPart = true;
     while (rest > 1e-9) {
@@ -360,7 +364,7 @@ function buildPiece(src, meta) {
   }
   // Haltebögen der Folgenoten
   const byVoice = {};
-  out.filter(e => e.type === 'note').sort((a, b) => a.onset - b.onset).forEach(n => (byVoice[n.voice] = byVoice[n.voice] || []).push(n));
+  out.filter(e => e.type === 'note' && !e.grace).sort((a, b) => a.onset - b.onset).forEach(n => (byVoice[n.voice] = byVoice[n.voice] || []).push(n));
   Object.values(byVoice).forEach(list => {
     list.forEach((n, i) => {
       if (!n.tieStart) return;
@@ -380,14 +384,14 @@ function buildPiece(src, meta) {
   // Kompaktes Format
   const voiceIdx = {}; const allVoices = [...new Set(out.map(e => e.voice))];
   allVoices.forEach(v => voiceIdx[v] = v);
-  const events = out.sort((a, b) => a.onset - b.onset).map(e => {
+  const events = out.sort((a, b) => a.onset - b.onset || (b.grace ? 1 : 0) - (a.grace ? 1 : 0)).map(e => {
     const o = { y: e.type[0], v: e.voice, s: e.staff, t: +e.onset.toFixed(4), k: +e.ticks.toFixed(4), d: e.dur, };
     if (e.dots) o.p = e.dots;
     if (e.type === 'note') { o.m = e.midi; o.st = e.step; o.al = e.alter; o.oc = e.oct; }
     if (e.tieStart) o.ts = 1; if (e.tieEnd) o.te = 1;
     if (e.forced) o.fo = 1; if (e.cautionary) o.ca = 1;
     if (e.chord) o.c = e.chord; if (e.tuplet) o.tu = [e.tuplet.id, e.tuplet.num, e.tuplet.numbase];
-    if (e.orn) o.o = e.orn; if (e.mrest) o.mr = 1;
+    if (e.orn) o.o = e.orn; if (e.mrest) o.mr = 1; if (e.grace) o.g = e.grace;
     return o;
   });
   return {

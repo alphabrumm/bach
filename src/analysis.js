@@ -38,11 +38,18 @@ function buildModel(piece) {
     const type = e.y === 'n' ? 'note' : e.y === 'r' ? 'rest' : 'space';
     const o = { id: (type === 'note' ? 'n' : type === 'rest' ? 'r' : 's') + i, type, voice: v, mainVoice: mainV, role: roleOf[mainV],
       staff: e.s, layerStaff: homeStaff[mainV] || e.s, onset: e.t, ticks: e.k, dur: e.d, dots: e.p || 0,
-      tieStart: !!e.ts, tieEnd: !!e.te, forced: !!e.fo, cautionary: !!e.ca, chord: e.c || null, tuplet: e.tu || null, orn: e.o || null, mrest: !!e.mr };
+      tieStart: !!e.ts, tieEnd: !!e.te, forced: !!e.fo, cautionary: !!e.ca, chord: e.c || null, tuplet: e.tu || null, orn: e.o || null, mrest: !!e.mr,
+      grace: e.g || null };
     if (type === 'note') Object.assign(o, { midi: e.m, step: e.st, alter: e.al, oct: e.oc, pc: ((e.m % 12) + 12) % 12 });
     o.measure = Math.floor(o.onset / MEASURE + 1e-9) + 1;
     o.pos = o.onset - (o.measure - 1) * MEASURE;
-    events.push(o); if (type === 'note') notes.push(o);
+    events.push(o); if (type === 'note' && !o.grace) notes.push(o);
+  });
+  // Vorschläge der folgenden Hauptnote derselben Stimme zuordnen
+  const graces = events.filter(e => e.grace);
+  graces.forEach(g => {
+    const main = notes.filter(n => n.voice === g.voice && Math.abs(n.onset - g.onset) < 1e-6).sort((a, b) => b.midi - a.midi)[0];
+    if (main) { g.mainId = main.id; (main.graces = main.graces || []).push(g); }
   });
   // Nachbarn je Stimme (für Rollen/Bögen) – bei Akkorden zählt der höchste Ton
   const byVoice = {};
@@ -66,7 +73,7 @@ function buildModel(piece) {
     });
   });
   const roles = [...new Set(order.map(v => roleOf[v]))]; // von oben nach unten
-  return { notes, events, measures: piece.measures, roles, voiceCount: order.length, piece };
+  return { notes, events, graces, measures: piece.measures, roles, voiceCount: order.length, piece };
 }
 
 // ---------- Tonart pro Takt (Krumhansl-Kessler + Viterbi-Glättung) ----------
@@ -294,7 +301,8 @@ function computeAccidentals(model) {
   const staffs = [...new Set(model.notes.map(n => n.staff))];
   for (let m = 1; m <= model.measures; m++) {
     for (const staff of staffs) {
-      const list = model.notes.filter(n => n.measure === m && n.staff === staff).sort((a, b) => a.onset - b.onset || a.midi - b.midi);
+      const list = model.notes.concat(model.graces || []).filter(n => n.measure === m && n.staff === staff)
+        .sort((a, b) => a.onset - b.onset || (b.grace ? 1 : 0) - (a.grace ? 1 : 0) || a.midi - b.midi);
       const state = {};
       for (const n of list) {
         const k = n.step + ':' + n.oct;
@@ -339,7 +347,7 @@ function buildMEI(model, harmony, opts) {
     for (const s of staffs) {
       out.push(`<staff n="${s}">`);
       layersOf[s].forEach((v, li) => {
-        const evs = model.events.filter(e => e.voice === v && e.measure === m).sort((a, b) => a.onset - b.onset);
+        const evs = model.events.filter(e => e.voice === v && e.measure === m).sort((a, b) => a.onset - b.onset || (b.grace ? 1 : 0) - (a.grace ? 1 : 0));
         if (!evs.length && v.includes('.')) return;
         out.push(`<layer n="${li + 1}">`);
         const clefs = (P.clefChanges || []).filter(c => c.voice === v.split('.')[0] && c.t > (m - 1) * MEASURE - 1e-6 && c.t < m * MEASURE - 1e-6 && !v.includes('.'));
@@ -350,7 +358,7 @@ function buildMEI(model, harmony, opts) {
     }
     model.notes.filter(n => n.measure === m && n.orn && !n.tieEnd).forEach(n => {
       const sid = n.chord ? n.chord + '_' + m : n.id;
-      if (n.orn === 'trill') out.push(`<trill startid="#${sid}" place="above"/>`);
+      if (n.orn === 'trill' || n.orn === 'trillmord') out.push(`<trill startid="#${sid}" place="above"/>`);
       else if (n.orn === 'prall') out.push(`<mordent startid="#${sid}" form="upper" place="above"/>`);
       else if (n.orn === 'mordent') out.push(`<mordent startid="#${sid}" form="lower" place="above"/>`);
       else if (n.orn === 'turn') out.push(`<turn startid="#${sid}" form="upper" place="above"/>`);
@@ -394,7 +402,7 @@ function layerXML(evs, clefs, opts) {
       const grp = []; while (i < evs.length && evs[i].chord === e.chord) grp.push(evs[i++]);
       i--; units.push({ kind: 'chord', events: grp, onset: e.onset, end: e.onset + e.ticks, beamable: e.dur >= 8 }); continue;
     }
-    units.push({ kind: 'single', events: [e], onset: e.onset, end: e.onset + e.ticks, beamable: e.type === 'note' && e.dur >= 8 });
+    units.push({ kind: 'single', events: [e], onset: e.onset, end: e.onset + e.ticks, beamable: e.type === 'note' && e.dur >= 8 && !e.grace });
   }
   // Balken je Zählzeit
   const out = []; let beam = null, clefIdx = 0;
@@ -430,6 +438,7 @@ function eventXML(e, opts, inChord) {
   if (e.type === 'space') return `<space xml:id="${e.id}" ${d}/>`;
   if (e.type === 'rest') return `<rest xml:id="${e.id}" ${d}/>`;
   let a = `<note xml:id="${e.id}" pname="${STEP_NAMES[e.step]}" oct="${e.oct}" ${d}`;
+  if (e.grace) a += e.grace === 'acc' ? ' grace="acc"' : ' grace="unacc" stem.mod="1slash"';
   if (e.staff !== e.layerStaff) a += ` staff="${e.staff}"`;
   if (!inChord) { if (e.tieStart && e.tieEnd) a += ' tie="m"'; else if (e.tieStart) a += ' tie="i"'; else if (e.tieEnd) a += ' tie="t"'; }
   let inner = '';

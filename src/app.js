@@ -12,7 +12,7 @@ const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)', 4: 'var(-
 const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel', '32': 'Zweiunddreißigstel' };
 
 // ---------- Einstellungen ----------
-const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
+const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, orn: true, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
 let S = Object.assign({}, DEFAULTS);
 try { Object.assign(S, JSON.parse(localStorage.getItem('bach.settings') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('bach.settings', JSON.stringify(S)); } catch (e) {} };
@@ -343,11 +343,15 @@ function showNoteInfo(n) {
     <div class="row"><span class="k">Ort</span><span>Takt ${mLabel(n.measure)}, ${beatLabel(n)}</span></div>
     <div class="row"><span class="k">Dauer</span><span>${durName(n)}</span></div>
     <div class="row"><span class="k">Harmonie</span><span>${ch ? `${ch.name} – ${keyName(bt.key)}: <b>${ch.roman}</b>` : '–'}</span></div>
-    <div class="row"><span class="k">Rolle</span><span>${role.text}</span></div>`;
+    <div class="row"><span class="k">Rolle</span><span>${n.grace ? (n.grace === 'acc' ? 'langer Vorschlag (Appoggiatura): auf den Schlag, nimmt der Hauptnote etwa die Hälfte ihres Werts' : 'kurzer Vorschlag: ganz kurz auf den Schlag') : role.text}</span></div>`;
+  const ORN_TEXT = { trill: 'Triller – beginnt barock auf der oberen Nebennote', trillmord: 'Triller mit Nachschlag (beginnt oben, endet über die untere Nebennote)',
+    prall: 'Pralltriller – kurz: obere Nebennote, Hauptnote', mordent: 'Mordent – Hauptnote, untere Nebennote, Hauptnote', turn: 'Doppelschlag – obere Nebennote, Hauptnote, untere Nebennote, Hauptnote' };
+  if (n.orn && ORN_TEXT[n.orn]) h += `<div class="row"><span class="k">Verzierung</span><span>${ORN_TEXT[n.orn]}</span></div>`;
+  if (n.graces && n.graces.length) h += `<div class="row"><span class="k">Vorschlag</span><span>${n.graces.map(g => helmholtz(g)).join(', ')} (${n.graces[0].grace === 'acc' ? 'lang' : 'kurz'})</span></div>`;
   if (n.ghost) h += `<div class="ghostnote">${IC.warn}Takt-gültiges Vorzeichen: Hier steht kein Zeichen, aber das ${ACC_SIGN[n.alter]} von weiter vorn im Takt gilt noch – also <b>${helmholtz(n)}</b>.</div>`;
   h += `<div class="btns"><button data-act="hear">${IC.note}anhören</button><button data-act="from">${IC.play}ab hier spielen</button><button data-act="measure">Takt ${mLabel(n.measure)}</button></div>`;
   openInfo(h, act => {
-    if (act === 'hear') { audio.ensure(); audio.note(n.midi, audio.now() + 0.02, Math.min(1.5, n.playTicks * spt()) || 0.6, 0.8, n.role); }
+    if (act === 'hear') { audio.ensure(); if (n.grace) audio.note(n.midi, audio.now() + 0.02, 0.4, 0.8, n.role); else playOrnamented(n, audio.now() + 0.02, Math.min(2.5, n.playTicks * spt()) || 0.6, 0.8); }
     if (act === 'from') startPlayback(n.onset);
     if (act === 'measure') selectMeasure(n.measure);
   });
@@ -668,7 +672,8 @@ function tapAt(x, y) {
   if (best) {
     const n = best.tieEnd ? findTieStart(best) : best;
     selectNote(best);
-    audio.note(n.midi, audio.now() + 0.01, Math.min(1.2, n.playTicks * spt()), 0.8, n.role);
+    if (n.grace) audio.note(n.midi, audio.now() + 0.01, 0.35, 0.8, n.role);
+    else playOrnamented(n, audio.now() + 0.01, Math.min(1.6, n.playTicks * spt()), 0.8);
     return;
   }
   for (const [k, m] of Object.entries(layout.measures)) {
@@ -902,6 +907,58 @@ function stopPlayback(silent) {
   flashNotes([]);
   if (!silent && pl) { /* Cursor bleibt stehen */ }
 }
+// ---------- Verzierungen und Vorschläge hörbar machen (barocke Ausführung) ----------
+const SEMI_STEPS = [0, 2, 4, 5, 7, 9, 11];
+function auxPitch(n, dir) { // diatonischer Nachbarton über (+1) oder unter (−1) der Note
+  let step = n.step + dir, oct = n.oct;
+  if (step > 6) { step = 0; oct++; } if (step < 0) { step = 6; oct--; }
+  const base = 12 * (oct + 1) + SEMI_STEPS[step];
+  // geschriebenes Vorzeichen derselben Stufe weiter vorn im Takt gilt
+  const prev = model.notes.filter(x => x.measure === n.measure && x.step === step && x.oct === oct && x.onset < n.onset - 1e-6).pop();
+  if (prev) return base + prev.alter;
+  const sc = scaleSet(harmony.keys[n.measure - 1] || pieceKey(piece));
+  for (const a of [KEY_ALTER[step] || 0, 0, -1, 1]) if (sc.has(((base + a) % 12 + 12) % 12)) return base + a;
+  return base + (KEY_ALTER[step] || 0);
+}
+function playOrnamented(n, when, len, vel) {
+  const play = (midi, t, d, v) => audio.note(midi, t, Math.max(0.03, d), v, n.role);
+  if (!S.orn || (!n.graces && !n.orn)) return play(n.midi, when, len, vel);
+  const dt = 0.068 * Math.sqrt(100 / S.tempoPct); // Dauer eines Verzierungstons
+  let t = when, L = len;
+  // Vorschläge
+  if (n.graces && n.graces.length) {
+    const g = n.graces;
+    if (g[0].grace === 'acc' && g.length === 1) {
+      // langer Vorschlag: auf den Schlag, nimmt die Hälfte (bei punktierter Note zwei Drittel) des Werts
+      const a = Math.min(n.dots ? L * 2 / 3 : L / 2, Math.max(L / 2, 0.6));
+      play(g[0].midi, t, a * 1.02, vel * 1.08); t += a; L -= a; vel *= 0.8;
+    } else {
+      // kurzer Vorschlag: sehr kurz auf den Schlag
+      const d = Math.min(dt, L / (g.length + 2));
+      g.forEach(x => { play(x.midi, t, d * 1.1, vel * 0.9); t += d; L -= d; });
+    }
+  }
+  const o = n.orn;
+  const up = () => auxPitch(n, 1), down = () => auxPitch(n, -1);
+  const seq = list => { list.forEach(m => { play(m, t, dt * 1.08, vel * 0.85); t += dt; L -= dt; }); };
+  if (o === 'trill' || o === 'trillmord') {
+    if (L < 4 * dt) seq([up(), n.midi]);
+    else {
+      const u = up(), tail = o === 'trillmord' ? 2 : 0;
+      let k = Math.floor((L * 0.8) / dt) - tail; if (k % 2) k--; k = Math.max(2, k);
+      for (let i = 0; i < k; i++) { play(i % 2 ? n.midi : u, t, dt * 1.08, vel * (i === 0 ? 1 : 0.8)); t += dt; L -= dt; }
+      if (tail) seq([down(), n.midi]);
+    }
+  } else if (o === 'prall') {
+    seq(L < 5 * dt ? [up(), n.midi] : [up(), n.midi, up()]);
+  } else if (o === 'mordent') {
+    seq([n.midi, down()]);
+  } else if (o === 'turn') {
+    seq([up(), n.midi, down()]);
+  }
+  if (L > 0.02) play(n.midi, t, L, vel * 0.95);
+}
+
 function schedule() {
   if (!playing) return;
   const s = spt(), now = audio.now();
@@ -913,7 +970,7 @@ function schedule() {
     const len = Math.min(n.playTicks, pl.end - n.onset) * s;
     const accent = Math.abs(n.onset % BEAT) < 1e-6 ? 1 : Math.abs(n.onset % (TPW / 8)) < 1e-6 ? 0.88 : 0.78;
     const vv = { 1: 0.95, 2: 0.78, 4: 0.78, 3: 0.88 }[n.role] || 0.85;
-    audio.note(n.midi, Math.max(when, now), Math.max(0.05, len * 0.97), accent * vv, n.role);
+    playOrnamented(n, Math.max(when, now), Math.max(0.05, len * 0.97), accent * vv);
   }
   if (horizon >= pl.end) {
     if (loopOn && pl.loopStart != null) {
@@ -985,6 +1042,7 @@ $('#viewBtn').onclick = () => { $('#info').classList.remove('show'); $('#secPane
 function syncPanel() {
   $$('#colSeg button').forEach(b => b.classList.toggle('act', b.dataset.c === S.col));
   $('#harmSw').classList.toggle('act', S.harm);
+  $('#ornSw').classList.toggle('act', S.orn);
   $$('#roomSeg button').forEach(b => b.classList.toggle('act', b.dataset.r === S.room));
   $('#ghostSw').classList.toggle('act', S.ghosts);
   $('#ghostCount').textContent = model ? `(${model.notes.filter(n => n.ghost).length} Stellen)` : '';
@@ -993,6 +1051,7 @@ function syncPanel() {
 syncPanel();
 $('#colSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.col = b.dataset.c; save(); syncPanel(); decorate(); };
 $('#harmSw').onclick = () => { S.harm = !S.harm; save(); syncPanel(); rerender(); };
+$('#ornSw').onclick = () => { S.orn = !S.orn; save(); syncPanel(); };
 $('#ghostSw').onclick = () => { S.ghosts = !S.ghosts; save(); syncPanel(); rerender(); };
 $('#zoomIn').onclick = () => { S.zoom = Math.min(1.6, +(S.zoom + 0.1).toFixed(2)); save(); rerender(); };
 $('#zoomOut').onclick = () => { S.zoom = Math.max(0.6, +(S.zoom - 0.1).toFixed(2)); save(); rerender(); };
