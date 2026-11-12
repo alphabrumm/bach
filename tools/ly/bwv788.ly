@@ -1,4 +1,7 @@
-% Quelle: Mutopia Project, Mutopia-2008/06/15-140, gesetzt von Olivier Vermersch, Public Domain
+% Sinfonia 2, BWV 788 – Mutopia-2008/06/15-140, Olivier Vermersch, Public Domain
+su = { \change Staff = up}
+sd = { \change Staff = down}
+
 melone =  \relative c'' {
   c8 g ees' ees c g' g4. g,4. |
   c8 d ees f g aes b, aes' g f ees d |
@@ -135,4 +138,16 @@ melthree =  \relative c {
   f8 c aes' aes f c' ees, c g' g ees c'
   d, ees f g a b ees,2. ~
   ees16 g f ees d c g'4 \stemUp g,8 c,2.
+}
+
+\score {
+\context PianoStaff
+<<
+  \context Staff = "up"   <<
+    \time 12/8 \key c \minor \clef G
+    \context Voice = VA { \voiceOne \melone }
+    \context Voice = VB { \voiceTwo \meltwo }>>
+  \context Staff = "down" <<
+    \time 12/8 \key c \minor \clef F \melthree>>
+>>
 }

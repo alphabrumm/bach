@@ -1,36 +1,71 @@
 // ===== Musikalische Analyse + MEI-Erzeugung (läuft im Browser und in Node) =====
-const MEASURE = 72, BEAT = 18; // Ticks: Ganze = 48, 12/8-Takt = 72, punktierte Viertel = 18
+// Gilt für jedes Stück: Taktart, Tonart, Auftakt und Stimmen kommen aus dem Stück-JSON.
+let TPW = 96, MEASURE = 96, BEAT = 24, UNIT = 24, KEY_ALTER = {}, PIECE = null;
 const STEP_NAMES = 'cdefgab';
-const KEY_ALTER = { 6: -1, 2: -1, 5: -1 }; // c-Moll: b, e, a erniedrigt (step-Index)
+const SHARP_ORDER = [3, 0, 4, 1, 5, 2, 6], FLAT_ORDER = [6, 2, 5, 1, 4, 0, 3];
 
-function buildModel(voicesRaw) {
+function setupPiece(piece) {
+  PIECE = piece; TPW = piece.tpw || 96;
+  const { num, den } = piece.time;
+  MEASURE = piece.measureTicks;
+  UNIT = TPW / den;
+  const compound = num % 3 === 0 && num > 3 && den >= 8;
+  BEAT = compound ? 3 * UNIT : (num === 3 && den >= 8 ? MEASURE : UNIT);
+  KEY_ALTER = {};
+  const f = piece.key.fifths;
+  if (f > 0) SHARP_ORDER.slice(0, f).forEach(s => KEY_ALTER[s] = 1);
+  if (f < 0) FLAT_ORDER.slice(0, -f).forEach(s => KEY_ALTER[s] = -1);
+}
+function pieceKey(piece) {
+  const majTonic = ((piece.key.fifths * 7) % 12 + 12) % 12;
+  return piece.key.mode === 'minor' ? { tonic: (majTonic + 9) % 12, minor: true } : { tonic: majTonic, minor: false };
+}
+
+function buildModel(piece) {
+  setupPiece(piece);
   const notes = [], events = [];
-  voicesRaw.forEach((evs, vi) => {
-    let k = 0;
-    evs.forEach(e => {
-      const o = Object.assign({}, e);
-      o.id = (e.type === 'note' ? 'n' : e.type === 'rest' ? 'r' : 's') + (vi + 1) + '_' + (k++);
-      o.measure = Math.floor(e.onset / MEASURE) + 1;
-      o.pos = e.onset % MEASURE;
-      if (o.staff == null) o.staff = vi === 2 ? 2 : 1;
-      o.layerStaff = vi === 2 ? 2 : 1;
-      events.push(o);
-      if (o.type === 'note') { o.pc = ((o.midi % 12) + 12) % 12; notes.push(o); }
-    });
+  // Stimmrollen: oben = 1 (rot), Mitte = 2 (grün), unten = 3 (blau)
+  const main = [...new Set(piece.events.map(e => String(e.v).split('.')[0]))];
+  const avg = {};
+  main.forEach(v => { const ns = piece.events.filter(e => e.y === 'n' && String(e.v).split('.')[0] === v); avg[v] = ns.reduce((a, b) => a + b.m, 0) / (ns.length || 1); });
+  const order = [...main].sort((a, b) => avg[b] - avg[a]);
+  const roleOf = {};
+  order.forEach((v, i) => { roleOf[v] = order.length === 2 ? (i === 0 ? 1 : 3) : order.length === 1 ? 1 : Math.min(3, i + 1); });
+  const homeStaff = {}; piece.voices.forEach(v => homeStaff[v.id] = v.staff);
+  piece.events.forEach((e, i) => {
+    const v = String(e.v), mainV = v.split('.')[0];
+    const type = e.y === 'n' ? 'note' : e.y === 'r' ? 'rest' : 'space';
+    const o = { id: (type === 'note' ? 'n' : type === 'rest' ? 'r' : 's') + i, type, voice: v, mainVoice: mainV, role: roleOf[mainV],
+      staff: e.s, layerStaff: homeStaff[mainV] || e.s, onset: e.t, ticks: e.k, dur: e.d, dots: e.p || 0,
+      tieStart: !!e.ts, tieEnd: !!e.te, forced: !!e.fo, cautionary: !!e.ca, chord: e.c || null, tuplet: e.tu || null, orn: e.o || null, mrest: !!e.mr };
+    if (type === 'note') Object.assign(o, { midi: e.m, step: e.st, alter: e.al, oct: e.oc, pc: ((e.m % 12) + 12) % 12 });
+    o.measure = Math.floor(o.onset / MEASURE + 1e-9) + 1;
+    o.pos = o.onset - (o.measure - 1) * MEASURE;
+    events.push(o); if (type === 'note') notes.push(o);
   });
-  // Haltebogen-Ketten: Gesamtdauer für die Wiedergabe
-  const byVoice = [1, 2, 3].map(v => notes.filter(n => n.voice === v).sort((a, b) => a.onset - b.onset));
-  byVoice.forEach(list => {
-    list.forEach((n, i) => { n.prev = list[i - 1] || null; n.next = list[i + 1] || null; });
+  // Nachbarn je Stimme (für Rollen/Bögen) – bei Akkorden zählt der höchste Ton
+  const byVoice = {};
+  notes.forEach(n => (byVoice[n.voice] = byVoice[n.voice] || []).push(n));
+  Object.values(byVoice).forEach(list => {
+    list.sort((a, b) => a.onset - b.onset || b.midi - a.midi);
+    const line = list.filter((n, i) => i === 0 || n.onset !== list[i - 1].onset);
+    line.forEach((n, i) => { n.prev = line[i - 1] || null; n.next = line[i + 1] || null; });
+    list.forEach(n => { if (!n.prev && !n.next) { const ref = line.find(x => x.onset === n.onset); if (ref) { n.prev = ref.prev; n.next = ref.next; } } });
+  });
+  // Klingende Gesamtdauer über Haltebögen
+  Object.values(byVoice).forEach(list => {
     list.forEach(n => {
       if (n.tieEnd) return;
       let total = n.ticks, cur = n;
-      while (cur.tieStart && cur.next) { cur = cur.next; total += cur.ticks; }
+      while (cur.tieStart) {
+        const nx = list.find(x => Math.abs(x.onset - (cur.onset + cur.ticks)) < 1e-6 && x.midi === cur.midi);
+        if (!nx) break; total += nx.ticks; cur = nx;
+      }
       n.playTicks = total;
     });
   });
-  const measures = Math.max(...events.map(e => e.measure));
-  return { notes, events, measures, byVoice };
+  const roles = [...new Set(Object.values(roleOf))].sort();
+  return { notes, events, measures: piece.measures, roles, voiceCount: order.length, piece };
 }
 
 // ---------- Tonart pro Takt (Krumhansl-Kessler + Viterbi-Glättung) ----------
@@ -44,30 +79,30 @@ function corr(a, b) {
 }
 function pcHist(notes, from, to) {
   const h = new Array(12).fill(0);
-  for (const n of notes) {
-    const s = Math.max(n.onset, from), e = Math.min(n.onset + n.ticks, to);
-    if (e > s) h[n.pc] += e - s;
-  }
+  for (const n of notes) { const s = Math.max(n.onset, from), e = Math.min(n.onset + n.ticks, to); if (e > s) h[n.pc] += e - s; }
   return h;
 }
 function analyzeKeys(model) {
   const M = model.measures, scores = [];
+  // Fenster ~ 2–3 Takte, bei kurzen Takten (3/8) breiter
+  const span = MEASURE <= 48 ? 2 : 1;
   for (let m = 1; m <= M; m++) {
     const h = new Array(12).fill(0);
-    [[m - 1, 0.4], [m, 1], [m + 1, 0.4]].forEach(([mm, w]) => {
-      if (mm < 1 || mm > M) return;
+    for (let d = -span; d <= span; d++) {
+      const mm = m + d; if (mm < 1 || mm > M) continue;
+      const w = d === 0 ? 1 : 0.45;
       pcHist(model.notes, (mm - 1) * MEASURE, mm * MEASURE).forEach((x, i) => h[i] += w * x);
-    });
+    }
     const row = [];
     for (let t = 0; t < 12; t++) {
       const rot = p => p.map((_, i) => p[(i - t + 12) % 12]);
       row.push(corr(h, rot(KK_MAJ)), corr(h, rot(KK_MIN)));
     }
-    scores.push(row); // Index: t*2 + (0=Dur,1=Moll)
+    scores.push(row);
   }
-  // Viterbi: Tonartwechsel kosten etwas, damit die Anzeige nicht flackert
-  const K = 24, PEN = 0.22;
-  let best = scores[0].map((s, k) => s + (k === 1 ? 0.3 : 0)); // Start: c-Moll bevorzugen
+  const home = pieceKey(model.piece), homeIdx = home.tonic * 2 + (home.minor ? 1 : 0);
+  const K = 24, PEN = MEASURE <= 48 ? 0.32 : 0.22;
+  let best = scores[0].map((s, k) => s + (k === homeIdx ? 0.4 : 0));
   const back = [];
   for (let m = 1; m < M; m++) {
     const nb = [], bk = [];
@@ -78,8 +113,8 @@ function analyzeKeys(model) {
     }
     best = nb; back.push(bk);
   }
-  let k = 1; // Ende: Tonika c-Moll erzwingen ist zu stark – Maximum nehmen
-  k = best.indexOf(Math.max(...best));
+  best[homeIdx] += 0.4; // Schluss in der Grundtonart bevorzugen
+  let k = best.indexOf(Math.max(...best));
   const path = [k];
   for (let m = M - 2; m >= 0; m--) { k = back[m][k]; path.unshift(k); }
   return path.map(k => ({ tonic: Math.floor(k / 2), minor: k % 2 === 1 }));
@@ -102,16 +137,17 @@ function scaleSet(key) {
 function detectChord(model, from, to, key) {
   const w = new Array(12).fill(0);
   let bass = null;
+  const sub = UNIT / 2; // Unterteilung: Töne zwischen den Hauptwerten sind oft Durchgänge
   const sounding = model.notes.filter(n => n.onset < to && n.onset + n.ticks > from);
   for (const n of sounding) {
     const s = Math.max(n.onset, from), e = Math.min(n.onset + n.ticks, to);
     let x = e - s;
-    if (n.onset < from) x *= 0.75;             // gehaltener Ton zählt etwas weniger
-    if (n.onset === from) x *= 1.4;            // Ton auf der Zählzeit zählt mehr
-    if (n.ticks <= 3 && n.onset % 6 !== 0) x *= 0.6; // Sechzehntel zwischen den Achteln: oft Durchgang
+    if (n.onset < from) x *= 0.75;
+    if (Math.abs(n.onset - from) < 1e-6) x *= 1.4;
+    if (n.ticks <= TPW / 16 && Math.abs((n.onset - from) % (TPW / 8)) > 1e-6) x *= 0.6;
     w[n.pc] += x;
   }
-  const early = sounding.filter(n => n.onset < from + 7);
+  const early = sounding.filter(n => n.onset < from + Math.min(BEAT, TPW / 8) * 0.6);
   if (early.length) bass = early.reduce((a, b) => (b.midi < a.midi ? b : a)).pc;
   const total = w.reduce((a, b) => a + b, 0);
   if (!total) return null;
@@ -131,12 +167,11 @@ function detectChord(model, from, to, key) {
     s *= c.prior;
     if (!best || s > best.score) best = { root: r, q: c.q, pcs, score: s, bass };
   }
-  // Verminderter Septakkord ist symmetrisch: Grundton als Leitton deuten
   if (best && best.q === 'dim7') {
     const cands = [0, 3, 6, 9].map(i => (best.root + i) % 12);
     const lt = (key.tonic + 11) % 12;
     let r = cands.find(c => c === lt);
-    if (r == null) r = cands.find(c => (c - key.tonic + 12) % 12 === 6); // vii°7/V
+    if (r == null) r = cands.find(c => (c - key.tonic + 12) % 12 === 6);
     if (r == null) r = cands.find(c => sc.has((c + 1) % 12));
     if (r != null) { best.root = r; best.pcs = [0, 3, 6, 9].map(i => (i + r) % 12); }
   }
@@ -149,38 +184,14 @@ function romanFor(ch, key) {
   const maj = { 0: [0, ''], 1: [1, '♭'], 2: [1, ''], 3: [2, '♭'], 4: [2, ''], 5: [3, ''], 6: [3, '♯'], 7: [4, ''], 8: [5, '♭'], 9: [5, ''], 10: [6, '♭'], 11: [6, ''] };
   const min = { 0: [0, ''], 1: [1, '♭'], 2: [1, ''], 3: [2, ''], 4: [2, '♯'], 5: [3, ''], 6: [3, '♯'], 7: [4, ''], 8: [5, ''], 9: [5, '♯'], 10: [6, ''], 11: [6, '♯'] };
   let [deg, acc] = (key.minor ? min : maj)[iv];
-  if (key.minor && iv === 11) acc = ''; // Leitton-Akkord vii° ohne Vorzeichen
+  if (key.minor && iv === 11) acc = '';
   let r = ROMAN[deg];
-  const lower = ['min', 'dim', 'dim7', 'hdim7', 'min7'].includes(ch.q);
-  if (lower) r = r.toLowerCase();
+  if (['min', 'dim', 'dim7', 'hdim7', 'min7'].includes(ch.q)) r = r.toLowerCase();
   const suf = { maj: '', min: '', dim: '°', dom7: '7', dim7: '°7', hdim7: 'ø7', min7: '7' }[ch.q];
   return acc + r + suf;
 }
 function isDiatonic(ch, key) { const sc = scaleSet(key); return ch.pcs.every(p => sc.has(p)); }
-function chordRoman(ch, key) {
-  if (ch.root === key.tonic) return romanFor(ch, key) + (key.minor && ch.q === 'maj' ? ' (picardische Terz)' : '');
-  if (!isDiatonic(ch, key)) {
-    // Zwischendominante: (V oder V7) einer leitereigenen Stufe ≠ I
-    if (ch.q === 'maj' || ch.q === 'dom7') {
-      const target = (ch.root + 5) % 12;
-      const tIv = (target - key.tonic + 12) % 12;
-      if (tIv !== 0 && scaleSet(key).has(target)) {
-        const tq = diatonicQuality(target, key);
-        return (ch.q === 'dom7' ? 'V7' : 'V') + '/' + romanFor({ root: target, q: tq }, key);
-      }
-    }
-    if (ch.q === 'dim7' || ch.q === 'dim') {
-      const target = (ch.root + 1) % 12;
-      const tIv = (target - key.tonic + 12) % 12;
-      if (tIv !== 0 && scaleSet(key).has(target)) {
-        return 'vii' + (ch.q === 'dim7' ? '°7' : '°') + '/' + romanFor({ root: target, q: diatonicQuality(target, key) }, key);
-      }
-    }
-  }
-  return romanFor(ch, key);
-}
 function diatonicQuality(root, key) {
-  const sc = scaleSet(key);
   const nat = key.minor ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11];
   const nat12 = new Set(nat.map(x => (x + key.tonic) % 12));
   const third = [3, 4].find(i => nat12.has((root + i) % 12));
@@ -188,6 +199,20 @@ function diatonicQuality(root, key) {
   if (third === 4) return 'maj';
   if (fifth === 6) return 'dim';
   return 'min';
+}
+function chordRoman(ch, key) {
+  if (ch.root === key.tonic) return romanFor(ch, key) + (key.minor && ch.q === 'maj' ? ' (picardische Terz)' : '');
+  if (!isDiatonic(ch, key)) {
+    if (ch.q === 'maj' || ch.q === 'dom7') {
+      const target = (ch.root + 5) % 12;
+      if (target !== key.tonic && scaleSet(key).has(target)) return (ch.q === 'dom7' ? 'V7' : 'V') + '/' + romanFor({ root: target, q: diatonicQuality(target, key) }, key);
+    }
+    if (ch.q === 'dim7' || ch.q === 'dim') {
+      const target = (ch.root + 1) % 12;
+      if (target !== key.tonic && scaleSet(key).has(target)) return 'vii' + (ch.q === 'dim7' ? '°7' : '°') + '/' + romanFor({ root: target, q: diatonicQuality(target, key) }, key);
+    }
+  }
+  return romanFor(ch, key);
 }
 
 // ---------- Deutsche Namen ----------
@@ -213,49 +238,37 @@ function helmholtz(n) {
 function pcSpelling(pc, model, from, to) {
   const n = model.notes.find(n => n.pc === pc && n.onset < to && n.onset + n.ticks > from);
   if (n) return germanStepName(n.step, n.alter);
-  return [1, 3, 8, 10].includes(pc) ? PC_NAMES_FLAT[pc] : PC_NAMES_SHARP[pc];
+  return (PIECE && PIECE.key.fifths < 0) || [1, 3, 8, 10].includes(pc) && !(PIECE && PIECE.key.fifths > 1) ? PC_NAMES_FLAT[pc] : PC_NAMES_SHARP[pc];
 }
-function keyName(key) {
-  const majN = ['C', 'Des', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
-  const minN = ['c', 'cis', 'd', 'es', 'e', 'f', 'fis', 'g', 'gis', 'a', 'b', 'h'];
-  return key.minor ? minN[key.tonic] + '-Moll' : majN[key.tonic] + '-Dur';
-}
-function keyShort(key) {
-  const majN = ['C', 'Des', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
-  const minN = ['c', 'cis', 'd', 'es', 'e', 'f', 'fis', 'g', 'gis', 'a', 'b', 'h'];
-  return key.minor ? minN[key.tonic] : majN[key.tonic];
-}
+const MAJ_N = ['C', 'Des', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'As', 'A', 'B', 'H'];
+const MIN_N = ['c', 'cis', 'd', 'es', 'e', 'f', 'fis', 'g', 'gis', 'a', 'b', 'h'];
+function keyName(key) { return key.minor ? MIN_N[key.tonic] + '-Moll' : MAJ_N[key.tonic] + '-Dur'; }
+function keyShort(key) { return key.minor ? MIN_N[key.tonic] : MAJ_N[key.tonic]; }
 function chordName(ch, model, from, to) {
   let r = pcSpelling(ch.root, model, from, to);
-  const upper = ['maj', 'dom7'].includes(ch.q);
-  r = upper ? r[0].toUpperCase() + r.slice(1) : r;
-  const suf = { maj: '', min: '', dim: '°', dom7: '7', dim7: '°7', hdim7: 'ø7', min7: '7' }[ch.q];
-  return r + suf;
+  if (['maj', 'dom7'].includes(ch.q)) r = r[0].toUpperCase() + r.slice(1);
+  return r + { maj: '', min: '', dim: '°', dom7: '7', dim7: '°7', hdim7: 'ø7', min7: '7' }[ch.q];
 }
 const QUALITY_TEXT = { maj: 'Dur-Dreiklang', min: 'Moll-Dreiklang', dim: 'verminderter Dreiklang', dom7: 'Dominantseptakkord', dim7: 'verminderter Septakkord', hdim7: 'halbverminderter Septakkord', min7: 'Moll-Septakkord' };
 
 function analyzeHarmony(model) {
   const keys = analyzeKeys(model);
-  const beats = [];
+  const beats = [], perMeasure = Math.round(MEASURE / BEAT);
   for (let m = 1; m <= model.measures; m++) {
-    for (let b = 0; b < 4; b++) {
+    for (let b = 0; b < perMeasure; b++) {
       const from = (m - 1) * MEASURE + b * BEAT, to = from + BEAT;
       const key = keys[m - 1];
       const ch = detectChord(model, from, to, key);
-      if (ch) {
-        ch.roman = chordRoman(ch, key);
-        ch.name = chordName(ch, model, from, to);
-        ch.quality = QUALITY_TEXT[ch.q];
-      }
+      if (ch) { ch.roman = chordRoman(ch, key); ch.name = chordName(ch, model, from, to); ch.quality = QUALITY_TEXT[ch.q]; }
       beats.push({ measure: m, beat: b, from, to, key, chord: ch });
     }
   }
-  return { keys, beats };
+  return { keys, beats, perMeasure };
 }
+function beatAt(harmony, t) { return harmony.beats[Math.min(harmony.beats.length - 1, Math.floor(t / BEAT + 1e-9))]; }
 
-// Rolle einer Note im Akkord ihrer Zählzeit
 function noteRole(n, harmony) {
-  const bt = harmony.beats[Math.floor(n.onset / BEAT)];
+  const bt = beatAt(harmony, n.onset);
   if (!bt || !bt.chord) return { text: 'keine Akkordschätzung' };
   const ch = bt.chord;
   const iv = (n.pc - ch.root + 12) % 12;
@@ -263,11 +276,11 @@ function noteRole(n, harmony) {
     const name = iv === 0 ? 'Grundton' : (iv === 3 || iv === 4) ? 'Terz' : (iv === 6 || iv === 7) ? 'Quinte' : 'Septime';
     return { chordTone: true, text: name + ' des Akkords' };
   }
-  const p = n.prev && n.prev.onset + n.prev.ticks === n.onset ? n.prev : null;
-  const q = n.next && n.onset + n.ticks === n.next.onset ? n.next : null;
+  const p = n.prev && Math.abs(n.prev.onset + n.prev.ticks - n.onset) < 1e-6 ? n.prev : null;
+  const q = n.next && Math.abs(n.onset + n.ticks - n.next.onset) < 1e-6 ? n.next : null;
   const d1 = p ? n.midi - p.midi : null, d2 = q ? q.midi - n.midi : null;
   const step = d => d != null && Math.abs(d) >= 1 && Math.abs(d) <= 2;
-  const strong = n.onset % BEAT === 0;
+  const strong = Math.abs(n.onset % BEAT) < 1e-6;
   if (strong && step(d2) && (p && (p.midi === n.midi || step(d1)))) return { text: 'Vorhalt (auf der Zählzeit, löst sich stufenweise auf)' };
   if (step(d1) && step(d2) && Math.sign(d1) === Math.sign(d2)) return { text: 'Durchgangston' };
   if (step(d1) && step(d2) && Math.sign(d1) !== Math.sign(d2)) return { text: 'Wechselnote (Nebennote)' };
@@ -277,17 +290,18 @@ function noteRole(n, harmony) {
 
 // ---------- Vorzeichen: geschrieben / takt-gültig ("Geister") ----------
 function computeAccidentals(model) {
+  const staffs = [...new Set(model.notes.map(n => n.staff))];
   for (let m = 1; m <= model.measures; m++) {
-    for (const staff of [1, 2]) {
-      const list = model.notes.filter(n => n.measure === m && n.staff === staff).sort((a, b) => a.onset - b.onset || a.voice - b.voice);
+    for (const staff of staffs) {
+      const list = model.notes.filter(n => n.measure === m && n.staff === staff).sort((a, b) => a.onset - b.onset || a.midi - b.midi);
       const state = {};
       for (const n of list) {
         const k = n.step + ':' + n.oct;
         const cur = k in state ? state[k] : (KEY_ALTER[n.step] || 0);
         n.showAcc = false; n.ghost = false;
-        if (n.tieEnd) { continue; }
+        if (n.tieEnd) continue;
         if (n.alter !== cur || n.forced || n.cautionary) n.showAcc = true;
-        else if (k in state && n.alter !== (KEY_ALTER[n.step] || 0)) n.ghost = true; // gilt nur wegen eines früheren Vorzeichens im Takt
+        else if (k in state && n.alter !== (KEY_ALTER[n.step] || 0)) n.ghost = true;
         state[k] = n.alter;
       }
     }
@@ -296,53 +310,64 @@ function computeAccidentals(model) {
 
 // ---------- MEI ----------
 const ACC = { '-2': 'ff', '-1': 'f', '0': 'n', '1': 's', '2': 'x' };
+function measureLabel(m) { return PIECE && PIECE.pickup ? m - 1 : m; }
 function buildMEI(model, harmony, opts) {
-  const out = [];
+  const P = model.piece, out = [];
+  const f = P.key.fifths, ks = f > 0 ? f + 's' : f < 0 ? (-f) + 'f' : '0';
   out.push('<?xml version="1.0" encoding="UTF-8"?>');
-  out.push('<mei xmlns="http://www.music-encoding.org/ns/mei" meiversion="4.0.1"><meiHead><fileDesc><titleStmt><title>Sinfonia 2</title></titleStmt><pubStmt/></fileDesc></meiHead>');
+  out.push('<mei xmlns="http://www.music-encoding.org/ns/mei" meiversion="4.0.1"><meiHead><fileDesc><titleStmt><title>' + esc(P.title || '') + '</title></titleStmt><pubStmt/></fileDesc></meiHead>');
   out.push('<music><body><mdiv><score>');
-  out.push('<scoreDef meter.count="12" meter.unit="8" key.sig="3f"><staffGrp symbol="brace" bar.thru="true">');
-  out.push('<staffDef n="1" lines="5" clef.shape="G" clef.line="2"/><staffDef n="2" lines="5" clef.shape="F" clef.line="4"/>');
+  out.push(`<scoreDef meter.count="${P.time.num}" meter.unit="${P.time.den}" key.sig="${ks}"><staffGrp symbol="brace" bar.thru="true">`);
+  P.staffClefs.forEach((c, i) => out.push(`<staffDef n="${i + 1}" lines="5" clef.shape="${c[0]}" clef.line="${c[1]}"/>`));
   out.push('</staffGrp></scoreDef><section>');
-  const beamId = { n: 0 };
+  // Layer je System: Hauptstimmen, dann Nebenstimmen
+  const staffs = P.staffClefs.map((_, i) => i + 1);
+  const layersOf = {};
+  staffs.forEach(s => {
+    const vs = [...new Set(model.events.filter(e => e.layerStaff === s).map(e => e.voice))];
+    vs.sort((a, b) => (a.includes('.') - b.includes('.')) || a.localeCompare(b));
+    layersOf[s] = vs;
+  });
+  const repStart = new Set((P.repeats || []).map(r => r.from)), repEnd = new Set((P.repeats || []).map(r => r.to));
   for (let m = 1; m <= model.measures; m++) {
-    out.push(`<measure n="${m}" xml:id="m${m}"${m === model.measures ? ' right="end"' : ''}>`);
-    const layers = [[1, 1, 1], [1, 2, 2], [2, 1, 3]]; // staff, layer, voice
-    let curStaff = 0;
-    for (const [st, ly, v] of layers) {
-      if (st !== curStaff) { if (curStaff) out.push('</staff>'); out.push(`<staff n="${st}">`); curStaff = st; }
-      out.push(`<layer n="${ly}">`);
-      const evs = model.events.filter(e => e.voice === v && e.measure === m).sort((a, b) => a.onset - b.onset);
-      // Balken pro punktierter Viertel
-      const groups = []; let g = null;
-      evs.forEach(e => {
-        const beamable = e.type === 'note' && e.dur >= 8;
-        const beat = Math.floor(e.pos / BEAT);
-        const fits = Math.floor((e.pos + e.ticks - 1) / BEAT) === beat;
-        if (beamable && fits && g && g.beat === beat) g.items.push(e);
-        else { g = beamable && fits ? { beat, items: [e] } : null; groups.push(g || { items: [e], single: true }); }
+    let attrs = '';
+    if (m === 1 && P.pickup) attrs += ' metcon="false"';
+    if (repStart.has(m) && m > 1) attrs += ' left="rptstart"';
+    if (repEnd.has(m)) attrs += ' right="rptend"'; else if (m === model.measures) attrs += ' right="end"';
+    out.push(`<measure n="${measureLabel(m)}" xml:id="m${m}"${attrs}>`);
+    for (const s of staffs) {
+      out.push(`<staff n="${s}">`);
+      layersOf[s].forEach((v, li) => {
+        const evs = model.events.filter(e => e.voice === v && e.measure === m).sort((a, b) => a.onset - b.onset);
+        if (!evs.length && v.includes('.')) return;
+        out.push(`<layer n="${li + 1}">`);
+        const clefs = (P.clefChanges || []).filter(c => c.voice === v.split('.')[0] && c.t > (m - 1) * MEASURE - 1e-6 && c.t < m * MEASURE - 1e-6 && !v.includes('.'));
+        out.push(layerXML(evs, clefs, opts));
+        out.push('</layer>');
       });
-      for (const grp of groups) {
-        const beam = !grp.single && grp.items.length > 1;
-        if (beam) out.push(`<beam xml:id="b${v}_${beamId.n++}" type="v${v}">`);
-        for (const e of grp.items) out.push(eventXML(e, opts));
-        if (beam) out.push('</beam>');
-      }
-      out.push('</layer>');
+      out.push('</staff>');
     }
-    out.push('</staff>');
-    // Ornamente
-    model.notes.filter(n => n.measure === m && n.trill).forEach(n => out.push(`<trill startid="#${n.id}" place="above"/>`));
-    // Harmonik
+    model.notes.filter(n => n.measure === m && n.orn && !n.tieEnd).forEach(n => {
+      const sid = n.chord ? n.chord + '_' + m : n.id;
+      if (n.orn === 'trill') out.push(`<trill startid="#${sid}" place="above"/>`);
+      else if (n.orn === 'prall') out.push(`<mordent startid="#${sid}" form="upper" place="above"/>`);
+      else if (n.orn === 'mordent') out.push(`<mordent startid="#${sid}" form="lower" place="above"/>`);
+      else if (n.orn === 'turn') out.push(`<turn startid="#${sid}" form="upper" place="above"/>`);
+      else if (n.orn === 'fermata') out.push(`<fermata startid="#${sid}" place="${n.role === 3 ? 'below' : 'above'}"/>`);
+    });
     if (opts.harm) {
-      for (let b = 0; b < 4; b++) {
-        const bt = harmony.beats[(m - 1) * 4 + b];
-        if (!bt.chord) continue;
-        const prev = harmony.beats[(m - 1) * 4 + b - 1];
+      const per = harmony.perMeasure, shift = P.pickup ? MEASURE - P.pickup : 0;
+      const bassStaff = staffs[staffs.length - 1];
+      for (let b = 0; b < per; b++) {
+        const bt = harmony.beats[(m - 1) * per + b];
+        if (!bt || !bt.chord) continue;
+        if (m === 1 && P.pickup && b * BEAT < shift - 1e-6) continue;
+        const prev = harmony.beats[(m - 1) * per + b - 1];
         const keyChanged = !prev || prev.key.tonic !== bt.key.tonic || prev.key.minor !== bt.key.minor;
         if (!keyChanged && prev && prev.chord && prev.chord.roman === bt.chord.roman) continue;
         const txt = (keyChanged ? keyShort(bt.key) + ': ' : '') + bt.chord.roman;
-        out.push(`<harm xml:id="h${m}_${b}" staff="2" tstamp="${1 + b * 3}" place="below">${esc(txt)}</harm>`);
+        const pos = b * BEAT - (m === 1 ? shift : 0);
+        out.push(`<harm xml:id="h${m}_${b}" staff="${bassStaff}" tstamp="${+(1 + pos / UNIT).toFixed(3)}" place="below">${esc(txt)}</harm>`);
       }
     }
     out.push('</measure>');
@@ -351,13 +376,61 @@ function buildMEI(model, harmony, opts) {
   return out.join('');
 }
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
-function eventXML(e, opts) {
-  const d = `dur="${e.dur}"${e.dots ? ` dots="${e.dots}"` : ''}`;
+function durAttr(e) { return `dur="${e.dur}"${e.dots ? ` dots="${e.dots}"` : ''}`; }
+function layerXML(evs, clefs, opts) {
+  // Ganztaktpause
+  if (evs.length && evs.every(e => e.type === 'rest' && e.mrest) && Math.abs(evs.reduce((a, e) => a + e.ticks, 0) - MEASURE) < 1e-6) return `<mRest xml:id="${evs[0].id}"/>`;
+  // Einheiten: Einzelereignis, Akkord, Triole
+  const units = [];
+  for (let i = 0; i < evs.length; i++) {
+    const e = evs[i];
+    if (e.tuplet) {
+      const id = e.tuplet[0]; const grp = [];
+      while (i < evs.length && evs[i].tuplet && evs[i].tuplet[0] === id) grp.push(evs[i++]);
+      i--; units.push({ kind: 'tuplet', events: grp, onset: grp[0].onset, end: grp[grp.length - 1].onset + grp[grp.length - 1].ticks }); continue;
+    }
+    if (e.chord) {
+      const grp = []; while (i < evs.length && evs[i].chord === e.chord) grp.push(evs[i++]);
+      i--; units.push({ kind: 'chord', events: grp, onset: e.onset, end: e.onset + e.ticks, beamable: e.dur >= 8 }); continue;
+    }
+    units.push({ kind: 'single', events: [e], onset: e.onset, end: e.onset + e.ticks, beamable: e.type === 'note' && e.dur >= 8 });
+  }
+  // Balken je Zählzeit
+  const out = []; let beam = null, clefIdx = 0;
+  const flush = () => { if (!beam) return; if (beam.length > 1) out.push(`<beam>${beam.map(u => unitXML(u, opts)).join('')}</beam>`); else out.push(unitXML(beam[0], opts)); beam = null; };
+  for (const u of units) {
+    while (clefIdx < clefs.length && clefs[clefIdx].t <= u.onset + 1e-6) { flush(); out.push(`<clef shape="${clefs[clefIdx].shape}" line="${clefs[clefIdx].line}"/>`); clefIdx++; }
+    const bt = Math.floor((u.onset % MEASURE) / BEAT + 1e-9), btEnd = Math.floor(((u.end - 1e-6) % MEASURE) / BEAT + 1e-9);
+    if (u.beamable && bt === btEnd) {
+      if (beam && beam.bt === bt) beam.push(u); else { flush(); beam = [u]; beam.bt = bt; }
+    } else { flush(); out.push(unitXML(u, opts)); }
+  }
+  flush();
+  while (clefIdx < clefs.length) { out.push(`<clef shape="${clefs[clefIdx].shape}" line="${clefs[clefIdx].line}"/>`); clefIdx++; }
+  return out.join('');
+}
+function unitXML(u, opts) {
+  if (u.kind === 'tuplet') {
+    const [id, num, numbase] = u.events[0].tuplet;
+    const inner = u.events.length > 1 && u.events.every(e => e.type === 'note' && e.dur >= 8)
+      ? `<beam>${u.events.map(e => eventXML(e, opts)).join('')}</beam>` : u.events.map(e => eventXML(e, opts)).join('');
+    return `<tuplet num="${num}" numbase="${numbase}" bracket.visible="false">${inner}</tuplet>`;
+  }
+  if (u.kind === 'chord') {
+    const e0 = u.events[0];
+    let a = `<chord xml:id="${e0.chord}_${e0.measure}" ${durAttr(e0)}`;
+    if (e0.tieStart && e0.tieEnd) a += ' tie="m"'; else if (e0.tieStart) a += ' tie="i"'; else if (e0.tieEnd) a += ' tie="t"';
+    return a + '>' + u.events.map(e => eventXML(e, opts, true)).join('') + '</chord>';
+  }
+  return eventXML(u.events[0], opts);
+}
+function eventXML(e, opts, inChord) {
+  const d = inChord ? '' : durAttr(e);
   if (e.type === 'space') return `<space xml:id="${e.id}" ${d}/>`;
   if (e.type === 'rest') return `<rest xml:id="${e.id}" ${d}/>`;
   let a = `<note xml:id="${e.id}" pname="${STEP_NAMES[e.step]}" oct="${e.oct}" ${d}`;
   if (e.staff !== e.layerStaff) a += ` staff="${e.staff}"`;
-  if (e.tieStart && e.tieEnd) a += ' tie="m"'; else if (e.tieStart) a += ' tie="i"'; else if (e.tieEnd) a += ' tie="t"';
+  if (!inChord) { if (e.tieStart && e.tieEnd) a += ' tie="m"'; else if (e.tieStart) a += ' tie="i"'; else if (e.tieEnd) a += ' tie="t"'; }
   let inner = '';
   if (e.showAcc) {
     if (e.cautionary) inner = `<accid accid="${ACC[e.alter]}" func="caution" enclose="paren"/>`;
@@ -369,4 +442,4 @@ function eventXML(e, opts) {
   return inner ? a + '>' + inner + '</note>' : a + '/>';
 }
 
-if (typeof module !== 'undefined') module.exports = { buildModel, analyzeHarmony, computeAccidentals, buildMEI, noteRole, helmholtz, keyName, MEASURE, BEAT };
+if (typeof module !== 'undefined') module.exports = { setupPiece, buildModel, analyzeHarmony, computeAccidentals, buildMEI, noteRole, helmholtz, keyName, beatAt, get MEASURE() { return MEASURE; }, get BEAT() { return BEAT; } };

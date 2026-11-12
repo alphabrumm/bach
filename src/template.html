@@ -236,7 +236,7 @@ input{-webkit-user-select:text;user-select:text}
   <div class="cover">
     <div class="topbar">
       <button class="tb" id="scoreBack">‹ Inhalt</button>
-      <div class="title">Sinfonia 2 · c-Moll</div>
+      <div class="title"></div>
       <button class="tb playbtn" id="play" title="Abspielen"></button>
       <div class="tempoBox"><span class="tlbl">Tempo</span><input type="range" id="tempo" min="25" max="100" step="5"><span id="tempoVal"></span></div>
       <button class="tb" id="practiceChip" style="display:none" title="Läuft gerade"></button>
@@ -246,12 +246,12 @@ input{-webkit-user-select:text;user-select:text}
     </div>
     <div id="scroller" class="sheet">
       <div id="page">
-        <div id="pageHead"><h2>Sinfonia 2</h2><div class="meta">c-Moll · BWV 788 · 3 Stimmen</div></div>
+        <div id="pageHead"></div>
         <div id="score"><div id="loading">Notenstecher bei der Arbeit …</div></div>
         <div id="secLayer"></div>
         <div id="msel"></div>
         <div id="cursor"></div>
-        <div class="small" style="text-align:center;padding:24px 20px 0">Notentext: Mutopia Project (Public Domain) · Notensatz: Verovio · Flügel: Salamander Grand Piano von Alexander Holm (CC-BY 3.0)</div>
+        <div class="small" style="text-align:center;padding:24px 20px 0">Notentexte: Mutopia Project (Inventionen CC BY-SA 3.0) · Notensatz: Verovio · Flügel: Salamander Grand Piano von Alexander Holm (CC-BY 3.0)</div>
       </div>
     </div>
   </div>
@@ -259,7 +259,7 @@ input{-webkit-user-select:text;user-select:text}
 
 <div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
 
-<div class="card sheet" id="secPanel"><div class="lbl">Übe-Abschnitte · Sinfonia 2</div><div id="secList"></div>
+<div class="card sheet" id="secPanel"><div class="lbl">Übe-Abschnitte</div><div id="secList"></div>
   <div class="btns" style="margin-top:10px"><button class="backupBtn dirtyable">Sichern …</button></div></div>
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 
@@ -281,9 +281,6 @@ input{-webkit-user-select:text;user-select:text}
 </div>
 <div id="toast"></div>
 
-<script>
-const DATA = /*DATA*/;
-</script>
 <script>
 /*ANALYSIS*/
 </script>

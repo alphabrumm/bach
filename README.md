@@ -2,7 +2,7 @@
 
 Eine iPad-taugliche Web-App, um in Klavierstücke von J. S. Bach einzutauchen: Notenbücher im Leinen-Look, Notenblätter als echte Daten (antippen, scrubben, Harmonik, Stimmen).
 
-**Prototyp 1:** Sinfonia 2 c-Moll, BWV 788
+**Inhalt:** alle 15 Inventionen (BWV 772–786) und 15 Sinfonien (BWV 787–801)
 
 - Noten und Takte antippen → Infokarte (Tonname, Stimme, Harmonie, Rolle im Akkord)
 - Mit dem Finger waagrecht über die Noten wischen → Scrubbing; Finger ruhen lassen → Zusammenklang
@@ -14,16 +14,18 @@ Eine iPad-taugliche Web-App, um in Klavierstücke von J. S. Bach einzutauchen: N
 ## Aufbau
 
 - `index.html` – fertige App (wird gebaut, nicht von Hand bearbeiten)
-- `src/` – Vorlage, Analyse (`analysis.js`) und App-Logik (`app.js`)
-- `tools/` – LilyPond-Quelle, Parser (`parse.js` → `notes.json`) und `build.js`
+- `pieces/` – ein JSON pro Stück + `index.json` (Katalog), wird aus `tools/ly/` erzeugt
+- `src/` – Vorlage, Analyse & Notensatz-Daten (`analysis.js`) und App-Logik (`app.js`)
+- `tools/ly/` – LilyPond-Quellen (Mutopia), `tools/lily.js` – Parser, prüft, dass jede Stimme Takt für Takt aufgeht
 
 ```
-node tools/parse.js   # bwv788.ly -> notes.json
-node tools/build.js   # src/ + notes.json -> index.html
+node tools/build-pieces.js   # tools/ly/*.ly -> pieces/*.json
+node tools/build.js          # src/ -> index.html
 ```
 
 ## Quellen & Lizenzen
 
-- Notentext: Mutopia Project, Mutopia-2008/06/15-140, gesetzt von Olivier Vermersch – Public Domain
+- Notentexte: [Mutopia Project](https://www.mutopiaproject.org) – Inventionen (BWV 772–786) unter CC BY-SA 3.0 (u. a. jeff covey, Urs Metzger), Sinfonien (BWV 787–801) gesetzt von Olivier Vermersch (Sinfonia 2: Public Domain). Lizenzangaben je Stück siehe Kopfzeile in `tools/ly/`.
+- Anpassung: Sinfonia 15 – Schlussnote auf die 9/16-Taktlänge gebracht.
 - Notensatz: [Verovio](https://www.verovio.org) (LGPL), zur Laufzeit geladen
 - Flügel-Samples: Salamander Grand Piano von Alexander Holm, CC-BY 3.0 (standardmäßig über tonejs.github.io geladen; Quelle in „Ansicht“ änderbar)

@@ -5,15 +5,11 @@ const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
 // ---------- Modell & Analyse ----------
-const model = buildModel(DATA);
-computeAccidentals(model);
-const harmony = analyzeHarmony(model);
-const evById = new Map(model.events.map(e => [e.id, e]));
-const playable = model.notes.filter(n => !n.tieEnd).sort((a, b) => a.onset - b.onset || a.voice - b.voice);
-const TOTAL = model.measures * MEASURE;
-const VOICE_NAMES = { 1: 'Sopran', 2: 'Alt', 3: 'Bass' };
+let model = null, harmony = null, playable = [], TOTAL = 0, piece = null, catalog = [];
+let VOICE_NAMES = { 1: 'Sopran', 2: 'Alt', 3: 'Bass' };
+const mLabel = m => (piece && piece.pickup ? m - 1 : m); // Taktnummer wie in der Ausgabe (Auftakt = 0)
 const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)' };
-const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel' };
+const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel', '32': 'Zweiunddreißigstel' };
 
 // ---------- Einstellungen ----------
 const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
@@ -72,13 +68,18 @@ $('#shelf').addEventListener('click', e => {
 
 // ---------- Inhalt ----------
 const KEYS = ['C-Dur', 'c-Moll', 'D-Dur', 'd-Moll', 'Es-Dur', 'E-Dur', 'e-Moll', 'F-Dur', 'f-Moll', 'G-Dur', 'g-Moll', 'A-Dur', 'a-Moll', 'B-Dur', 'h-Moll'];
-const tocEntry = (kind, i, bwv, on) => `<button class="entry ${on ? 'on' : 'off'}" ${on ? 'data-open="788"' : ''}>
+const tocEntry = (kind, i, bwv, on) => `<button class="entry ${on ? 'on' : 'off'}" ${on ? `data-open="bwv${bwv}"` : ''}>
   <span class="num">${kind} ${i + 1}</span><span>${KEYS[i]}</span><span class="dots"></span><span class="bwv">BWV ${bwv}</span></button>`;
-$('#tocInv').innerHTML = KEYS.map((k, i) => tocEntry('Inventio', i, 772 + i, false)).join('');
-$('#tocSin').innerHTML = KEYS.map((k, i) => tocEntry('Sinfonia', i, 787 + i, i === 1)).join('');
+function renderToc() {
+  const avail = id => catalog.some(c => c.id === id && c.available);
+  $('#tocInv').innerHTML = KEYS.map((k, i) => tocEntry('Inventio', i, 772 + i, avail('bwv' + (772 + i)))).join('');
+  $('#tocSin').innerHTML = KEYS.map((k, i) => tocEntry('Sinfonia', i, 787 + i, avail('bwv' + (787 + i)))).join('');
+}
+renderToc();
+fetch('pieces/index.json').then(r => r.json()).then(c => { catalog = c; renderToc(); }).catch(() => toast('Inhaltsverzeichnis nicht erreichbar'));
 $('#bookView').addEventListener('click', e => {
   const en = e.target.closest('.entry'); if (!en) return;
-  if (en.dataset.open) { show('scoreView'); ensureRendered(); }
+  if (en.dataset.open) openPiece(en.dataset.open);
   else toast('Dieses Stück ist noch nicht im Buch');
 });
 $('#tocBack').onclick = () => show('library');
@@ -115,10 +116,30 @@ function initVerovio() {
 }
 
 let rendered = false;
-async function ensureRendered() {
-  if (rendered) return;
-  try { await initVerovio(); render(); rendered = true; }
-  catch (e) { $('#loading').textContent = 'Der Notenstecher (Verovio) konnte nicht geladen werden. Bitte Internetverbindung prüfen.'; }
+async function openPiece(id) {
+  stopPlayback(); clearSelection(); hideCards();
+  show('scoreView');
+  const meta = catalog.find(c => c.id === id) || { id };
+  $('#scoreView .topbar .title').textContent = `${meta.title || ''} · ${meta.keyName || ''}`;
+  $('#pageHead').innerHTML = `<h2>${meta.title || ''}</h2><div class="meta">${meta.keyName || ''} · BWV ${meta.bwv || ''} · ${meta.voicesLabel || ''}</div>`;
+  $('#score').innerHTML = '<div id="loading">Notenstecher bei der Arbeit …</div>';
+  $('#secLayer').innerHTML = ''; $('#cursor').style.display = 'none'; layout = null; rendered = false;
+  try {
+    const [p] = await Promise.all([fetch('pieces/' + id + '.json').then(r => { if (!r.ok) throw new Error('Stück fehlt'); return r.json(); }), initVerovio()]);
+    piece = p;
+    model = buildModel(piece); computeAccidentals(model); harmony = analyzeHarmony(model);
+    playable = model.notes.filter(n => !n.tieEnd).sort((a, b) => a.onset - b.onset || a.role - b.role);
+    TOTAL = model.measures * MEASURE;
+    VOICE_NAMES = model.voiceCount === 2 ? { 1: 'Oberstimme', 3: 'Unterstimme' } : { 1: 'Sopran', 2: 'Alt', 3: 'Bass' };
+    loadSections(id); buildChips(); syncPanel();
+    playhead = piece.pickup ? MEASURE - piece.pickup : 0;
+    try { localStorage.setItem('bach.last', id); } catch (e) {}
+    $('#scroller').scrollTop = 1;
+    render(); rendered = true;
+  } catch (e) {
+    console.error(e);
+    $('#score').innerHTML = '<div id="loading">Das Stück oder der Notenstecher (Verovio) konnte nicht geladen werden. Bitte Internetverbindung prüfen.</div>';
+  }
 }
 
 let layout = null;
@@ -148,10 +169,10 @@ function decorate() {
   for (const e of model.events) {
     if (e.type === 'space') continue;
     const el = document.getElementById(e.id);
-    if (el) el.classList.add('v' + e.voice, 'st' + e.staff);
+    if (el) el.classList.add('v' + e.role, 'st' + e.staff);
     if (e.ghost) { const g = document.getElementById('ga_' + e.id); if (g) g.classList.add('ghost'); }
   }
-  root.querySelectorAll('g.beam').forEach(b => { const m = /^b(\d)_/.exec(b.id); if (m) b.classList.add('v' + m[1], 'st' + (m[1] === '3' ? 2 : 1)); });
+  root.querySelectorAll('g.beam, g.chord, g.tuplet').forEach(b => { const n = b.querySelector('g.note'); if (n) n.classList.forEach(c => { if (/^(v|st)\d$/.test(c)) b.classList.add(c); }); });
   $('#scoreView').classList.remove('col-voices', 'col-hands');
   if (S.col !== 'none') $('#scoreView').classList.add('col-' + S.col);
 }
@@ -260,8 +281,9 @@ function markSelection() {
 
 // ---------- Info-Karte ----------
 function beatLabel(e) {
-  const b = Math.floor(e.pos / BEAT) + 1, sub = Math.floor((e.pos % BEAT) / 6) + 1, six = (e.pos % 6) / 3;
-  return `Zählzeit ${b}` + (sub > 1 || six ? ` · ${sub}. Achtel${six ? ' +' : ''}` : '');
+  const b = Math.floor(e.pos / BEAT + 1e-9) + 1, off = e.pos - (b - 1) * BEAT;
+  if (off < 1e-6) return `Zählzeit ${b}`;
+  return `Zählzeit ${b} + ${Math.round(off / (TPW / 16))} Sechzehntel`;
 }
 function durName(e) {
   let t = (e.dots ? 'punktierte ' : '') + DUR_NAMES[e.dur];
@@ -270,19 +292,19 @@ function durName(e) {
 }
 const ACC_SIGN = { '-1': '♭', '0': '♮', '1': '♯' };
 function showNoteInfo(n) {
-  const bt = harmony.beats[Math.floor(n.onset / BEAT)];
+  const bt = beatAt(harmony, n.onset);
   const role = noteRole(n, harmony);
   const ch = bt.chord;
-  let h = `<div class="lbl"><span class="vdot" style="background:${VOICE_COLORS[n.voice]}"></span>${VOICE_NAMES[n.voice]} · ${n.staff === 1 ? 'rechte' : 'linke'} Hand</div>
+  let h = `<div class="lbl"><span class="vdot" style="background:${VOICE_COLORS[n.role]}"></span>${VOICE_NAMES[n.role] || 'Stimme'} · ${n.staff === 1 ? 'rechte' : 'linke'} Hand</div>
     <h4>${helmholtz(n)}</h4>
-    <div class="row"><span class="k">Ort</span><span>Takt ${n.measure}, ${beatLabel(n)}</span></div>
+    <div class="row"><span class="k">Ort</span><span>Takt ${mLabel(n.measure)}, ${beatLabel(n)}</span></div>
     <div class="row"><span class="k">Dauer</span><span>${durName(n)}</span></div>
     <div class="row"><span class="k">Harmonie</span><span>${ch ? `${ch.name} – ${keyName(bt.key)}: <b>${ch.roman}</b>` : '–'}</span></div>
     <div class="row"><span class="k">Rolle</span><span>${role.text}</span></div>`;
   if (n.ghost) h += `<div class="ghostnote">${IC.warn}Takt-gültiges Vorzeichen: Hier steht kein Zeichen, aber das ${ACC_SIGN[n.alter]} von weiter vorn im Takt gilt noch – also <b>${helmholtz(n)}</b>.</div>`;
-  h += `<div class="btns"><button data-act="hear">${IC.note}anhören</button><button data-act="from">${IC.play}ab hier spielen</button><button data-act="measure">Takt ${n.measure}</button></div>`;
+  h += `<div class="btns"><button data-act="hear">${IC.note}anhören</button><button data-act="from">${IC.play}ab hier spielen</button><button data-act="measure">Takt ${mLabel(n.measure)}</button></div>`;
   openInfo(h, act => {
-    if (act === 'hear') { audio.ensure(); audio.note(n.midi, audio.now() + 0.02, Math.min(1.5, n.playTicks * spt()) || 0.6, 0.8, n.voice); }
+    if (act === 'hear') { audio.ensure(); audio.note(n.midi, audio.now() + 0.02, Math.min(1.5, n.playTicks * spt()) || 0.6, 0.8, n.role); }
     if (act === 'from') startPlayback(n.onset);
     if (act === 'measure') selectMeasure(n.measure);
   });
@@ -295,10 +317,10 @@ function showRangeInfo() {
   const keys = bs.map(x => keyName(x.key)).filter((k, i, arr) => i === 0 || k !== arr[i - 1]).join(' → ');
   const ghosts = model.notes.filter(n => n.measure >= a && n.measure <= b && n.ghost);
   const pulsing = Date.now() < markUntil;
-  let h = `<div class="lbl">${single ? `Takt ${a} von ${model.measures}` : `Takte ${a}–${b} · ${b - a + 1} Takte markiert`}</div><h4>${keys}</h4>`;
-  if (single) h += `<div class="beats">${bs.map((x, i) => `<div class="beat"><i>${i + 1}</i><b>${x.chord ? x.chord.roman : '–'}</b>${x.chord ? x.chord.name : ''}</div>`).join('')}</div>`;
-  else h += `<div class="rangeharm">${[...new Set(bs.map(x => x.measure))].map(m => `<div><i>${m}</i> ${bs.filter(x => x.measure === m).map(x => x.chord ? x.chord.roman : '–').join(' · ')}</div>`).join('')}</div>`;
-  if (ghosts.length) h += `<div class="ghostnote">${IC.warn}${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${n.measure})`).join(', ')}</div>`;
+  let h = `<div class="lbl">${single ? `Takt ${mLabel(a)} von ${mLabel(model.measures)}` : `Takte ${mLabel(a)}–${mLabel(b)} · ${b - a + 1} Takte markiert`}</div><h4>${keys}</h4>`;
+  if (single) h += `<div class="beats" style="grid-template-columns:repeat(${Math.min(4, harmony.perMeasure)},1fr)">${bs.map((x, i) => `<div class="beat"><i>${i + 1}</i><b>${x.chord ? x.chord.roman : '–'}</b>${x.chord ? x.chord.name : ''}</div>`).join('')}</div>`;
+  else h += `<div class="rangeharm">${[...new Set(bs.map(x => x.measure))].map(m => `<div><i>${mLabel(m)}</i> ${bs.filter(x => x.measure === m).map(x => x.chord ? x.chord.roman : '–').join(' · ')}</div>`).join('')}</div>`;
+  if (ghosts.length) h += `<div class="ghostnote">${IC.warn}${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${mLabel(n.measure)})`).join(', ')}</div>`;
   if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
   h += `<div class="btns"><button data-act="play">${IC.play}${single ? 'Takt' : 'Abschnitt'} spielen</button><button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from">ab hier</button><button data-act="addsec">＋ Übe-Abschnitt</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
   openInfo(h, act => {
@@ -406,19 +428,24 @@ $$('.backupBtn').forEach(b => b.addEventListener('click', () => { $('#secPanel')
 syncDirty();
 
 // ---------- Übe-Abschnitte ----------
-const SEC_KEY = 'bach.sections.bwv788';
+let SEC_KEY = 'bach.sections.none';
 const RATINGS = [
   { name: 'neu', c: '#9a8b75' }, { name: 'wackelt', c: '#b4442f' }, { name: 'geht', c: '#c3912a' }, { name: 'sitzt', c: '#3f7d4f' },
 ];
 let sections = [];
-try { sections = JSON.parse(localStorage.getItem(SEC_KEY) || '[]'); } catch (e) {}
+function loadSections(id) {
+  if (practice) stopPractice();
+  SEC_KEY = 'bach.sections.' + id; sections = [];
+  try { sections = JSON.parse(localStorage.getItem(SEC_KEY) || '[]'); } catch (e) {}
+  const lbl = $('#secPanel .lbl'); if (lbl) lbl.textContent = 'Übe-Abschnitte · ' + ((catalog.find(c => c.id === id) || {}).title || id);
+}
 const saveSections = () => { try { localStorage.setItem(SEC_KEY, JSON.stringify(sections)); } catch (e) { toast('Speichern nicht möglich'); } markDirty(); };
 let practice = null, practiceTick = null, secHits = [], confirmDel = null;
 const fmtTime = sec => { sec = Math.round(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s2 = sec % 60;
   return h ? `${h} h ${m} min` : m ? `${m}:${String(s2).padStart(2, '0')} min` : `${s2} s`; };
 const fmtDate = ts => { const d = new Date(ts); return `${d.getDate()}.${d.getMonth() + 1}.`; };
 function addSection(a, b) {
-  const sec = { id: 's' + Date.now().toString(36), a, b, name: a === b ? `Takt ${a}` : `Takte ${a}–${b}`, rating: 0, total: 0, sessions: [], created: Date.now() };
+  const sec = { id: 's' + Date.now().toString(36), a, b, name: a === b ? `Takt ${mLabel(a)}` : `Takte ${mLabel(a)}–${mLabel(b)}`, rating: 0, total: 0, sessions: [], created: Date.now() };
   sections.push(sec); sections.sort((x, y) => x.a - y.a || x.b - y.b); saveSections(); if (sections.length === 1) rerender(); else drawSections();
   return sec;
 }
@@ -430,7 +457,7 @@ function practiceSec(sec) { return practice && practice.id === sec.id ? (Date.no
 function showSection(sec) {
   const running = practice && practice.id === sec.id;
   const last = sec.sessions.slice(-3).reverse();
-  const h = `<div class="lbl">Übe-Abschnitt · ${sec.a === sec.b ? `Takt ${sec.a}` : `Takte ${sec.a}–${sec.b}`}</div>
+  const h = `<div class="lbl">Übe-Abschnitt · ${sec.a === sec.b ? `Takt ${mLabel(sec.a)}` : `Takte ${mLabel(sec.a)}–${mLabel(sec.b)}`}</div>
     <input class="secname" id="secName" value="${sec.name.replace(/"/g, '&quot;')}" maxlength="60" enterkeyhint="done">
     <div class="row"><span class="k">Wie klappt’s?</span></div>
     <div class="rate">${RATINGS.map((r, i) => `<button data-act="rate${i}" class="${sec.rating === i ? 'act' : ''}" style="--rc:${r.c}">${r.name}</button>`).join('')}</div>
@@ -580,7 +607,7 @@ function tapAt(x, y) {
   if (best) {
     const n = best.tieEnd ? findTieStart(best) : best;
     selectNote(best);
-    audio.note(n.midi, audio.now() + 0.01, Math.min(1.2, n.playTicks * spt()), 0.8, n.voice);
+    audio.note(n.midi, audio.now() + 0.01, Math.min(1.2, n.playTicks * spt()), 0.8, n.role);
     return;
   }
   for (const [k, m] of Object.entries(layout.measures)) {
@@ -596,14 +623,14 @@ function scrubTo(t) {
   playhead = t; updateCursor();
   const lo = Math.min(prev, t), hi = Math.max(prev, t);
   if (hi > lo) {
-    const crossed = playable.filter(n => n.onset > lo && n.onset <= hi && !S.mute.includes(n.voice));
-    crossed.slice(-6).forEach(n => audio.note(n.midi, audio.now() + 0.005, Math.min(0.5, n.ticks * spt()), 0.62, n.voice));
+    const crossed = playable.filter(n => n.onset > lo && n.onset <= hi && !S.mute.includes(n.role));
+    crossed.slice(-6).forEach(n => audio.note(n.midi, audio.now() + 0.005, Math.min(0.5, n.ticks * spt()), 0.62, n.role));
     flashNotes(crossed.map(n => n.id));
   }
   clearTimeout(holdTimer);
   holdTimer = setTimeout(() => { // Finger ruht: Zusammenklang erklingt
-    const snd = playable.filter(n => n.onset <= playhead && n.onset + n.playTicks > playhead && !S.mute.includes(n.voice));
-    snd.forEach(n => audio.note(n.midi, audio.now() + 0.01, 1.3, 0.5, n.voice));
+    const snd = playable.filter(n => n.onset <= playhead && n.onset + n.playTicks > playhead && !S.mute.includes(n.role));
+    snd.forEach(n => audio.note(n.midi, audio.now() + 0.01, 1.3, 0.5, n.role));
     flashNotes(snd.map(n => n.id));
   }, 380);
 }
@@ -818,12 +845,12 @@ function schedule() {
   const horizon = pl.t0Tick + (now + 0.18 - pl.t0Time) / s;
   while (pl.idx < playable.length && playable[pl.idx].onset < Math.min(horizon, pl.end)) {
     const n = playable[pl.idx++];
-    if (S.mute.includes(n.voice)) continue;
+    if (S.mute.includes(n.role)) continue;
     const when = pl.t0Time + (n.onset - pl.t0Tick) * s;
     const len = Math.min(n.playTicks, pl.end - n.onset) * s;
-    const accent = n.onset % BEAT === 0 ? 1 : n.onset % 6 === 0 ? 0.88 : 0.78;
-    const vv = { 1: 0.95, 2: 0.78, 3: 0.88 }[n.voice];
-    audio.note(n.midi, Math.max(when, now), Math.max(0.05, len * 0.97), accent * vv, n.voice);
+    const accent = Math.abs(n.onset % BEAT) < 1e-6 ? 1 : Math.abs(n.onset % (TPW / 8)) < 1e-6 ? 0.88 : 0.78;
+    const vv = { 1: 0.95, 2: 0.78, 3: 0.88 }[n.role] || 0.85;
+    audio.note(n.midi, Math.max(when, now), Math.max(0.05, len * 0.97), accent * vv, n.role);
   }
   if (horizon >= pl.end) {
     if (loopOn && pl.loopStart != null) {
@@ -845,7 +872,7 @@ function frame() {
   const t = Math.min(curTick(), pl.end - 0.01);
   if (t >= 0) {
     playhead = t; updateCursor();
-    const ids = model.notes.filter(n => n.onset <= t && n.onset + n.ticks > t && !S.mute.includes(n.voice)).map(n => n.id);
+    const ids = model.notes.filter(n => n.onset <= t && n.onset + n.ticks > t && !S.mute.includes(n.role)).map(n => n.id);
     if (ids.join() !== onSet.join()) { flashNotes(ids); onSet = ids; }
     autoScroll();
   }
@@ -875,10 +902,14 @@ tempo.oninput = () => {
   S.tempoPct = +tempo.value; showTempo(); save();
   if (playing && t != null) { pl.t0Tick = t; pl.t0Time = audio.now(); pl.prev = null; }
 };
-$$('.chip').forEach(c => {
-  const v = +c.dataset.v; c.classList.toggle('mute', S.mute.includes(v));
-  c.onclick = () => { S.mute = S.mute.includes(v) ? S.mute.filter(x => x !== v) : S.mute.concat(v); c.classList.toggle('mute', S.mute.includes(v)); save(); };
-});
+function buildChips() {
+  const box = $('.chips'); if (!box || !model) return;
+  box.innerHTML = model.roles.map(r => `<button class="chip" data-v="${r}" title="${VOICE_NAMES[r]} stumm/an">${(VOICE_NAMES[r] || '?')[0]}</button>`).join('');
+  $$('.chip').forEach(c => {
+    const v = +c.dataset.v; c.classList.toggle('mute', S.mute.includes(v));
+    c.onclick = () => { S.mute = S.mute.includes(v) ? S.mute.filter(x => x !== v) : S.mute.concat(v); c.classList.toggle('mute', S.mute.includes(v)); save(); };
+  });
+}
 $('#roomSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.room = b.dataset.r; save(); syncPanel(); if (audio.ctx) audio.setRoom(S.room); else audio.ensure(); toast('Raum: ' + ROOMS[S.room].name); };
 $('#instr').value = S.instr;
 $('#instr').onchange = () => { S.instr = $('#instr').value; save(); audio.ensure(); if (S.instr === 'grand') audio.loadSamples(); };
@@ -890,7 +921,7 @@ function syncPanel() {
   $('#harmSw').classList.toggle('act', S.harm);
   $$('#roomSeg button').forEach(b => b.classList.toggle('act', b.dataset.r === S.room));
   $('#ghostSw').classList.toggle('act', S.ghosts);
-  $('#ghostCount').textContent = `(${model.notes.filter(n => n.ghost).length} Stellen)`;
+  $('#ghostCount').textContent = model ? `(${model.notes.filter(n => n.ghost).length} Stellen)` : '';
   $('#sampleBase').value = S.sampleBase;
 }
 syncPanel();
