@@ -121,7 +121,8 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .tempoBox .tlbl{font-variant:small-caps;letter-spacing:.05em;font-size:15px}
 #tempo{width:110px;accent-color:var(--gold)}
 #tempoVal{font-size:15px;min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
-@media (max-width:760px){#scoreView .topbar .title{display:none}#tempo{width:84px}}
+@media (max-width:980px){#scoreView .topbar .title{display:none}}
+@media (max-width:760px){#tempo{width:80px}.tempoBox .tlbl{display:none}}
 .chips{display:flex;gap:6px}
 .chip{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;height:34px;min-width:44px;font-size:15px;font-weight:600}
 .chip[data-v="1"]{color:var(--v1)}.chip[data-v="2"]{color:var(--v2)}.chip[data-v="3"]{color:var(--v3)}
@@ -145,6 +146,24 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
 .card .btns button{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;padding:7px 12px;font-size:16px}
 .card .ghostnote{background:rgba(176,122,58,.12);border-left:3px solid #b07a3a;padding:6px 10px;border-radius:4px;margin-top:6px;font-size:16px}
 .card .vdot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;transform:translateY(-1px)}
+#secLayer{position:absolute;inset:0;pointer-events:none}
+.secbar{position:absolute;height:5px;border-radius:3px;opacity:.85}
+.seclbl{position:absolute;font-size:14px;font-style:italic;white-space:nowrap;font-weight:500}
+input.secname{width:calc(100% - 34px);font-family:inherit;font-size:24px;border:0;border-bottom:1px dashed rgba(107,88,67,.4);background:transparent;color:var(--ink);padding:2px 0;margin:2px 0 6px;-webkit-user-select:text;user-select:text}
+input{-webkit-user-select:text;user-select:text}
+.rate{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 8px}
+.rate button{border:1.5px solid var(--rc);color:var(--rc);background:rgba(255,255,255,.35);border-radius:9px;height:36px;font-size:16px}
+.rate button.act{background:var(--rc);color:#fff8ea}
+.sesslog{font-size:15px;color:var(--ink2);margin:2px 0 4px;line-height:1.45}
+.card .btns button.timerOn{background:#3f7d4f;color:#fff8ea;border-color:#3f7d4f}
+#secPanel,#viewPanel{top:calc(var(--safe-t) + 58px);bottom:auto;right:12px;left:auto;transform:translate(0,-10px);width:min(360px,calc(100% - 24px))}
+#secPanel.show{transform:translate(0,0)}
+#secList{max-height:60vh;overflow-y:auto;margin-top:6px}
+.secitem{display:flex;align-items:center;gap:10px;width:100%;border:0;border-bottom:1px solid rgba(107,88,67,.2);background:none;padding:9px 2px;text-align:left;font-size:17px}
+.secitem .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.secitem .nm{flex:1;line-height:1.2}.secitem .nm i{font-size:14px;color:var(--ink2)}
+.secitem .tm{font-size:15px;color:var(--ink2);font-variant-numeric:tabular-nums}
+#practiceChip{background:#3f7d4f;color:#fff8ea;border-color:#3f7d4f;font-variant-numeric:tabular-nums}
 #viewPanel{top:calc(var(--safe-t) + 58px);bottom:auto;right:12px;left:auto;transform:translate(0,-10px);width:min(340px,calc(100% - 24px))}
 #viewPanel.show{transform:translate(0,0)}
 .opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(107,88,67,.2);font-size:17px}
@@ -208,6 +227,8 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
       <div class="title">Sinfonia 2 · c-Moll</div>
       <button class="tb playbtn" id="play" title="Abspielen"></button>
       <div class="tempoBox"><span class="tlbl">Tempo</span><input type="range" id="tempo" min="25" max="100" step="5"><span id="tempoVal"></span></div>
+      <button class="tb" id="practiceChip" style="display:none" title="Läuft gerade"></button>
+      <button class="tb" id="practiceBtn" title="Übe-Abschnitte">Üben</button>
       <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>
       <button class="tb fsBtn" title="Vollbild">⤢</button>
     </div>
@@ -215,6 +236,7 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
       <div id="page">
         <div id="pageHead"><h2>Sinfonia 2</h2><div class="meta">c-Moll · BWV 788 · 3 Stimmen</div></div>
         <div id="score"><div id="loading">Notenstecher bei der Arbeit …</div></div>
+        <div id="secLayer"></div>
         <div id="msel"></div>
         <div id="cursor"></div>
         <div class="small" style="text-align:center;padding:24px 20px 0">Notentext: Mutopia Project (Public Domain) · Notensatz: Verovio · Flügel: Salamander Grand Piano von Alexander Holm (CC-BY 3.0)</div>
@@ -224,6 +246,8 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
 </section>
 
 <div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
+
+<div class="card sheet" id="secPanel"><div class="lbl">Übe-Abschnitte · Sinfonia 2</div><div id="secList"></div></div>
 
 <div class="card sheet" id="viewPanel">
   <div class="opt"><span>Färbung</span>

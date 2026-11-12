@@ -121,7 +121,8 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .tempoBox .tlbl{font-variant:small-caps;letter-spacing:.05em;font-size:15px}
 #tempo{width:110px;accent-color:var(--gold)}
 #tempoVal{font-size:15px;min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
-@media (max-width:760px){#scoreView .topbar .title{display:none}#tempo{width:84px}}
+@media (max-width:980px){#scoreView .topbar .title{display:none}}
+@media (max-width:760px){#tempo{width:80px}.tempoBox .tlbl{display:none}}
 .chips{display:flex;gap:6px}
 .chip{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;height:34px;min-width:44px;font-size:15px;font-weight:600}
 .chip[data-v="1"]{color:var(--v1)}.chip[data-v="2"]{color:var(--v2)}.chip[data-v="3"]{color:var(--v3)}
@@ -145,6 +146,24 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
 .card .btns button{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;padding:7px 12px;font-size:16px}
 .card .ghostnote{background:rgba(176,122,58,.12);border-left:3px solid #b07a3a;padding:6px 10px;border-radius:4px;margin-top:6px;font-size:16px}
 .card .vdot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;transform:translateY(-1px)}
+#secLayer{position:absolute;inset:0;pointer-events:none}
+.secbar{position:absolute;height:5px;border-radius:3px;opacity:.85}
+.seclbl{position:absolute;font-size:14px;font-style:italic;white-space:nowrap;font-weight:500}
+input.secname{width:calc(100% - 34px);font-family:inherit;font-size:24px;border:0;border-bottom:1px dashed rgba(107,88,67,.4);background:transparent;color:var(--ink);padding:2px 0;margin:2px 0 6px;-webkit-user-select:text;user-select:text}
+input{-webkit-user-select:text;user-select:text}
+.rate{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 8px}
+.rate button{border:1.5px solid var(--rc);color:var(--rc);background:rgba(255,255,255,.35);border-radius:9px;height:36px;font-size:16px}
+.rate button.act{background:var(--rc);color:#fff8ea}
+.sesslog{font-size:15px;color:var(--ink2);margin:2px 0 4px;line-height:1.45}
+.card .btns button.timerOn{background:#3f7d4f;color:#fff8ea;border-color:#3f7d4f}
+#secPanel,#viewPanel{top:calc(var(--safe-t) + 58px);bottom:auto;right:12px;left:auto;transform:translate(0,-10px);width:min(360px,calc(100% - 24px))}
+#secPanel.show{transform:translate(0,0)}
+#secList{max-height:60vh;overflow-y:auto;margin-top:6px}
+.secitem{display:flex;align-items:center;gap:10px;width:100%;border:0;border-bottom:1px solid rgba(107,88,67,.2);background:none;padding:9px 2px;text-align:left;font-size:17px}
+.secitem .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.secitem .nm{flex:1;line-height:1.2}.secitem .nm i{font-size:14px;color:var(--ink2)}
+.secitem .tm{font-size:15px;color:var(--ink2);font-variant-numeric:tabular-nums}
+#practiceChip{background:#3f7d4f;color:#fff8ea;border-color:#3f7d4f;font-variant-numeric:tabular-nums}
 #viewPanel{top:calc(var(--safe-t) + 58px);bottom:auto;right:12px;left:auto;transform:translate(0,-10px);width:min(340px,calc(100% - 24px))}
 #viewPanel.show{transform:translate(0,0)}
 .opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(107,88,67,.2);font-size:17px}
@@ -208,6 +227,8 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
       <div class="title">Sinfonia 2 · c-Moll</div>
       <button class="tb playbtn" id="play" title="Abspielen"></button>
       <div class="tempoBox"><span class="tlbl">Tempo</span><input type="range" id="tempo" min="25" max="100" step="5"><span id="tempoVal"></span></div>
+      <button class="tb" id="practiceChip" style="display:none" title="Läuft gerade"></button>
+      <button class="tb" id="practiceBtn" title="Übe-Abschnitte">Üben</button>
       <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>
       <button class="tb fsBtn" title="Vollbild">⤢</button>
     </div>
@@ -215,6 +236,7 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
       <div id="page">
         <div id="pageHead"><h2>Sinfonia 2</h2><div class="meta">c-Moll · BWV 788 · 3 Stimmen</div></div>
         <div id="score"><div id="loading">Notenstecher bei der Arbeit …</div></div>
+        <div id="secLayer"></div>
         <div id="msel"></div>
         <div id="cursor"></div>
         <div class="small" style="text-align:center;padding:24px 20px 0">Notentext: Mutopia Project (Public Domain) · Notensatz: Verovio · Flügel: Salamander Grand Piano von Alexander Holm (CC-BY 3.0)</div>
@@ -224,6 +246,8 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
 </section>
 
 <div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
+
+<div class="card sheet" id="secPanel"><div class="lbl">Übe-Abschnitte · Sinfonia 2</div><div id="secList"></div></div>
 
 <div class="card sheet" id="viewPanel">
   <div class="opt"><span>Färbung</span>
@@ -755,7 +779,7 @@ function render() {
     pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale,
     breaks: 'auto', header: 'none', footer: 'none',
     pageMarginLeft: 40, pageMarginRight: 40, pageMarginTop: 30, pageMarginBottom: 40,
-    spacingSystem: S.harm ? 10 : 6, svgViewBox: false,
+    spacingSystem: S.harm ? 15 : 11, svgViewBox: false,
   });
   tk.loadData(mei);
   let svg = '';
@@ -763,7 +787,7 @@ function render() {
   for (let p = 1; p <= pc; p++) svg += tk.renderToSVG(p, {});
   $('#score').innerHTML = svg;
   decorate();
-  requestAnimationFrame(() => { computeLayout(); updateCursor(); markSelection(); });
+  requestAnimationFrame(() => { computeLayout(); updateCursor(); markSelection(); drawSections(); });
 }
 
 function decorate() {
@@ -902,6 +926,8 @@ function showNoteInfo(n) {
 }
 function showRangeInfo() {
   const { a, b } = selRange, single = a === b;
+  const existing = sections.find(x => x.a === a && x.b === b);
+  if (existing && Date.now() >= markUntil) return showSection(existing);
   const bs = harmony.beats.filter(x => x.measure >= a && x.measure <= b);
   const keys = bs.map(x => keyName(x.key)).filter((k, i, arr) => i === 0 || k !== arr[i - 1]).join(' → ');
   const ghosts = model.notes.filter(n => n.measure >= a && n.measure <= b && n.ghost);
@@ -911,16 +937,17 @@ function showRangeInfo() {
   else h += `<div class="rangeharm">${[...new Set(bs.map(x => x.measure))].map(m => `<div><i>${m}</i> ${bs.filter(x => x.measure === m).map(x => x.chord ? x.chord.roman : '–').join(' · ')}</div>`).join('')}</div>`;
   if (ghosts.length) h += `<div class="ghostnote">⚠ ${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${n.measure})`).join(', ')}</div>`;
   if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
-  h += `<div class="btns"><button data-act="play">▶ ${single ? 'Takt' : 'Abschnitt'} spielen</button><button data-act="loop">${loopOn ? '⟲ Schleife aus' : '⟲ Schleife'}</button><button data-act="from">ab hier</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
+  h += `<div class="btns"><button data-act="play">▶ ${single ? 'Takt' : 'Abschnitt'} spielen</button><button data-act="loop">${loopOn ? '⟲ Schleife aus' : '⟲ Schleife'}</button><button data-act="from">ab hier</button><button data-act="addsec">＋ Übe-Abschnitt</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
   openInfo(h, act => {
     if (act === 'play') { loopOn = false; startPlayback((a - 1) * MEASURE, b * MEASURE); }
     if (act === 'loop') { loopOn = !loopOn; if (loopOn) startPlayback((a - 1) * MEASURE); else stopPlayback(); showRangeInfo(); }
     if (act === 'from') { loopOn = false; startPlayback((a - 1) * MEASURE); }
     if (act === 'clear') { clearSelection(); }
+    if (act === 'addsec') { endMarkMode(); markSelection(); showSection(addSection(a, b)); }
   });
 }
 function openInfo(html, onAct) {
-  $('#viewPanel').classList.remove('show');
+  $('#viewPanel').classList.remove('show'); const sp = $('#secPanel'); if (sp) sp.classList.remove('show');
   $('#infoBody').innerHTML = html;
   $('#infoBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) onAct(b.dataset.act); };
   $('#info').classList.add('show');
@@ -946,6 +973,120 @@ function selectMeasure(m) {
 }
 function endMarkMode() { markAnchor = null; markUntil = 0; clearTimeout(markTimer); }
 function clearSelection() { endMarkMode(); selRange = null; selNote = null; loopOn = false; markSelection(); $('#info').classList.remove('show'); }
+
+// ---------- Übe-Abschnitte ----------
+const SEC_KEY = 'bach.sections.bwv788';
+const RATINGS = [
+  { name: 'neu', c: '#9a8b75' }, { name: 'wackelt', c: '#b4442f' }, { name: 'geht', c: '#c3912a' }, { name: 'sitzt', c: '#3f7d4f' },
+];
+let sections = [];
+try { sections = JSON.parse(localStorage.getItem(SEC_KEY) || '[]'); } catch (e) {}
+const saveSections = () => { try { localStorage.setItem(SEC_KEY, JSON.stringify(sections)); } catch (e) { toast('Speichern nicht möglich'); } };
+let practice = null, practiceTick = null, secHits = [], confirmDel = null;
+const fmtTime = sec => { sec = Math.round(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s2 = sec % 60;
+  return h ? `${h} h ${m} min` : m ? `${m}:${String(s2).padStart(2, '0')} min` : `${s2} s`; };
+const fmtDate = ts => { const d = new Date(ts); return `${d.getDate()}.${d.getMonth() + 1}.`; };
+function addSection(a, b) {
+  const sec = { id: 's' + Date.now().toString(36), a, b, name: a === b ? `Takt ${a}` : `Takte ${a}–${b}`, rating: 0, total: 0, sessions: [], created: Date.now() };
+  sections.push(sec); sections.sort((x, y) => x.a - y.a || x.b - y.b); saveSections(); drawSections();
+  return sec;
+}
+function selectSection(sec) {
+  endMarkMode(); selNote = null; selRange = { a: sec.a, b: sec.b };
+  playhead = (sec.a - 1) * MEASURE; markSelection(); updateCursor(); showSection(sec);
+}
+function practiceSec(sec) { return practice && practice.id === sec.id ? (Date.now() - practice.start) / 1000 : 0; }
+function showSection(sec) {
+  const running = practice && practice.id === sec.id;
+  const last = sec.sessions.slice(-3).reverse();
+  const h = `<div class="lbl">Übe-Abschnitt · ${sec.a === sec.b ? `Takt ${sec.a}` : `Takte ${sec.a}–${sec.b}`}</div>
+    <input class="secname" id="secName" value="${sec.name.replace(/"/g, '&quot;')}" maxlength="60" enterkeyhint="done">
+    <div class="row"><span class="k">Wie klappt’s?</span></div>
+    <div class="rate">${RATINGS.map((r, i) => `<button data-act="rate${i}" class="${sec.rating === i ? 'act' : ''}" style="--rc:${r.c}">${r.name}</button>`).join('')}</div>
+    <div class="row"><span class="k">Übezeit</span><span id="secTime">${fmtTime(sec.total + practiceSec(sec))} gesamt · ${sec.sessions.length} Mal geübt</span></div>
+    ${last.length ? `<div class="sesslog">${last.map(x => `<div>${fmtDate(x.at)} · ${fmtTime(x.sec)} · <span style="color:${RATINGS[x.rating].c}">${RATINGS[x.rating].name}</span></div>`).join('')}</div>` : ''}
+    <div class="btns">
+      <button data-act="timer" class="${running ? 'timerOn' : ''}">${running ? '⏹ Üben beenden' : '⏱ Üben starten'}</button>
+      <button data-act="play">▶ spielen</button>
+      <button data-act="loop">${loopOn ? '⟲ Schleife aus' : '⟲ Schleife'}</button>
+      <button data-act="del">${confirmDel === sec.id ? 'Wirklich löschen?' : 'Löschen'}</button>
+    </div>`;
+  openInfo(h, act => {
+    if (act.startsWith('rate')) { sec.rating = +act.slice(4); saveSections(); drawSections(); renderSecList(); showSection(sec); }
+    if (act === 'timer') { if (running) stopPractice(); else startPractice(sec); showSection(sec); }
+    if (act === 'play') { loopOn = false; startPlayback((sec.a - 1) * MEASURE, sec.b * MEASURE); }
+    if (act === 'loop') { selRange = { a: sec.a, b: sec.b }; loopOn = !loopOn; if (loopOn) startPlayback((sec.a - 1) * MEASURE); else stopPlayback(); showSection(sec); }
+    if (act === 'del') {
+      if (confirmDel !== sec.id) { confirmDel = sec.id; showSection(sec); setTimeout(() => { confirmDel = null; }, 3000); return; }
+      if (practice && practice.id === sec.id) stopPractice();
+      sections = sections.filter(x => x.id !== sec.id); saveSections(); drawSections(); renderSecList(); clearSelection();
+    }
+  });
+  const inp = $('#secName');
+  inp.addEventListener('change', () => { sec.name = inp.value.trim() || sec.name; saveSections(); drawSections(); renderSecList(); });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+}
+function startPractice(sec) {
+  if (practice) stopPractice();
+  practice = { id: sec.id, start: Date.now() };
+  $('#practiceChip').style.display = '';
+  clearInterval(practiceTick);
+  practiceTick = setInterval(() => {
+    const s2 = sections.find(x => x.id === practice.id); if (!s2) return;
+    const run = (Date.now() - practice.start) / 1000;
+    $('#practiceChip').textContent = '⏱ ' + fmtTime(run).replace(' min', '');
+    const el = $('#secTime'); if (el && $('#secName')) el.textContent = `${fmtTime(s2.total + run)} gesamt · ${s2.sessions.length} Mal geübt`;
+  }, 1000);
+  $('#practiceChip').textContent = '⏱ 0 s';
+}
+function stopPractice() {
+  if (!practice) return;
+  const sec = sections.find(x => x.id === practice.id), dur = (Date.now() - practice.start) / 1000;
+  if (sec && dur >= 5) { sec.total += dur; sec.sessions.push({ at: Date.now(), sec: Math.round(dur), rating: sec.rating }); saveSections(); renderSecList(); }
+  practice = null; clearInterval(practiceTick); $('#practiceChip').style.display = 'none';
+}
+// Farbige Leisten über den Takten jedes Abschnitts
+function drawSections() {
+  const layer = $('#secLayer'); layer.innerHTML = ''; secHits = [];
+  if (!layout) return;
+  sections.forEach((sec, idx) => {
+    const lane = idx % 3, col = RATINGS[sec.rating].c;
+    let cur = null, first = true;
+    const flush = () => {
+      if (!cur) return;
+      const top = cur.t - 22 - lane * 7;
+      const bar = document.createElement('div'); bar.className = 'secbar';
+      Object.assign(bar.style, { left: cur.l + 'px', width: (cur.r - cur.l) + 'px', top: top + 'px', background: col });
+      layer.appendChild(bar);
+      if (first) { const lb = document.createElement('div'); lb.className = 'seclbl'; lb.textContent = sec.name; lb.style.left = cur.l + 'px'; lb.style.top = (top - 17) + 'px'; lb.style.color = col; layer.appendChild(lb); first = false; }
+      secHits.push({ id: sec.id, l: cur.l, r: cur.r, t: top - 16, b: top + 4 });
+    };
+    for (let k = sec.a; k <= sec.b; k++) {
+      const m = layout.measures[k]; if (!m) continue;
+      if (cur && cur.sys === m.sys) { cur.r = m.r; cur.t = Math.min(cur.t, m.t); }
+      else { flush(); cur = { l: m.l, r: m.r, t: m.t, sys: m.sys }; }
+    }
+    flush();
+  });
+}
+// Liste aller Abschnitte
+function renderSecList() {
+  const el = $('#secList'); if (!el) return;
+  if (!sections.length) { el.innerHTML = '<div class="small">Noch keine Abschnitte. Takt antippen, innerhalb von 2 s einen zweiten Takt antippen, dann „＋ Übe-Abschnitt“.</div>'; return; }
+  const total = sections.reduce((x, y) => x + y.total, 0);
+  el.innerHTML = sections.map(sec => `<button class="secitem" data-id="${sec.id}">
+      <span class="dot" style="background:${RATINGS[sec.rating].c}"></span>
+      <span class="nm">${sec.name}<br><i>T. ${sec.a}${sec.b !== sec.a ? '–' + sec.b : ''} · ${RATINGS[sec.rating].name}</i></span>
+      <span class="tm">${fmtTime(sec.total)}</span></button>`).join('') + `<div class="small" style="margin-top:8px">Gesamt geübt: ${fmtTime(total)} · gespeichert in diesem Browser</div>`;
+}
+$('#practiceBtn').onclick = () => { $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); renderSecList(); $('#secPanel').classList.toggle('show'); };
+$('#secList').addEventListener('click', e => {
+  const b = e.target.closest('.secitem'); if (!b) return;
+  const sec = sections.find(x => x.id === b.dataset.id); $('#secPanel').classList.remove('show');
+  selectSection(sec);
+  const m = layout && layout.measures[sec.a]; if (m) $('#scroller').scrollTo({ top: Math.max(1, m.t + $('#page').offsetTop - 120), behavior: 'smooth' });
+});
+$('#practiceChip').onclick = () => { const sec = practice && sections.find(x => x.id === practice.id); if (sec) selectSection(sec); };
 
 // ---------- Gesten: Antippen & Scrubbing ----------
 const pageEl = $('#page');
@@ -987,6 +1128,8 @@ function measureAt(x, y) {
   return null;
 }
 function tapAt(x, y) {
+  const sh = secHits.find(h => x >= h.l - 4 && x <= h.r + 4 && y >= h.t - 12 && y <= h.b + 12);
+  if (sh && Date.now() >= markUntil) { const sec = sections.find(z => z.id === sh.id); if (sec) { selectSection(sec); return; } }
   if (Date.now() < markUntil) { const mk = measureAt(x, y); if (mk) { selectMeasure(mk); return; } } // Markiermodus hat Vorrang
   let best = null, bd = 26;
   for (const h of layout.heads) { if (h.e.type !== 'note') continue; const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = h.e; } }
@@ -1297,7 +1440,7 @@ $('#instr').value = S.instr;
 $('#instr').onchange = () => { S.instr = $('#instr').value; save(); audio.ensure(); if (S.instr === 'grand') audio.loadSamples(); };
 
 // ---------- Ansicht-Panel ----------
-$('#viewBtn').onclick = () => { $('#info').classList.remove('show'); $('#viewPanel').classList.toggle('show'); };
+$('#viewBtn').onclick = () => { $('#info').classList.remove('show'); $('#secPanel').classList.remove('show'); $('#viewPanel').classList.toggle('show'); };
 function syncPanel() {
   $$('#colSeg button').forEach(b => b.classList.toggle('act', b.dataset.c === S.col));
   $('#harmSw').classList.toggle('act', S.harm);
