@@ -6,6 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#2a211b">
 <title>Bach · Notenbücher</title>
+<meta name="apple-mobile-web-app-title" content="Bach">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -86,8 +91,9 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #scoreView .cover{padding-bottom:calc(var(--safe-b) + 10px)}
 #scroller{border-radius:4px!important}
 #scroller{position:relative;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:4px 4px 0 0;touch-action:pan-y}
-#page{position:relative;margin:0 auto;min-height:100%;padding:18px 0 140px;touch-action:pan-y}
-#pageHead{text-align:center;padding:10px 20px 0}
+#page{position:relative;margin:0 auto;min-height:100%;padding:6px 0 140px;touch-action:pan-y}
+#pageHead{text-align:center;padding:0 20px 0;position:relative;z-index:1}
+#pageHead h2{line-height:1.1}
 #pageHead h2{margin:0;font-weight:500;font-size:28px;font-variant:small-caps;letter-spacing:.05em}
 #pageHead .meta{font-style:italic;color:var(--ink2);font-size:16px}
 #score{position:relative}
@@ -166,6 +172,9 @@ input{-webkit-user-select:text;user-select:text}
 .ic{width:15px;height:15px;fill:currentColor;vertical-align:-2px;margin-right:5px}
 .card .btns .ic,.card .ghostnote .ic{fill:#8a6a2e}
 .card .btns button.timerOn .ic{fill:#fff8ea}
+.dirtyable{position:relative}
+.dirtyable.dirty::after{content:'';position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#c2410c;border:2px solid #f5eddb;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.seclbl{text-shadow:0 0 3px var(--paper),0 0 3px var(--paper)}
 #practiceChip{background:#3f7d4f;color:#fff8ea;border-color:#3f7d4f;font-variant-numeric:tabular-nums}
 #viewPanel{top:calc(var(--safe-t) + 58px);bottom:auto;right:12px;left:auto;transform:translate(0,-10px);width:min(340px,calc(100% - 24px))}
 #viewPanel.show{transform:translate(0,0)}
@@ -197,7 +206,7 @@ input{-webkit-user-select:text;user-select:text}
     <div class="board"></div>
     <div style="height:40px"></div>
   </div>
-  <div style="position:fixed;right:14px;top:calc(var(--safe-t) + 12px)"><button class="tb fsBtn" title="Vollbild">⤢</button></div>
+  <div style="position:fixed;right:14px;top:calc(var(--safe-t) + 12px);display:flex;gap:8px"><button class="tb backupBtn dirtyable" title="Sicherung">Sichern</button><button class="tb fsBtn" title="Vollbild">⤢</button></div>
 </section>
 
 <!-- Inhaltsverzeichnis -->
@@ -231,7 +240,7 @@ input{-webkit-user-select:text;user-select:text}
       <button class="tb playbtn" id="play" title="Abspielen"></button>
       <div class="tempoBox"><span class="tlbl">Tempo</span><input type="range" id="tempo" min="25" max="100" step="5"><span id="tempoVal"></span></div>
       <button class="tb" id="practiceChip" style="display:none" title="Läuft gerade"></button>
-      <button class="tb" id="practiceBtn" title="Übe-Abschnitte">Üben</button>
+      <button class="tb dirtyable" id="practiceBtn" title="Übe-Abschnitte">Üben</button>
       <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>
       <button class="tb fsBtn" title="Vollbild">⤢</button>
     </div>
@@ -250,7 +259,9 @@ input{-webkit-user-select:text;user-select:text}
 
 <div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
 
-<div class="card sheet" id="secPanel"><div class="lbl">Übe-Abschnitte · Sinfonia 2</div><div id="secList"></div></div>
+<div class="card sheet" id="secPanel"><div class="lbl">Übe-Abschnitte · Sinfonia 2</div><div id="secList"></div>
+  <div class="btns" style="margin-top:10px"><button class="backupBtn dirtyable">Sichern …</button></div></div>
+<input type="file" id="importFile" accept=".json,application/json" style="display:none">
 
 <div class="card sheet" id="viewPanel">
   <div class="opt"><span>Färbung</span>

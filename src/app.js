@@ -131,7 +131,7 @@ function render() {
   tk.setOptions({
     pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale,
     breaks: 'auto', header: 'none', footer: 'none',
-    pageMarginLeft: 40, pageMarginRight: 40, pageMarginTop: 30, pageMarginBottom: 40,
+    pageMarginLeft: 40, pageMarginRight: 40, pageMarginTop: sections.length ? 120 : 40, pageMarginBottom: 40,
     spacingSystem: S.harm ? 15 : 11, svgViewBox: false,
   });
   tk.loadData(mei);
@@ -337,6 +337,74 @@ function selectMeasure(m) {
 function endMarkMode() { markAnchor = null; markUntil = 0; clearTimeout(markTimer); }
 function clearSelection() { endMarkMode(); selRange = null; selNote = null; loopOn = false; markSelection(); $('#info').classList.remove('show'); }
 
+// ---------- Sicherung (Export / Import) ----------
+let meta = { changes: 0, lastExport: null };
+try { Object.assign(meta, JSON.parse(localStorage.getItem('bach.meta') || '{}')); } catch (e) {}
+const saveMeta = () => { try { localStorage.setItem('bach.meta', JSON.stringify(meta)); } catch (e) {} };
+function markDirty() { meta.changes++; saveMeta(); syncDirty(); }
+function syncDirty() { $$('.dirtyable').forEach(b => b.classList.toggle('dirty', meta.changes > 0)); }
+const fmtDT = ts => { const d = new Date(ts); return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}, ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')} Uhr`; };
+function backupStatus() {
+  if (!meta.changes) return meta.lastExport ? `Alles gesichert (zuletzt ${fmtDT(meta.lastExport)}).` : 'Noch keine Änderungen.';
+  return `<b>${meta.changes} Änderung${meta.changes > 1 ? 'en' : ''}</b> seit ${meta.lastExport ? 'der letzten Sicherung am ' + fmtDT(meta.lastExport) : 'Beginn – noch nie gesichert'}.`;
+}
+function collectData() {
+  const pieces = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i); if (!k || !k.startsWith('bach.sections.')) continue;
+    try { pieces[k.slice('bach.sections.'.length)] = { sections: JSON.parse(localStorage.getItem(k)) }; } catch (e) {}
+  }
+  return { app: 'bach-notenbuecher', version: 1, exported: new Date().toISOString(), settings: S, pieces };
+}
+async function exportData() {
+  const json = JSON.stringify(collectData(), null, 1);
+  const d = new Date(), name = `bach-sicherung-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`;
+  const done = () => { meta.changes = 0; meta.lastExport = Date.now(); saveMeta(); syncDirty(); toast('Gesichert: ' + name); showBackup(); };
+  try {
+    const file = new File([json], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Bach-Sicherung' }); return done(); }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); done();
+}
+let pendingImport = null;
+function importFile(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (d.app !== 'bach-notenbuecher' || !d.pieces) throw new Error('kein Bach-Format');
+      pendingImport = d; showBackup();
+    } catch (e) { toast('Diese Datei ist keine Bach-Sicherung'); }
+  };
+  r.readAsText(file);
+}
+function applyImport() {
+  const d = pendingImport; pendingImport = null;
+  Object.entries(d.pieces).forEach(([k, v]) => { try { localStorage.setItem('bach.sections.' + k, JSON.stringify(v.sections || [])); } catch (e) {} });
+  try { sections = JSON.parse(localStorage.getItem(SEC_KEY) || '[]'); } catch (e) {}
+  meta.changes = 0; meta.lastExport = Date.parse(d.exported) || Date.now(); saveMeta(); syncDirty();
+  if (rendered) rerender(); renderSecList(); toast('Sicherung eingespielt'); showBackup();
+}
+function showBackup() {
+  const n = pendingImport ? Object.values(pendingImport.pieces).reduce((x, p) => x + (p.sections || []).length, 0) : 0;
+  const h = `<div class="lbl">Sicherung</div><h4>Deine Notenbuch-Daten</h4>
+    <div class="row" style="display:block">${backupStatus()}</div>
+    <div class="small">Übe-Abschnitte, Bewertungen und Übezeiten liegen nur in diesem Browser. Exportiere sie als Datei (z. B. in „Dateien“ oder iCloud), um sie zu sichern oder auf ein anderes Gerät zu bringen.</div>
+    ${pendingImport ? `<div class="ghostnote">Datei vom ${fmtDT(Date.parse(pendingImport.exported))} mit ${n} Übe-Abschnitt${n === 1 ? '' : 'en'}. Einspielen ersetzt die aktuellen Daten.</div>` : ''}
+    <div class="btns">${pendingImport ? '<button data-act="apply">Jetzt einspielen</button><button data-act="cancel">Abbrechen</button>'
+      : '<button data-act="export">Exportieren</button><button data-act="import">Importieren …</button>'}</div>`;
+  openInfo(h, act => {
+    if (act === 'export') exportData();
+    if (act === 'import') $('#importFile').click();
+    if (act === 'apply') applyImport();
+    if (act === 'cancel') { pendingImport = null; showBackup(); }
+  });
+}
+$('#importFile').addEventListener('change', e => { const f = e.target.files[0]; if (f) importFile(f); e.target.value = ''; });
+$$('.backupBtn').forEach(b => b.addEventListener('click', () => { $('#secPanel').classList.remove('show'); showBackup(); }));
+syncDirty();
+
 // ---------- Übe-Abschnitte ----------
 const SEC_KEY = 'bach.sections.bwv788';
 const RATINGS = [
@@ -344,14 +412,14 @@ const RATINGS = [
 ];
 let sections = [];
 try { sections = JSON.parse(localStorage.getItem(SEC_KEY) || '[]'); } catch (e) {}
-const saveSections = () => { try { localStorage.setItem(SEC_KEY, JSON.stringify(sections)); } catch (e) { toast('Speichern nicht möglich'); } };
+const saveSections = () => { try { localStorage.setItem(SEC_KEY, JSON.stringify(sections)); } catch (e) { toast('Speichern nicht möglich'); } markDirty(); };
 let practice = null, practiceTick = null, secHits = [], confirmDel = null;
 const fmtTime = sec => { sec = Math.round(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s2 = sec % 60;
   return h ? `${h} h ${m} min` : m ? `${m}:${String(s2).padStart(2, '0')} min` : `${s2} s`; };
 const fmtDate = ts => { const d = new Date(ts); return `${d.getDate()}.${d.getMonth() + 1}.`; };
 function addSection(a, b) {
   const sec = { id: 's' + Date.now().toString(36), a, b, name: a === b ? `Takt ${a}` : `Takte ${a}–${b}`, rating: 0, total: 0, sessions: [], created: Date.now() };
-  sections.push(sec); sections.sort((x, y) => x.a - y.a || x.b - y.b); saveSections(); drawSections();
+  sections.push(sec); sections.sort((x, y) => x.a - y.a || x.b - y.b); saveSections(); if (sections.length === 1) rerender(); else drawSections();
   return sec;
 }
 function selectSection(sec) {
@@ -412,22 +480,35 @@ function stopPractice() {
 function drawSections() {
   const layer = $('#secLayer'); layer.innerHTML = ''; secHits = [];
   if (!layout) return;
-  sections.forEach((sec, idx) => {
-    const lane = idx % 3, col = RATINGS[sec.rating].c;
+  // Oberkante je System (höchster Punkt aller Takte), damit alle Leisten einer Zeile fluchten
+  const sysTop = {};
+  Object.values(layout.measures).forEach(m => { sysTop[m.sys] = Math.min(sysTop[m.sys] ?? 1e9, m.t); });
+  // Spuren: überlappende Abschnitte bekommen eine eigene Spur
+  const laneEnd = [], lanes = {};
+  [...sections].sort((x, y) => x.a - y.a || y.b - x.b).forEach(sec => {
+    let l = laneEnd.findIndex(e => e < sec.a); if (l < 0) { l = laneEnd.length; laneEnd.push(0); }
+    laneEnd[l] = sec.b; lanes[sec.id] = l;
+  });
+  sections.forEach(sec => {
+    const lane = lanes[sec.id], col = RATINGS[sec.rating].c;
     let cur = null, first = true;
     const flush = () => {
       if (!cur) return;
-      const top = cur.t - 22 - lane * 7;
+      const top = sysTop[cur.sys] - 14 - lane * 22;
+      const l = cur.l + 2, w = cur.r - cur.l - 4;
       const bar = document.createElement('div'); bar.className = 'secbar';
-      Object.assign(bar.style, { left: cur.l + 'px', width: (cur.r - cur.l) + 'px', top: top + 'px', background: col });
+      Object.assign(bar.style, { left: l + 'px', width: w + 'px', top: top + 'px', background: col });
       layer.appendChild(bar);
-      if (first) { const lb = document.createElement('div'); lb.className = 'seclbl'; lb.textContent = sec.name; lb.style.left = cur.l + 'px'; lb.style.top = (top - 17) + 'px'; lb.style.color = col; layer.appendChild(lb); first = false; }
-      secHits.push({ id: sec.id, l: cur.l, r: cur.r, t: top - 16, b: top + 4 });
+      const lb = document.createElement('div'); lb.className = 'seclbl';
+      lb.textContent = first ? sec.name : '… ' + sec.name; lb.style.left = l + 'px'; lb.style.top = (top - 18) + 'px'; lb.style.color = col;
+      if (!first) lb.style.opacity = .6;
+      layer.appendChild(lb); first = false;
+      secHits.push({ id: sec.id, l, r: l + w, t: top - 18, b: top + 5 });
     };
     for (let k = sec.a; k <= sec.b; k++) {
       const m = layout.measures[k]; if (!m) continue;
-      if (cur && cur.sys === m.sys) { cur.r = m.r; cur.t = Math.min(cur.t, m.t); }
-      else { flush(); cur = { l: m.l, r: m.r, t: m.t, sys: m.sys }; }
+      if (cur && cur.sys === m.sys) cur.r = m.r;
+      else { flush(); cur = { l: m.l, r: m.r, sys: m.sys }; }
     }
     flush();
   });
@@ -440,7 +521,7 @@ function renderSecList() {
   el.innerHTML = sections.map(sec => `<button class="secitem" data-id="${sec.id}">
       <span class="dot" style="background:${RATINGS[sec.rating].c}"></span>
       <span class="nm">${sec.name}<br><i>T. ${sec.a}${sec.b !== sec.a ? '–' + sec.b : ''} · ${RATINGS[sec.rating].name}</i></span>
-      <span class="tm">${fmtTime(sec.total)}</span></button>`).join('') + `<div class="small" style="margin-top:8px">Gesamt geübt: ${fmtTime(total)} · gespeichert in diesem Browser</div>`;
+      <span class="tm">${fmtTime(sec.total)}</span></button>`).join('') + `<div class="small" style="margin-top:8px">Gesamt geübt: ${fmtTime(total)}</div>`;
 }
 $('#practiceBtn').onclick = () => { $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); renderSecList(); $('#secPanel').classList.toggle('show'); };
 $('#secList').addEventListener('click', e => {
