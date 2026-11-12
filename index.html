@@ -1203,9 +1203,11 @@ function toggleBeatExplain(i) {
   box.classList.add('show');
   // Zusammenklang kurz anspielen
   audio.ensure();
-  const snd = model.notes.filter(n => n.onset < bt.to && n.onset + n.ticks > bt.from && audible(n));
-  const pcsSeen = new Set();
-  snd.sort((x, y) => x.onset - y.onset).forEach(n => { if (pcsSeen.has(n.midi)) return; pcsSeen.add(n.midi); audio.note(n.midi, audio.now() + 0.02, 1.4, 0.5, n.role); });
+  // Akkordtöne dieser Zählzeit als aufgerollter Akkord von unten nach oben, im Sechzehntel-Tempo
+  const snd = model.notes.filter(n => n.onset < bt.to && n.onset + n.ticks > bt.from && audible(n) && (!bt.chord || bt.chord.pcs.includes(n.pc)));
+  const midis = [...new Map(snd.map(n => [n.midi, n])).values()].sort((x, y) => x.midi - y.midi);
+  const step = (TPW / 16) * spt(), t0 = audio.now() + 0.03, total = midis.length * step;
+  midis.forEach((n, k) => audio.note(n.midi, t0 + k * step, total - k * step + 0.9, 0.55, n.role));
 }
 
 function showRangeInfo() {
