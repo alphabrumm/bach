@@ -6,7 +6,7 @@ const TPW = 96; // Ticks pro Ganze (Zweiunddreißigstel = 3, Triolen-Achtel = 8)
 const STEPS = 'cdefgab';
 const SEMI = [0, 2, 4, 5, 7, 9, 11];
 const ORN = { prall: 'prall', mordent: 'mordent', downmordent: 'mordent', upmordent: 'prall', trill: 'trill', prallprall: 'trill',
-  downprall: 'prall', upprall: 'prall', turn: 'turn', fermata: 'fermata', prallmordent: 'prall', lineprall: 'prall', reverseturn: 'turn', mordentprall: 'mordent' };
+  downprall: 'prall', upprall: 'prall', prallup: 'prall', turn: 'turn', fermata: 'fermata', prallmordent: 'prall', lineprall: 'prall', reverseturn: 'turn', mordentprall: 'mordent' };
 const NOARG = new Set(['voiceOne', 'voiceTwo', 'voiceThree', 'voiceFour', 'oneVoice', 'stemUp', 'stemDown', 'stemNeutral', 'break', 'noBreak',
   'pageBreak', 'autoBeamOff', 'autoBeamOn', 'shiftOn', 'shiftOff', 'shiftOnn', 'tieUp', 'tieDown', 'tieNeutral', 'slurUp', 'slurDown',
   'slurNeutral', 'dynamicUp', 'dynamicDown', 'arpeggio', 'staccato', 'tenuto', 'accent', 'p', 'f', 'mf', 'mp', 'pp', 'ff', 'sf',
@@ -77,6 +77,7 @@ function clean(s) {
 
   s = s.replace(/[\[\]()]/g, ' ');                       // Balken, Bögen
   s = s.replace(/([a-gr\d.',>])[-^_](?=[\s~]|$)/g, '$1');      // Richtungszeichen ohne Inhalt
+  s = s.replace(/[-^_]~/g, ' ~');                         // Richtung vor Haltebogen
   return s;
 }
 
@@ -150,8 +151,24 @@ class Parser {
     if (tk === '\\repeat') {
       this.i++; this.i++; // volta N
       const startT = st.t; this.item(st);
-      this.ctx.repeats.push({ voice: st.voice, from: startT, to: st.t });
-      if (this.toks[this.i] === '\\alternative') { this.i++; this.item(st); }
+      const rep = { voice: st.voice, from: startT, to: st.t }; this.ctx.repeats.push(rep);
+      if (this.toks[this.i] === '\\alternative') {
+        // Nur die letzte Klammer (2. Ende) wird als Musik übernommen; die erste wird übersprungen,
+        // zählt aber für die relative Tonhöhe mit.
+        this.i++;
+        if (this.toks[this.i] === '{') this.i++;
+        const alts = [];
+        while (this.i < this.toks.length && this.toks[this.i] !== '}') { alts.push(this.i); this.skipItem(); }
+        this.i++;
+        const endI = this.i;
+        alts.forEach((ai, k) => {
+          this.i = ai; const g = st.grace;
+          if (k < alts.length - 1) st.grace = true;
+          this.item(st); st.grace = g;
+        });
+        this.i = endI;
+        rep.to = st.t; // Wiederholungszeichen nach der (übernommenen) 2. Klammer
+      }
       return;
     }
     if (tk === '\\skip') { const m = /^(\d+)(\.*)$/.exec(this.toks[this.i++]); this.addRest(st, 'space', +m[1], m[2].length, 1); return; }
@@ -177,6 +194,10 @@ class Parser {
     if (m) return this.note(m, st);
     if (tk === 'q') return;
     throw new Error(`Unbekanntes Token "${tk}" (Stimme ${st.voice}, t=${st.t})`);
+  }
+  skipItem() { // springt über einen Ausdruck, ohne ihn auszuwerten
+    const tk = this.toks[this.i++];
+    if (tk === '{' || tk === '<<') { let d = 1; const o = tk, c = tk === '{' ? '}' : '>>'; while (d && this.i < this.toks.length) { const t = this.toks[this.i++]; if (t === o) d++; else if (t === c) d--; } }
   }
   durTicks(d, dots) { let v = TPW / d, add = v; for (let k = 0; k < dots; k++) { add /= 2; v += add; } return v; }
   pitch(m, st) {

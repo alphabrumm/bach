@@ -38,5 +38,16 @@ for (let i = 0; i < 24; i++) for (const kind of ['Praeludium', 'Fuga']) {
     addPiece(f, meta, WTK_KEYS[i]);
   } else catalog.push(Object.assign({ available: false }, meta));
 }
+// Goldberg-Variationen
+const GOLD = [{ id: 'bwv988a', title: 'Aria', num: 0 }].concat(Array.from({ length: 30 }, (_, i) => ({ id: `bwv988v${i + 1}`, title: `Variatio ${i + 1}`, num: i + 1 })));
+GOLD.push({ id: 'bwv988da', title: 'Aria da capo', num: 31 });
+const MINOR = [15, 21, 25];
+for (const g of GOLD) {
+  const keyName = MINOR.includes(g.num) ? 'g-Moll' : 'G-Dur';
+  const meta = { book: 'gold', id: g.id, bwv: 988, kind: g.num === 0 || g.num === 31 ? 'Aria' : 'Variatio', num: g.num, title: g.title, keyName,
+    voicesLabel: 'Goldberg-Variationen', license: 'Mutopia Project (JD Erickson), CC BY-SA 3.0' };
+  const f = path.join(__dirname, 'ly', g.id + '.ly');
+  if (fs.existsSync(f)) addPiece(f, meta, keyName); else catalog.push(Object.assign({ available: false }, meta));
+}
 fs.writeFileSync(path.join(out, 'index.json'), JSON.stringify(catalog));
 console.log('Stücke:', catalog.filter(c => c.available).length);

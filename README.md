@@ -2,7 +2,7 @@
 
 Eine iPad-taugliche Web-App, um in Klavierstücke von J. S. Bach einzutauchen: Notenbücher im Leinen-Look, Notenblätter als echte Daten (antippen, scrubben, Harmonik, Stimmen).
 
-**Inhalt:** alle 15 Inventionen (BWV 772–786) und 15 Sinfonien (BWV 787–801)
+**Inhalt:** alle 15 Inventionen (BWV 772–786) und 15 Sinfonien (BWV 787–801), WTK I Fuge 1 (BWV 846), Goldberg-Variationen Aria, Variatio 1 und 2 (BWV 988)
 
 - Noten und Takte antippen → Infokarte (Tonname, Stimme, Harmonie, Rolle im Akkord)
 - Mit dem Finger waagrecht über die Noten wischen → Scrubbing; Finger ruhen lassen → Zusammenklang
@@ -26,6 +26,7 @@ node tools/build.js          # src/ -> index.html
 ## Quellen & Lizenzen
 
 - Notentexte: [Mutopia Project](https://www.mutopiaproject.org) – Inventionen (BWV 772–786) unter CC BY-SA 3.0 (u. a. jeff covey, Urs Metzger), Sinfonien (BWV 787–801) gesetzt von Olivier Vermersch (Sinfonia 2: Public Domain). Lizenzangaben je Stück siehe Kopfzeile in `tools/ly/`.
-- Anpassung: Sinfonia 15 – Schlussnote auf die 9/16-Taktlänge gebracht.
+- WTK I Fuge 1: Mutopia, Andreas Scherer, Public Domain. Goldberg-Variationen: Mutopia, JD Erickson, CC BY-SA 3.0.
+- Anpassungen: Bei Wiederholungen mit 1./2. Klammer (Variatio 2) wird nur die 2. Klammer dargestellt. Sinfonia 15 – Schlussnote auf die 9/16-Taktlänge gebracht.
 - Notensatz: [Verovio](https://www.verovio.org) (LGPL), zur Laufzeit geladen
 - Flügel-Samples: Salamander Grand Piano von Alexander Holm, CC-BY 3.0 (standardmäßig über tonejs.github.io geladen; Quelle in „Ansicht“ änderbar)

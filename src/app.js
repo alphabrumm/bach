@@ -53,7 +53,8 @@ const BOOKS = [
   { id: 'wtk1', t: 'Das Wohltemperierte Klavier', s: 'Teil I · BWV 846–869', c: '#5b2626', active: true,
     sub: 'Teil I · Köthen 1722 · BWV 846–869', h: ['Präludien', 'Fugen'] },
   { t: 'Französische Suiten', s: 'BWV 812–817', c: '#273956' },
-  { t: 'Goldberg-Variationen', s: 'BWV 988', c: '#4b3a26' },
+  { id: 'gold', t: 'Goldberg-Variationen', s: 'BWV 988', c: '#4b3a26', active: true,
+    sub: 'Clavier-Übung IV · Nürnberg 1741 · BWV 988', h: ['Aria · Variationen 1–15', 'Variationen 16–30 · Aria da capo'] },
 ];
 $('#shelf').innerHTML = BOOKS.map((b, i) => `
   <button class="book linen ${b.active ? '' : 'dim'}" style="--c:${b.c}" data-i="${i}">
@@ -83,6 +84,11 @@ function renderToc() {
   if (b.id === 'inv') {
     $('#tocInv').innerHTML = KEYS.map((k, i) => tocEntry('Inventio ' + (i + 1), k, 772 + i, 'bwv' + (772 + i), avail('bwv' + (772 + i)))).join('');
     $('#tocSin').innerHTML = KEYS.map((k, i) => tocEntry('Sinfonia ' + (i + 1), k, 787 + i, 'bwv' + (787 + i), avail('bwv' + (787 + i)))).join('');
+  } else if (b.id === 'gold') {
+    const gk = n => [15, 21, 25].includes(n) ? 'g-Moll' : 'G-Dur';
+    const ge = (label, n, id) => tocEntry(label, gk(n), 988, id, avail(id));
+    $('#tocInv').innerHTML = ge('Aria', 0, 'bwv988a') + Array.from({ length: 15 }, (_, i) => ge('Variatio ' + (i + 1), i + 1, 'bwv988v' + (i + 1))).join('');
+    $('#tocSin').innerHTML = Array.from({ length: 15 }, (_, i) => ge('Variatio ' + (i + 16), i + 16, 'bwv988v' + (i + 16))).join('') + ge('Aria da capo', 31, 'bwv988da');
   } else {
     $('#tocInv').innerHTML = WTK_KEYS.map((k, i) => tocEntry('Präludium ' + (i + 1), k, 846 + i, `bwv${846 + i}p`, avail(`bwv${846 + i}p`))).join('');
     $('#tocSin').innerHTML = WTK_KEYS.map((k, i) => tocEntry('Fuge ' + (i + 1), k, 846 + i, `bwv${846 + i}f`, avail(`bwv${846 + i}f`))).join('');
