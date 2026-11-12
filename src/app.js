@@ -21,7 +21,7 @@ function toast(msg, ms = 2200) { const t = $('#toast'); t.textContent = msg; t.c
 
 // ---------- Ansichten ----------
 function show(id) { $$('.view').forEach(v => v.classList.toggle('show', v.id === id)); hideCards(); }
-function hideCards() { $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); }
+function hideCards() { $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#page').style.paddingBottom = ''; }
 
 // Scroll-Bereiche nie ganz oben/unten (Safari-Wischgeste beendet sonst das Vollbild)
 function keepOffEdges(el) {
@@ -373,8 +373,22 @@ function openInfo(html, onAct) {
   $('#infoBody').innerHTML = html;
   $('#infoBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) onAct(b.dataset.act); };
   $('#info').classList.add('show');
+  requestAnimationFrame(keepSelectionVisible);
 }
-$('#infoX').onclick = () => { $('#info').classList.remove('show'); };
+$('#infoX').onclick = () => { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; };
+// Karte darf die markierten Noten nicht verdecken: unten Platz schaffen und ggf. hochscrollen
+function keepSelectionVisible() {
+  const card = $('#info'), sc = $('#scroller'), pg = $('#page');
+  if (!card.classList.contains('show') || !layout) return;
+  const cardTop = card.getBoundingClientRect().top;
+  pg.style.paddingBottom = Math.max(140, card.offsetHeight + 60) + 'px';
+  let target = null;
+  if (selRange && layout.measures[selRange.b]) target = layout.measures[selRange.b];
+  else if (selNote) { const el = document.getElementById(selNote.id); if (el) { const r = el.getBoundingClientRect(), pr = pg.getBoundingClientRect(); target = { b: r.bottom - pr.top }; } }
+  if (!target) return;
+  const bottomOnScreen = pg.getBoundingClientRect().top + target.b + 24;
+  if (bottomOnScreen > cardTop - 12) sc.scrollBy({ top: bottomOnScreen - cardTop + 24, behavior: 'smooth' });
+}
 
 function selectNote(n) { endMarkMode(); selNote = n; selRange = null; loopOn = false; playhead = n.onset; markSelection(); updateCursor(); showNoteInfo(n); }
 function selectMeasure(m) {
