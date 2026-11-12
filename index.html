@@ -103,7 +103,13 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #score svg g.harm text,#score svg g.harm tspan{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
 #cursor{position:absolute;width:2px;margin-left:-1px;background:var(--on);opacity:.75;border-radius:1px;pointer-events:none;display:none;
   box-shadow:0 0 6px rgba(194,65,12,.5)}
-#msel{position:absolute;pointer-events:none;display:none;background:rgba(208,138,30,.10);border:1px solid rgba(208,138,30,.45);border-radius:4px}
+#msel{position:absolute;inset:0;pointer-events:none;display:none}
+#msel .r{position:absolute;background:rgba(208,138,30,.10);border:1px solid rgba(208,138,30,.45);border-radius:4px}
+#msel.pulse .r{animation:mpulse .5s ease-in-out infinite alternate}
+@keyframes mpulse{from{background:rgba(208,138,30,.06);border-color:rgba(208,138,30,.35);box-shadow:0 0 0 0 rgba(208,138,30,0)}
+  to{background:rgba(208,138,30,.24);border-color:rgba(208,138,30,.9);box-shadow:0 0 12px 2px rgba(208,138,30,.35)}}
+.rangeharm{margin:8px 0;font-size:16px;line-height:1.5;max-height:150px;overflow-y:auto}
+.rangeharm i{display:inline-block;min-width:30px;color:var(--ink2)}
 #loading{text-align:center;padding:60px 20px;font-style:italic;color:var(--ink2);font-size:19px}
 #hint{position:absolute;left:0;right:0;text-align:center;font-style:italic;color:var(--ink2);font-size:15px;bottom:110px;opacity:.8}
 
@@ -837,7 +843,8 @@ function posToTick(x, y) {
 }
 
 // ---------- Cursor & Auswahl ----------
-let playhead = 0, selNote = null, selMeasure = null, loopOn = false;
+let playhead = 0, selNote = null, selRange = null, loopOn = false;
+let markAnchor = null, markUntil = 0, markTimer = null; // Markiermodus
 function updateCursor() {
   const c = $('#cursor'), p = tickToPos(playhead);
   if (!p) { c.style.display = 'none'; return; }
@@ -847,10 +854,20 @@ function markSelection() {
   $$('#score g.note.sel').forEach(el => el.classList.remove('sel'));
   if (selNote) { const el = document.getElementById(selNote.id); el && el.classList.add('sel'); }
   const ms = $('#msel');
-  if (selMeasure && layout && layout.measures[selMeasure]) {
-    const m = layout.measures[selMeasure];
-    Object.assign(ms.style, { display: 'block', left: m.l + 'px', top: (m.t - 8) + 'px', width: (m.r - m.l) + 'px', height: (m.b - m.t + 16) + 'px' });
-  } else ms.style.display = 'none';
+  ms.innerHTML = '';
+  if (!selRange || !layout) { ms.style.display = 'none'; return; }
+  ms.style.display = 'block';
+  ms.classList.toggle('pulse', Date.now() < markUntil);
+  // Ein Rechteck je System, aufeinanderfolgende Takte zusammengefasst
+  let cur = null;
+  const flush = () => { if (!cur) return; const d = document.createElement('div'); d.className = 'r';
+    Object.assign(d.style, { left: cur.l + 'px', top: (cur.t - 8) + 'px', width: (cur.r - cur.l) + 'px', height: (cur.b - cur.t + 16) + 'px' }); ms.appendChild(d); };
+  for (let k = selRange.a; k <= selRange.b; k++) {
+    const m = layout.measures[k]; if (!m) continue;
+    if (cur && cur.sys === m.sys) { cur.r = m.r; cur.t = Math.min(cur.t, m.t); cur.b = Math.max(cur.b, m.b); }
+    else { flush(); cur = { l: m.l, r: m.r, t: m.t, b: m.b, sys: m.sys }; }
+  }
+  flush();
 }
 
 // ---------- Info-Karte ----------
@@ -882,19 +899,23 @@ function showNoteInfo(n) {
     if (act === 'measure') selectMeasure(n.measure);
   });
 }
-function showMeasureInfo(m) {
-  const bs = harmony.beats.filter(b => b.measure === m);
-  const keys = [...new Set(bs.map(b => keyName(b.key)))].join(' → ');
-  const ghosts = model.notes.filter(n => n.measure === m && n.ghost);
-  let h = `<div class="lbl">Takt ${m} von ${model.measures}</div><h4>${keys}</h4>
-    <div class="beats">${bs.map((b, i) => `<div class="beat"><i>${i + 1}</i><b>${b.chord ? b.chord.roman : '–'}</b>${b.chord ? b.chord.name : ''}</div>`).join('')}</div>`;
-  if (ghosts.length) h += `<div class="ghostnote">⚠ ${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => helmholtz(n)).join(', ')}</div>`;
-  h += `<div class="small" style="margin-top:6px">Automatische Schätzung je punktierter Viertel.</div>
-    <div class="btns"><button data-act="play">▶ Takt spielen</button><button data-act="loop">${loopOn ? '⟲ Schleife aus' : '⟲ Schleife'}</button><button data-act="from">ab hier</button></div>`;
+function showRangeInfo() {
+  const { a, b } = selRange, single = a === b;
+  const bs = harmony.beats.filter(x => x.measure >= a && x.measure <= b);
+  const keys = bs.map(x => keyName(x.key)).filter((k, i, arr) => i === 0 || k !== arr[i - 1]).join(' → ');
+  const ghosts = model.notes.filter(n => n.measure >= a && n.measure <= b && n.ghost);
+  const pulsing = Date.now() < markUntil;
+  let h = `<div class="lbl">${single ? `Takt ${a} von ${model.measures}` : `Takte ${a}–${b} · ${b - a + 1} Takte markiert`}</div><h4>${keys}</h4>`;
+  if (single) h += `<div class="beats">${bs.map((x, i) => `<div class="beat"><i>${i + 1}</i><b>${x.chord ? x.chord.roman : '–'}</b>${x.chord ? x.chord.name : ''}</div>`).join('')}</div>`;
+  else h += `<div class="rangeharm">${[...new Set(bs.map(x => x.measure))].map(m => `<div><i>${m}</i> ${bs.filter(x => x.measure === m).map(x => x.chord ? x.chord.roman : '–').join(' · ')}</div>`).join('')}</div>`;
+  if (ghosts.length) h += `<div class="ghostnote">⚠ ${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${n.measure})`).join(', ')}</div>`;
+  if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
+  h += `<div class="btns"><button data-act="play">▶ ${single ? 'Takt' : 'Abschnitt'} spielen</button><button data-act="loop">${loopOn ? '⟲ Schleife aus' : '⟲ Schleife'}</button><button data-act="from">ab hier</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
   openInfo(h, act => {
-    if (act === 'play') { loopOn = false; syncLoopBtn(); startPlayback((m - 1) * MEASURE, m * MEASURE); }
-    if (act === 'loop') { loopOn = !loopOn; syncLoopBtn(); if (loopOn) startPlayback((m - 1) * MEASURE); else stopPlayback(); showMeasureInfo(m); }
-    if (act === 'from') startPlayback((m - 1) * MEASURE);
+    if (act === 'play') { loopOn = false; startPlayback((a - 1) * MEASURE, b * MEASURE); }
+    if (act === 'loop') { loopOn = !loopOn; if (loopOn) startPlayback((a - 1) * MEASURE); else stopPlayback(); showRangeInfo(); }
+    if (act === 'from') { loopOn = false; startPlayback((a - 1) * MEASURE); }
+    if (act === 'clear') { clearSelection(); }
   });
 }
 function openInfo(html, onAct) {
@@ -905,8 +926,25 @@ function openInfo(html, onAct) {
 }
 $('#infoX').onclick = () => { $('#info').classList.remove('show'); };
 
-function selectNote(n) { selNote = n; selMeasure = null; playhead = n.onset; markSelection(); updateCursor(); showNoteInfo(n); }
-function selectMeasure(m) { selMeasure = m; selNote = null; playhead = (m - 1) * MEASURE; markSelection(); updateCursor(); showMeasureInfo(m); }
+function selectNote(n) { endMarkMode(); selNote = n; selRange = null; loopOn = false; playhead = n.onset; markSelection(); updateCursor(); showNoteInfo(n); }
+function selectMeasure(m) {
+  selNote = null;
+  if (markAnchor != null && Date.now() < markUntil && m !== markAnchor) {
+    // Markiermodus: vom ursprünglichen Takt bis zum angetippten Takt
+    selRange = { a: Math.min(markAnchor, m), b: Math.max(markAnchor, m) };
+    endMarkMode();
+  } else {
+    selRange = { a: m, b: m };
+    markAnchor = m; markUntil = Date.now() + 2000;
+    clearTimeout(markTimer);
+    markTimer = setTimeout(() => { endMarkMode(); markSelection(); if ($('#info').classList.contains('show') && selRange && selRange.a === selRange.b) showRangeInfo(); }, 2000);
+  }
+  if (playing && loopOn) startPlayback((selRange.a - 1) * MEASURE);
+  playhead = (selRange.a - 1) * MEASURE;
+  markSelection(); updateCursor(); showRangeInfo();
+}
+function endMarkMode() { markAnchor = null; markUntil = 0; clearTimeout(markTimer); }
+function clearSelection() { endMarkMode(); selRange = null; selNote = null; loopOn = false; markSelection(); $('#info').classList.remove('show'); }
 
 // ---------- Gesten: Antippen & Scrubbing ----------
 const pageEl = $('#page');
@@ -943,7 +981,12 @@ const endG = e => {
 pageEl.addEventListener('pointerup', endG);
 pageEl.addEventListener('pointercancel', () => { g = null; clearTimeout(holdTimer); });
 
+function measureAt(x, y) {
+  for (const [k, m] of Object.entries(layout.measures)) if (x >= m.l && x <= m.r && y >= m.t - 30 && y <= m.b + 30) return +k;
+  return null;
+}
 function tapAt(x, y) {
+  if (Date.now() < markUntil) { const mk = measureAt(x, y); if (mk) { selectMeasure(mk); return; } } // Markiermodus hat Vorrang
   let best = null, bd = 26;
   for (const h of layout.heads) { if (h.e.type !== 'note') continue; const d = Math.hypot(h.x - x, h.y - y); if (d < bd) { bd = d; best = h.e; } }
   if (best) {
@@ -955,7 +998,7 @@ function tapAt(x, y) {
   for (const [k, m] of Object.entries(layout.measures)) {
     if (x >= m.l && x <= m.r && y >= m.t - 30 && y <= m.b + 30) { selectMeasure(+k); return; }
   }
-  hideCards(); selNote = null; selMeasure = null; markSelection();
+  clearSelection(); hideCards();
 }
 function findTieStart(n) { let c = n; while (c.tieEnd && c.prev) c = c.prev; return c; }
 
@@ -1078,9 +1121,14 @@ function startPlayback(from, until) {
   audio.ensure();
   stopPlayback(true);
   if (from >= TOTAL - 1) from = 0;
-  const loopStart = loopOn ? Math.floor(from / MEASURE) * MEASURE : null;
+  let loopStart = null, loopEnd = null;
+  if (loopOn) {
+    const r = selRange || { a: Math.floor(from / MEASURE) + 1, b: Math.floor(from / MEASURE) + 1 };
+    loopStart = (r.a - 1) * MEASURE; loopEnd = r.b * MEASURE;
+    if (from < loopStart || from >= loopEnd) from = loopStart;
+  }
   pl = { t0Tick: from, t0Time: audio.now() + 0.08, prev: null, idx: playable.findIndex(n => n.onset >= from),
-    end: until || (loopOn ? loopStart + MEASURE : TOTAL), loopStart };
+    end: until || (loopOn ? loopEnd : TOTAL), loopStart };
   if (pl.idx < 0) pl.idx = playable.length;
   playing = true; setPlayIcon();
   timer = setInterval(schedule, 25); schedule();
@@ -1147,7 +1195,6 @@ function setPlayIcon() { const b = $('#play'); b.innerHTML = playing ? ICON_STOP
 setPlayIcon();
 // Spielt ab der aktuellen Stelle (Cursor); nach dem Öffnen steht er am Anfang
 $('#play').onclick = () => { if (playing) stopPlayback(); else startPlayback(playhead); };
-function syncLoopBtn() {}
 const tempo = $('#tempo');
 const showTempo = () => { $('#tempoVal').textContent = S.tempoPct + ' %'; };
 tempo.value = S.tempoPct; showTempo();
