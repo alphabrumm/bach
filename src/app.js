@@ -313,6 +313,9 @@ function hearControls() {
 }
 function refreshCard() { const sec = selRange && sections.find(x => x.a === selRange.a && x.b === selRange.b); if (sec && Date.now() >= markUntil) showSection(sec); else showRangeInfo(); }
 
+// Ein Knopf für Abspielen/Stopp in den Karten
+function playBtn(label) { return `<button data-act="play" data-label="${label}">${playing ? IC.stop + 'Stopp' : IC.play + label}</button>`; }
+
 // ---------- Info-Karte ----------
 function beatLabel(e) {
   const b = Math.floor(e.pos / BEAT + 1e-9) + 1, off = e.pos - (b - 1) * BEAT;
@@ -357,13 +360,12 @@ function showRangeInfo() {
   if (ghosts.length) h += `<div class="ghostnote">${IC.warn}${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${mLabel(n.measure)})`).join(', ')}</div>`;
   if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
   h += hearControls();
-  h += `<div class="btns"><button data-act="play">${IC.play}${single ? 'Takt' : 'Abschnitt'} spielen</button><button data-act="stop">${IC.stop}Stopp</button><button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from">ab hier</button><button data-act="addsec">＋ Übe-Abschnitt</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
+  h += `<div class="btns">${playBtn(single ? 'Takt spielen' : 'Abschnitt spielen')}<button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from" title="Spielt ab diesem Takt bis zum Ende des Stücks">ab hier bis Schluss</button><button data-act="addsec">＋ Übe-Abschnitt</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
   openInfo(h, act => {
-    if (act === 'play') { loopOn = false; startPlayback((a - 1) * MEASURE, b * MEASURE); }
+    if (act === 'play') { if (playing) stopPlayback(); else { loopOn = false; startPlayback((a - 1) * MEASURE, b * MEASURE); } }
     if (act === 'loop') { loopOn = !loopOn; if (loopOn) startPlayback((a - 1) * MEASURE); else stopPlayback(); showRangeInfo(); }
     if (act === 'from') { loopOn = false; startPlayback((a - 1) * MEASURE); }
     if (act === 'clear') { clearSelection(); }
-    if (act === 'stop') { stopPlayback(); }
     if (act.startsWith('hear')) { setHear(+act.slice(4)); showRangeInfo(); }
     if (act === 'addsec') { endMarkMode(); markSelection(); showSection(addSection(a, b)); }
   });
@@ -517,16 +519,14 @@ function showSection(sec) {
     ${hearControls()}
     <div class="btns">
       <button data-act="timer" class="${running ? 'timerOn' : ''}">${running ? IC.stop + 'Üben beenden' : IC.timer + 'Üben starten'}</button>
-      <button data-act="play">${IC.play}spielen</button>
-      <button data-act="stop">${IC.stop}Stopp</button>
+      ${playBtn('spielen')}
       <button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button>
       <button data-act="del">${confirmDel === sec.id ? 'Wirklich löschen?' : 'Löschen'}</button>
     </div>`;
   openInfo(h, act => {
     if (act.startsWith('rate')) { sec.rating = +act.slice(4); saveSections(); drawSections(); renderSecList(); showSection(sec); }
     if (act === 'timer') { if (running) stopPractice(); else startPractice(sec); showSection(sec); }
-    if (act === 'play') { loopOn = false; startPlayback((sec.a - 1) * MEASURE, sec.b * MEASURE); }
-    if (act === 'stop') { stopPlayback(); }
+    if (act === 'play') { if (playing) stopPlayback(); else { loopOn = false; startPlayback((sec.a - 1) * MEASURE, sec.b * MEASURE); } }
     if (act.startsWith('hear')) { setHear(+act.slice(4)); showSection(sec); }
     if (act === 'loop') { selRange = { a: sec.a, b: sec.b }; loopOn = !loopOn; if (loopOn) startPlayback((sec.a - 1) * MEASURE); else stopPlayback(); showSection(sec); }
     if (act === 'del') {
@@ -947,7 +947,10 @@ $('#scroller').addEventListener('wheel', () => { lastUserScroll = Date.now(); },
 // ---------- Transport ----------
 const ICON_PLAY = '<svg viewBox="0 0 20 20"><path d="M5 3.2v13.6c0 .6.7 1 1.2.7l10.6-6.8c.5-.3.5-1 0-1.3L6.2 2.5C5.7 2.2 5 2.6 5 3.2z"/></svg>';
 const ICON_STOP = '<svg viewBox="0 0 20 20"><rect x="4" y="3" width="4.2" height="14" rx="1"/><rect x="11.8" y="3" width="4.2" height="14" rx="1"/></svg>';
-function setPlayIcon() { const b = $('#play'); b.innerHTML = playing ? ICON_STOP : ICON_PLAY; b.title = playing ? 'Anhalten' : 'Abspielen'; }
+function setPlayIcon() {
+  const b = $('#play'); b.innerHTML = playing ? ICON_STOP : ICON_PLAY; b.title = playing ? 'Anhalten' : 'Abspielen';
+  $$('#infoBody [data-act="play"]').forEach(x => { x.innerHTML = playing ? IC.stop + 'Stopp' : IC.play + x.dataset.label; });
+}
 setPlayIcon();
 // Spielt ab der aktuellen Stelle (Cursor); nach dem Öffnen steht er am Anfang
 $('#play').onclick = () => { if (playing) stopPlayback(); else startPlayback(playhead); };
