@@ -126,15 +126,12 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #msel .r{transition:left .16s ease,width .16s ease,top .16s ease,height .16s ease}
 #msel.live .r{transition:none}
 #msel.pulse .hdl{opacity:.55}
-#selTools{position:fixed;left:calc(env(safe-area-inset-left,0px) + 14px);top:50%;transform:translate(-10px,-50%);z-index:15;display:flex;flex-direction:column;gap:4px;padding:5px;
-  border-radius:14px;background:rgba(250,244,230,.5);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);border:1px solid rgba(107,88,67,.15);
-  box-shadow:0 3px 10px rgba(40,25,10,.1);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
-#selTools.show{opacity:.78;pointer-events:auto;transform:translate(0,-50%)}
-#selTools button{width:40px;height:40px;border:0;border-radius:10px;background:rgba(208,138,30,.11);display:flex;align-items:center;justify-content:center;padding:0;color:#8a5a12}
-#selTools button.off{background:none;color:var(--ink2);opacity:.75}
-#selTools svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-#selTools .sep{height:1px;background:rgba(107,88,67,.2);margin:2px 4px}
-#selTools #stClear{background:none;color:#9a3a1a}
+#selTools{display:none;align-items:center;gap:2px;margin-right:14px}
+#selTools.show{display:flex}
+#selTools button{width:36px;height:38px;border:0;background:none;padding:0;display:flex;align-items:center;justify-content:center;color:var(--gold2);opacity:.75;border-radius:9px}
+#selTools button:active{background:rgba(0,0,0,.18)}
+#selTools button.off{opacity:.35}
+#selTools svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 #msel .r{position:absolute;background:rgba(208,138,30,.10);border:1px solid rgba(208,138,30,.45);border-radius:4px}
 #msel.pulse .r{animation:mpulse .5s ease-in-out infinite alternate}
 @keyframes mpulse{from{background:rgba(208,138,30,.06);border-color:rgba(208,138,30,.35);box-shadow:0 0 0 0 rgba(208,138,30,0)}
@@ -159,7 +156,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 @media (max-width:700px){#scoreView .topbar .title{display:none}}
 #handChip{font-size:15px}
 .tb{white-space:nowrap}
-@media (max-width:760px){
+@media (max-width:760px){#selTools{margin-right:4px;gap:0}#selTools button{width:30px}
   .topbar{gap:5px}
   .tb{padding:0 9px;min-width:38px}
   #scoreBack .bl{display:none}
@@ -303,6 +300,11 @@ input{-webkit-user-select:text;user-select:text}
       <button class="tb" id="handChip" style="display:none" title="Hörfilter aufheben"></button>
       <button class="tb" id="practiceChip" style="display:none" title="Läuft gerade"></button>
       <button class="tb" id="aboutBtn" title="Über das Stück" style="display:none"><span class="ibadge">i</span></button>
+      <div id="selTools">
+        <button id="stSel" title="Markierung ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="1.5" stroke-dasharray="2.5 2"/><path d="M3 9v6M21 9v6" stroke-width="2.6"/></svg></button>
+        <button id="stInfo" title="Info-Fenster ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 13h17M7 16.5h7"/></svg></button>
+        <button id="stClear" title="Markierung löschen"><svg viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.9 12.2c.1.9.8 1.6 1.7 1.6h5.8c.9 0 1.6-.7 1.7-1.6L17.5 7M10.2 10.5v6.5M13.8 10.5v6.5"/></svg></button>
+      </div>
       <button class="tb dirtyable" id="practiceBtn" title="Übe-Abschnitte">Üben</button>
       <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>
       <button class="tb fsBtn" title="Vollbild">⤢</button>
@@ -320,12 +322,6 @@ input{-webkit-user-select:text;user-select:text}
   </div>
 </section>
 
-<div id="selTools">
-  <button id="stSel" title="Markierung ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="1.5" stroke-dasharray="2.5 2"/><path d="M3 9v6M21 9v6" stroke-width="2.6"/></svg></button>
-  <button id="stInfo" title="Info-Fenster ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 13h17M7 16.5h7"/></svg></button>
-  <div class="sep"></div>
-  <button id="stClear" title="Markierung löschen"><svg viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.9 12.2c.1.9.8 1.6 1.7 1.6h5.8c.9 0 1.6-.7 1.7-1.6L17.5 7M10.2 10.5v6.5M13.8 10.5v6.5"/></svg></button>
-</div>
 
 <div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
 
