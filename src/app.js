@@ -575,7 +575,7 @@ function showRangeInfo() {
   if (ghosts.length) h += `<div class="ghostnote">${IC.warn}${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${mLabel(n.measure)})`).join(', ')}</div>`;
   if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
   h += hearControls();
-  h += `<div class="btns">${playBtn(single ? 'Takt spielen' : 'Abschnitt spielen')}<button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from" title="Spielt ab diesem Takt bis zum Ende des Stücks">ab hier bis Schluss</button><button data-act="addsec">＋ Übe-Abschnitt</button>${single ? '' : '<button data-act="clear">Markierung aufheben</button>'}</div>`;
+  h += `<div class="btns">${playBtn(single ? 'Takt spielen' : 'Abschnitt spielen')}<button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from" title="Spielt ab diesem Takt bis zum Ende des Stücks">ab hier bis Schluss</button><button data-act="addsec">＋ Übe-Abschnitt</button></div>`;
   openInfo(h, act => {
     if (act === 'play') { if (playing) stopPlayback(); else { loopOn = false; startPlayback((a - 1) * MEASURE, b * MEASURE); } }
     if (act === 'loop') { loopOn = !loopOn; if (loopOn) startPlayback((a - 1) * MEASURE); else stopPlayback(); showRangeInfo(); }
@@ -610,7 +610,8 @@ function keepSelectionVisible() {
   if (bottomOnScreen > cardTop - 12) sc.scrollBy({ top: bottomOnScreen - cardTop + 24, behavior: 'smooth' });
 }
 
-function selectNote(n) { endMarkMode(); selNote = n; selRange = null; loopOn = false; playhead = n.onset; markSelection(); updateCursor(); showNoteInfo(n); }
+function selectNote(n) { endMarkMode(); selNote = n;   // eine bestehende Takt-Markierung bleibt erhalten
+  if (!selRange) loopOn = false; playhead = n.onset; markSelection(); updateCursor(); showNoteInfo(n); }
 function selectMeasure(m) {
   selNote = null; selHidden = false;
   if (markAnchor != null && Date.now() < markUntil && m !== markAnchor) {
@@ -884,6 +885,8 @@ function tapAt(x, y) {
     else playOrnamented(n, audio.now() + 0.01, Math.min(1.6, n.playTicks * spt()), 0.8);
     return;
   }
+  // Aktive Markierungen werden nur über den Mülleimer gelöscht – Tippen daneben ändert sie nicht
+  if (selRange) { if (selNote) { selNote = null; markSelection(); } return; }
   for (const [k, m] of Object.entries(layout.measures)) {
     if (x >= m.l && x <= m.r && y >= m.t - 30 && y <= m.b + 30) { selectMeasure(+k); return; }
   }
