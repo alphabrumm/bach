@@ -143,25 +143,37 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 
 /* ---------- Abspielen & Tempo in der Kopfleiste ---------- */
 .playbtn{display:flex;align-items:center;justify-content:center;padding:0;min-width:46px}
-.playbtn svg{width:18px;height:18px;fill:var(--gold2)}
-.tempoBox{display:flex;align-items:center;gap:6px;height:38px;padding:0 10px;border-radius:10px;
-  background:rgba(0,0,0,.18);border:1px solid rgba(201,164,92,.35);color:var(--gold2)}
-.tempoBox .tlbl{font-variant:small-caps;letter-spacing:.05em;font-size:15px}
-#tempo{width:110px;accent-color:var(--gold)}
-#tempoVal{font-size:15px;min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
+.playbtn svg{width:19px;height:19px;fill:var(--gold2)}
+.tempoBox{display:flex;align-items:center;gap:7px;height:38px;padding:0 6px;color:var(--gold2)}
+.tempoBox .tlbl{display:flex;opacity:.85}
+#scoreView .tb.ib{background:none;border:0;min-width:40px;padding:0 7px;display:flex;align-items:center;justify-content:center;opacity:.85}
+#scoreView .tb.ib:active{background:rgba(0,0,0,.18)}
+.tbi{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;display:block}
+/* Tempo-Regler: gravierte Skala mit Metronom-Gewicht */
+#tempo{-webkit-appearance:none;appearance:none;width:116px;height:26px;background:transparent;margin:0}
+#tempo::-webkit-slider-runnable-track{height:12px;border:0;
+  background:linear-gradient(to bottom,transparent 5px,rgba(222,190,120,.8) 5px,rgba(222,190,120,.8) 6.5px,transparent 6.5px),
+    repeating-linear-gradient(90deg,rgba(222,190,120,.55) 0 1px,transparent 1px 10%) 0 0/100% 4px no-repeat}
+#tempo::-moz-range-track{height:12px;border:0;
+  background:linear-gradient(to bottom,transparent 5px,rgba(222,190,120,.8) 5px,rgba(222,190,120,.8) 6.5px,transparent 6.5px),
+    repeating-linear-gradient(90deg,rgba(222,190,120,.55) 0 1px,transparent 1px 10%) 0 0/100% 4px no-repeat}
+#tempo::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:18px;margin-top:-3px;border:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 18'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%23f0d79a'/%3E%3Cstop offset='.5' stop-color='%23c9a45c'/%3E%3Cstop offset='1' stop-color='%23a07c38'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M3.5 1h6l2.5 16H1z' fill='url(%23g)' stroke='%235a4220' stroke-width='.9' stroke-linejoin='round'/%3E%3Cpath d='M3 6h7' stroke='%235a4220' stroke-width='.7'/%3E%3C/svg%3E") center/contain no-repeat}
+#tempo::-moz-range-thumb{width:13px;height:18px;border:0;border-radius:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 18'%3E%3Cpath d='M3.5 1h6l2.5 16H1z' fill='%23c9a45c' stroke='%235a4220' stroke-width='.9'/%3E%3C/svg%3E") center/contain no-repeat}
+#tempoVal{font-size:15px;min-width:38px;text-align:right;font-variant-numeric:oldstyle-nums tabular-nums;font-style:italic;opacity:.9}
 #scoreView .topbar{position:relative}
 #scoreView .topbar .title{position:absolute;left:50%;transform:translateX(-50%);max-width:30vw;pointer-events:none;flex:none}
 #scoreView .topbar .spacer{flex:1}
-@media (max-width:1000px){#tempo{width:80px}.tempoBox .tlbl{display:none}}
+@media (max-width:1000px){#tempo{width:84px}}
 @media (max-width:700px){#scoreView .topbar .title{display:none}}
+@media (max-width:600px){#scoreView .topbar{gap:2px}#scoreView .tb.ib{min-width:30px;padding:0 3px}.tempoBox .tlbl,#tempoVal{display:none}#tempo{width:56px}#selTools button{width:28px}}
 #handChip{font-size:15px}
 .tb{white-space:nowrap}
 @media (max-width:760px){#selTools{margin-right:4px;gap:0}#selTools button{width:30px}
   .topbar{gap:5px}
   .tb{padding:0 9px;min-width:38px}
-  #scoreBack .bl{display:none}
-  .tempoBox{padding:0 7px}
-  #tempo{width:64px}
+  #scoreView .tb.ib{min-width:32px;padding:0 4px}
+  .tempoBox{padding:0 2px;gap:4px}
+  #tempo{width:60px}
 }
 .chips{display:flex;gap:6px}
 .chip{border:1px solid rgba(107,88,67,.45);background:rgba(255,255,255,.35);border-radius:9px;height:34px;min-width:44px;font-size:15px;font-weight:600}
@@ -292,22 +304,22 @@ input{-webkit-user-select:text;user-select:text}
 <section id="scoreView" class="view linen" style="--c:#2f4a3a">
   <div class="cover">
     <div class="topbar">
-      <button class="tb" id="scoreBack">‹<span class="bl"> Inhalt</span></button>
-      <button class="tb playbtn" id="play" title="Abspielen"></button>
-      <div class="tempoBox"><span class="tlbl">Tempo</span><input type="range" id="tempo" min="25" max="100" step="5"><span id="tempoVal"></span></div>
+      <button class="tb ib" id="scoreBack" title="Inhalt"><svg class="tbi" viewBox="0 0 24 24"><path d="M2.5 20.5h19"/><path d="M4 20.5V7h3.5v13.5M7.5 20.5V5h3.6v15.5"/><path d="M4 9.5h3.5M7.5 7.5h3.6"/><path d="M12.2 9l3.3-.9 3.4 12.4-3.3.9z"/></svg></button>
+      <button class="tb ib playbtn" id="play" title="Abspielen"></button>
+      <div class="tempoBox" title="Tempo"><span class="tlbl"><svg class="tbi" viewBox="0 0 24 24"><path d="M9.6 3.5h4.8l3.3 17H6.3z"/><path d="M5 20.5h14"/><path d="M12 17.5l4.2-10.5"/><path d="M14.4 11.4l1-2.5" stroke-width="3.2" stroke-linecap="butt"/><path d="M8.3 14.8h7.4"/></svg></span><input type="range" id="tempo" min="25" max="100" step="5"><span id="tempoVal"></span></div>
       <div class="title"></div>
       <div class="spacer"></div>
       <button class="tb" id="handChip" style="display:none" title="Hörfilter aufheben"></button>
       <button class="tb" id="practiceChip" style="display:none" title="Läuft gerade"></button>
-      <button class="tb" id="aboutBtn" title="Über das Stück" style="display:none"><span class="ibadge">i</span></button>
+      <button class="tb ib" id="aboutBtn" title="Über das Stück" style="display:none"><span class="ibadge">i</span></button>
       <div id="selTools">
         <button id="stSel" title="Markierung ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="1.5" stroke-dasharray="2.5 2"/><path d="M3 9v6M21 9v6" stroke-width="2.6"/></svg></button>
         <button id="stInfo" title="Info-Fenster ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 13h17M7 16.5h7"/></svg></button>
         <button id="stClear" title="Markierung löschen"><svg viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.9 12.2c.1.9.8 1.6 1.7 1.6h5.8c.9 0 1.6-.7 1.7-1.6L17.5 7M10.2 10.5v6.5M13.8 10.5v6.5"/></svg></button>
       </div>
-      <button class="tb dirtyable" id="practiceBtn" title="Übe-Abschnitte">Üben</button>
-      <button class="tb" id="viewBtn" title="Ansicht">Ansicht</button>
-      <button class="tb fsBtn" title="Vollbild">⤢</button>
+      <button class="tb ib dirtyable" id="practiceBtn" title="Üben"><svg class="tbi" viewBox="0 0 24 24"><rect x="3.2" y="7.5" width="17.6" height="13.5" rx="2.8"/><path d="M9.5 7.5V6a2.5 2.5 0 0 1 5 0v1.5"/><path d="M3.2 11.2C3.2 15 6 16.6 12 16.6S20.8 15 20.8 11.2"/><path d="M8 15.9v2.6M16 15.9v2.6"/><rect x="6.9" y="17.3" width="2.2" height="2" rx=".3"/><rect x="14.9" y="17.3" width="2.2" height="2" rx=".3"/></svg></button>
+      <button class="tb ib" id="viewBtn" title="Ansicht"><svg class="tbi" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg></button>
+      <button class="tb ib fsBtn" title="Vollbild"><svg class="tbi" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-6.5 6.5M10 20H4v-6M4 20l6.5-6.5"/></svg></button>
     </div>
     <div id="scroller" class="sheet">
       <div id="page">
