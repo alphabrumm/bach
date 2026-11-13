@@ -288,24 +288,33 @@ function updateCursor() {
 function markSelection() {
   $$('#score g.note.sel').forEach(el => el.classList.remove('sel'));
   if (selNote) { const el = document.getElementById(selNote.id); el && el.classList.add('sel'); }
-  const ms = $('#msel');
-  ms.querySelectorAll('.r').forEach(r => r.remove());
   syncSelTools();
+  const ms = $('#msel');
   if (!selRange || !layout || selHidden) { ms.style.display = 'none'; return; }
   ms.style.display = 'block';
   ms.classList.toggle('pulse', Date.now() < markUntil);
-  // Ein Rechteck je System, aufeinanderfolgende Takte zusammengefasst
-  let cur = null; const rects = [];
-  const flush = () => { if (!cur) return; const d = document.createElement('div'); d.className = 'r';
-    const r = { l: cur.l, t: cur.t - 8, w: cur.r - cur.l, h: cur.b - cur.t + 16 }; rects.push(r);
-    Object.assign(d.style, { left: r.l + 'px', top: r.t + 'px', width: r.w + 'px', height: r.h + 'px' }); ms.insertBefore(d, ms.firstChild); };
-  for (let k = selRange.a; k <= selRange.b; k++) {
+  drawSel(selRange.a - 1, selRange.b);
+}
+// Zeichnet die Markierung zwischen zwei Taktgrenzen (in Takteinheiten, auch gebrochen – fürs Ziehen)
+function drawSel(P0, P1) {
+  const ms = $('#msel'), N = model.measures;
+  P0 = Math.max(0, Math.min(N, P0)); P1 = Math.max(P0, Math.min(N, P1));
+  const xAt = (m, f) => m.l + Math.max(0, Math.min(1, f)) * (m.r - m.l);
+  const rects = []; let cur = null;
+  const flush = () => { if (cur && cur.r - cur.l > 1) rects.push({ l: cur.l, t: cur.t - 8, w: cur.r - cur.l, h: cur.b - cur.t + 16 }); };
+  for (let k = Math.floor(P0 + 1e-6) + 1; k <= Math.ceil(P1 - 1e-6); k++) {
     const m = layout.measures[k]; if (!m) continue;
-    if (cur && cur.sys === m.sys) { cur.r = m.r; cur.t = Math.min(cur.t, m.t); cur.b = Math.max(cur.b, m.b); }
-    else { flush(); cur = { l: m.l, r: m.r, t: m.t, b: m.b, sys: m.sys }; }
+    const l = xAt(m, P0 - (k - 1)), r = xAt(m, P1 - (k - 1));
+    if (cur && cur.sys === m.sys) { cur.r = r; cur.t = Math.min(cur.t, m.t); cur.b = Math.max(cur.b, m.b); }
+    else { flush(); cur = { l, r, t: m.t, b: m.b, sys: m.sys }; }
   }
   flush();
-  // Griffe: links am Anfang, rechts am Ende, Menü-Griff mittig unten
+  // Rechteck-Elemente wiederverwenden (damit das Einschnappen weich animiert)
+  const els = [...ms.querySelectorAll('.r')];
+  while (els.length < rects.length) { const d = document.createElement('div'); d.className = 'r'; ms.insertBefore(d, ms.firstChild); els.unshift(d); }
+  while (els.length > rects.length) els.pop().remove();
+  rects.forEach((r, i) => Object.assign(els[i].style, { left: r.l + 'px', top: r.t + 'px', width: r.w + 'px', height: r.h + 'px' }));
+  // Griffe: links am Anfang, rechts am Ende, Verschiebe-Griff mittig unten
   const f = rects[0], z = rects[rects.length - 1];
   if (!f) return;
   const pos = (el, x, y) => { el.style.left = x + 'px'; el.style.top = y + 'px'; };
@@ -332,52 +341,68 @@ function toggleInfo() {
   const ms = $('#msel');
   ms.insertAdjacentHTML('beforeend',
     '<div class="hdl side" id="hdlL"><i></i></div><div class="hdl side" id="hdlR"><i></i></div>' +
-    '<button class="hdl menu" id="hdlM" title="Info-Fenster ein-/ausblenden"><i></i><i></i><i></i></button>');
-  const nearestMeasure = (x, y) => {
+    '<div class="hdl menu" id="hdlM" title="Markierung verschieben"><i></i><i></i><i></i></div>');
+  // Fingerposition → Taktgrenze in Takteinheiten (System zuerst, dann waagrecht im Takt interpoliert)
+  const posAt = (x, y) => {
     let best = null, bd = Infinity;
     for (const [k, m] of Object.entries(layout.measures)) {
       const dy = y < m.t ? m.t - y : y > m.b ? y - m.b : 0, dx = x < m.l ? m.l - x : x > m.r ? x - m.r : 0;
-      const d = dy * 4 + dx;   // System zuerst, dann Takt
-      if (d < bd) { bd = d; best = +k; }
+      const d = dy * 4 + dx;
+      if (d < bd) { bd = d; best = [+k, m]; }
     }
-    return best;
+    if (!best) return null;
+    const [k, m] = best;
+    return k - 1 + Math.max(0, Math.min(1, (x - m.l) / (m.r - m.l)));
   };
   let drag = null;
-  for (const id of ['hdlL', 'hdlR']) {
+  const live = (P0, P1) => { drag.p0 = P0; drag.p1 = P1; drawSel(P0, P1); };
+  for (const id of ['hdlL', 'hdlR', 'hdlM']) {
     const el = $('#' + id);
     el.addEventListener('pointerdown', e => {
       e.stopPropagation(); e.preventDefault();
       if (!selRange || !layout) return;
-      endMarkMode(); if (playing && !loopOn) stopPlayback();
-      drag = { id: e.pointerId, side: id === 'hdlL' ? 'a' : 'b' }; handleDrag = true;
+      const pr = $('#page').getBoundingClientRect();
+      endMarkMode(); $('#msel').classList.remove('pulse');
+      drag = { id: e.pointerId, kind: id, a: selRange.a, b: selRange.b, start: posAt(e.clientX - pr.left, e.clientY - pr.top) };
+      handleDrag = true;
       try { el.setPointerCapture(e.pointerId); } catch (_) {}
-      el.classList.add('drag');
+      el.classList.add('drag'); $('#msel').classList.add('live');
     });
     el.addEventListener('pointermove', e => {
       if (!drag || e.pointerId !== drag.id) return;
       e.preventDefault();
       const pr = $('#page').getBoundingClientRect();
-      const k = nearestMeasure(e.clientX - pr.left, e.clientY - pr.top); if (!k) return;
-      let { a, b } = selRange;
-      if (drag.side === 'a') a = k; else b = k;
-      if (a > b) { [a, b] = [b, a]; drag.side = drag.side === 'a' ? 'b' : 'a'; }
-      if (a !== selRange.a || b !== selRange.b) {
-        selRange = { a, b }; playhead = (a - 1) * MEASURE; markSelection(); updateCursor();
-        if (infoShown()) showRangeInfo();
+      const P = posAt(e.clientX - pr.left, e.clientY - pr.top); if (P == null) return;
+      const N = model.measures;
+      if (drag.kind === 'hdlL') live(Math.min(P, drag.b - 1), drag.b);           // mindestens ein Takt bleibt
+      else if (drag.kind === 'hdlR') live(drag.a - 1, Math.max(P, drag.a));
+      else {                                                                       // ganzes Rechteck verschieben
+        const len = drag.b - drag.a + 1;
+        const d = Math.max(-(drag.a - 1), Math.min(N - drag.b, P - drag.start));
+        live(drag.a - 1 + d, drag.a - 1 + d + len);
       }
     });
     const end = e => {
       if (!drag || e.pointerId !== drag.id) return;
-      e.stopPropagation(); drag = null; handleDrag = false; el.classList.remove('drag');
+      e.stopPropagation();
+      const d = drag; drag = null; handleDrag = false;
+      el.classList.remove('drag'); $('#msel').classList.remove('live');
+      let { a, b } = d;
+      if (d.p0 != null) {   // Einschnappen: über die Hälfte eines Takts gezogen → nächster Takt, sonst zurück
+        if (d.kind === 'hdlL') a = Math.round(d.p0) + 1;
+        else if (d.kind === 'hdlR') b = Math.round(d.p1);
+        else { const sh = Math.round(d.p0 - (d.a - 1)); a += sh; b += sh; }
+      }
+      const changed = a !== selRange.a || b !== selRange.b;
+      selRange = { a, b };
+      if (changed) { playhead = (a - 1) * MEASURE; updateCursor(); }
+      markSelection();
+      if (changed && infoShown()) showRangeInfo();
+      if (changed && loopOn && playing) startPlayback((a - 1) * MEASURE);
       requestAnimationFrame(keepSelectionVisible);
-      if (loopOn && playing) startPlayback((selRange.a - 1) * MEASURE);
     };
     el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
   }
-  const m = $('#hdlM');
-  m.addEventListener('pointerdown', e => e.stopPropagation());
-  m.addEventListener('pointerup', e => e.stopPropagation());
-  m.onclick = e => { e.stopPropagation(); toggleInfo(); };
   $('#stSel').onclick = () => { selHidden = !selHidden; markSelection(); };
   $('#stInfo').onclick = toggleInfo;
   $('#stClear').onclick = () => { clearSelection(); hideCards(); };
