@@ -6,8 +6,9 @@ const TPW = 96; // Ticks pro Ganze (Zweiunddreißigstel = 3, Triolen-Achtel = 8)
 const STEPS = 'cdefgab';
 const SEMI = [0, 2, 4, 5, 7, 9, 11];
 // Verzierungen: prall = Pralltriller (kurz, von oben), trill = Triller, trillmord = Triller mit Nachschlag
-const ORN = { prall: 'prall', mordent: 'mordent', downmordent: 'mordent', upmordent: 'prall', trill: 'trill', prallprall: 'trill',
-  downprall: 'trill', upprall: 'trill', prallup: 'trill', turn: 'turn', fermata: 'fermata', prallmordent: 'trillmord', lineprall: 'prall',
+// Verzierungen: eigene Kürzel, damit Notenbild und Wiedergabe das Zeichen genau treffen
+const ORN = { prall: 'prall', mordent: 'mordent', downmordent: 'mordent', upmordent: 'prall', trill: 'trill', prallprall: 'prallprall',
+  downprall: 'dcad', upprall: 'acad', prallup: 'prallup', turn: 'turn', fermata: 'fermata', prallmordent: 'trillmord', lineprall: 'ltrill',
   reverseturn: 'turn', mordentprall: 'mordent' };
 const NOARG = new Set(['voiceOne', 'voiceTwo', 'voiceThree', 'voiceFour', 'oneVoice', 'stemUp', 'stemDown', 'stemNeutral', 'break', 'noBreak',
   'pageBreak', 'autoBeamOff', 'autoBeamOn', 'shiftOn', 'shiftOff', 'shiftOnn', 'tieUp', 'tieDown', 'tieNeutral', 'slurUp', 'slurDown',

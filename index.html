@@ -729,7 +729,7 @@ function buildMEI(model, harmony, opts) {
     }
     model.notes.filter(n => n.measure === m && n.orn && !n.tieEnd).forEach(n => {
       const sid = n.chord ? n.chord + '_' + m : n.id;
-      if (n.orn === 'trill' || n.orn === 'trillmord') out.push(`<trill startid="#${sid}" place="above"/>`);
+      if (n.orn === 'trill') out.push(`<trill startid="#${sid}" place="above"/>`);
       else if (n.orn === 'prall') out.push(`<mordent startid="#${sid}" form="upper" place="above"/>`);
       else if (n.orn === 'mordent') out.push(`<mordent startid="#${sid}" form="lower" place="above"/>`);
       else if (n.orn === 'turn') out.push(`<turn startid="#${sid}" form="upper" place="above"/>`);
@@ -1029,6 +1029,41 @@ function decorate() {
   root.querySelectorAll('g.beam, g.chord, g.tuplet').forEach(b => { const n = b.querySelector('g.note'); if (n) n.classList.forEach(c => { if (/^(v|st)\d$/.test(c)) b.classList.add(c); }); });
   $('#scoreView').classList.remove('col-voices', 'col-hands');
   if (S.col !== 'none') $('#scoreView').classList.add('col-' + S.col);
+  drawOrnaments();
+}
+
+// Barocke Verzierungszeichen, die Verovio nicht als eigene Zeichen kennt, zeichnen wir selbst
+// (in Zwischenlinien-Einheiten, Ursprung = Mitte des Zeichens)
+const ORN_GLYPH = (() => {
+  const W = n => ' l.3,-.56 l.3,.56'.repeat(n);   // Wellen ab dem aktuellen Punkt
+  return {
+    prallprall: 'M-.9,.28' + W(3),
+    trillmord: 'M-.9,.28' + W(3) + ' M.15,-.8 V.95',
+    dcad: 'M-.7,-.75 C-1.45,-.95 -1.6,.28 -.95,.28' + W(3),
+    acad: 'M-.7,1 C-1.45,1.1 -1.55,.28 -.95,.28' + W(3),
+    ltrill: 'M-.95,-1.1 V.28' + W(3),
+    prallup: 'M-1.05,.28' + W(3) + ' l.28,-.3 l.12,-.6',
+  };
+})();
+function drawOrnaments() {
+  const NS = 'http://www.w3.org/2000/svg';
+  for (const n of model.notes) {
+    const g = ORN_GLYPH[n.orn]; if (!g || n.tieEnd) continue;
+    const el = document.getElementById(n.id); if (!el || !el.getBBox) continue;
+    const staff = el.closest('g.staff'); if (!staff) continue;
+    const lines = [...staff.children].filter(c => c.tagName === 'path' && !c.classList.contains('xorn')).map(p => p.getBBox().y).sort((a, b) => a - b);
+    if (lines.length < 2) continue;
+    const il = (lines[lines.length - 1] - lines[0]) / (lines.length - 1);
+    const head = el.querySelector('.notehead') || el, hb = head.getBBox(), nb = el.getBBox();
+    const top = Math.min(lines[0], nb.y);
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', g);
+    p.setAttribute('class', 'xorn');
+    p.setAttribute('transform', `translate(${hb.x + hb.width / 2},${top - 1.25 * il}) scale(${il})`);
+    p.setAttribute('fill', 'none'); p.setAttribute('stroke', 'currentColor');
+    p.setAttribute('stroke-width', '.17'); p.setAttribute('stroke-linejoin', 'round'); p.setAttribute('stroke-linecap', 'round');
+    staff.appendChild(p);
+  }
 }
 
 // Positionen der Noten / Systeme / Takte für Antippen und Scrubbing
@@ -1277,6 +1312,11 @@ function showNoteInfo(n) {
     <div class="row"><span class="k">Harmonie</span><span>${ch ? `${ch.name} – ${keyName(bt.key)}: <b>${ch.roman}</b>` : '–'}</span></div>
     <div class="row"><span class="k">Rolle</span><span>${n.grace ? (n.grace === 'acc' ? 'langer Vorschlag (Appoggiatura): auf den Schlag, nimmt der Hauptnote etwa die Hälfte ihres Werts' : 'kurzer Vorschlag: ganz kurz auf den Schlag') : role.text}</span></div>`;
   const ORN_TEXT = { trill: 'Triller – beginnt barock auf der oberen Nebennote', trillmord: 'Triller mit Nachschlag (beginnt oben, endet über die untere Nebennote)',
+    prallprall: 'Langer Pralltriller – mehrmals obere Nebennote und Hauptnote im Wechsel',
+    dcad: 'Doppelt-Cadence – beginnt oben, Schleife über die untere Nebennote, dann Triller',
+    acad: 'Triller von unten – beginnt mit der unteren Nebennote, dann Triller',
+    ltrill: 'Triller mit gehaltenem Vorhalt – die obere Nebennote wird zuerst etwas gehalten, dann Triller',
+    prallup: 'Triller mit Nachschlag – Triller, der über die untere Nebennote zur Hauptnote schließt',
     prall: 'Pralltriller – kurz: obere Nebennote, Hauptnote', mordent: 'Mordent – Hauptnote, untere Nebennote, Hauptnote', turn: 'Doppelschlag – obere Nebennote, Hauptnote, untere Nebennote, Hauptnote' };
   if (n.orn && ORN_TEXT[n.orn]) h += `<div class="row"><span class="k">Verzierung</span><span>${ORN_TEXT[n.orn]}</span></div>`;
   if (n.graces && n.graces.length) h += `<div class="row"><span class="k">Vorschlag</span><span>${n.graces.map(g => helmholtz(g)).join(', ')} (${n.graces[0].grace === 'acc' ? 'lang' : 'kurz'})</span></div>`;
@@ -1980,12 +2020,17 @@ function playOrnamented(n, when, len, vel) {
   const o = n.orn;
   const up = () => auxPitch(n, 1), down = () => auxPitch(n, -1);
   const seq = (list, f = 1) => { list.forEach(m => { play(m, t, dt * 1.08, vel * 0.85 * f); t += dt; L -= dt; }); };
-  if (o === 'trill' || o === 'trillmord') {
+  const TRILLS = ['trill', 'trillmord', 'prallprall', 'dcad', 'acad', 'ltrill', 'prallup'];
+  if (TRILLS.includes(o)) {
     const TR = 0.7; // echte Triller deutlich leiser
+    // Anfang: Doppelt-Cadence (oben–Haupt–unten–Haupt), Triller von unten, gehaltener Vorhalt
+    if (o === 'dcad' && L > 7 * dt) seq([up(), n.midi, down(), n.midi], TR);
+    if (o === 'acad' && L > 6 * dt) seq([down(), n.midi], TR);
+    if (o === 'ltrill' && L > 6 * dt) { const h = Math.min(L * 0.3, 0.45); play(up(), t, h * 1.02, vel * 0.9); t += h; L -= h; seq([n.midi], TR); }
     if (L < 4 * dt) seq([up(), n.midi], TR);
     else {
-      const u = up(), tail = o === 'trillmord' ? 2 : 0;
-      let k = Math.floor((L * 0.8) / dt) - tail; if (k % 2) k--; k = Math.max(2, k);
+      const u = up(), tail = (o === 'trillmord' || o === 'prallup') ? 2 : 0;
+      let k = Math.floor((L * (o === 'prallprall' ? 0.6 : 0.8)) / dt) - tail; if (k % 2) k--; k = Math.max(2, k);
       for (let i = 0; i < k; i++) { play(i % 2 ? n.midi : u, t, dt * 1.08, vel * TR * (i === 0 ? 1 : 0.8)); t += dt; L -= dt; }
       if (tail) seq([down(), n.midi], TR);
     }

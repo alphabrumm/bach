@@ -364,7 +364,7 @@ function buildMEI(model, harmony, opts) {
     }
     model.notes.filter(n => n.measure === m && n.orn && !n.tieEnd).forEach(n => {
       const sid = n.chord ? n.chord + '_' + m : n.id;
-      if (n.orn === 'trill' || n.orn === 'trillmord') out.push(`<trill startid="#${sid}" place="above"/>`);
+      if (n.orn === 'trill') out.push(`<trill startid="#${sid}" place="above"/>`);
       else if (n.orn === 'prall') out.push(`<mordent startid="#${sid}" form="upper" place="above"/>`);
       else if (n.orn === 'mordent') out.push(`<mordent startid="#${sid}" form="lower" place="above"/>`);
       else if (n.orn === 'turn') out.push(`<turn startid="#${sid}" form="upper" place="above"/>`);

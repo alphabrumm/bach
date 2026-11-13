@@ -1,4 +1,5 @@
-% Goldberg-Variationen, Aria da capo (= Aria), BWV 988 – Mutopia, JD Erickson, CC BY-SA 3.0
+% Goldberg-Variationen, Aria da capo (= Aria), BWV 988 – Notentext nach Mutopia (JD Erickson, CC BY-SA 3.0);
+% Verzierungen und Vorschläge an die vom Nutzer gewünschte Ausgabe angepasst
 staffUpper = {\change Staff = upper \stemDown}
 staffLower = {\change Staff = lower \stemUp}
 
@@ -6,34 +7,34 @@ soprano = \relative c'' {
     \override Staff.NoteCollision #'merge-differently-dotted = ##t
     \override Script #'padding = #1.0
     \repeat volta 2 {
-        \stemDown g'4 g4( a8.\prallmordent) b16
-        a8 \appoggiatura g16 fis8 \appoggiatura e16 d2
-        \stemUp g,4\prallmordent g4.\downprall fis16 g16
+        \stemDown g'4 g4( a8.\prall) b16
+        a8 \appoggiatura g8 fis8 \appoggiatura e8 d2
+        \stemUp g,4\prall g4.\downprall fis16 g16
         a32[( g32 fis16) g32( fis32 e16)] \appoggiatura e8 d2
-        \stemDown d'4 d4( e8.\prallmordent) f16
-        e8 \appoggiatura d16 c8 \appoggiatura b16 \stemUp a4. \stemDown fis'8\turn
+        \stemDown d'4 d4( e8.\prall) f16
+        e8 \appoggiatura d8 c8 \appoggiatura b8 \stemUp a4. \stemDown fis'8\turn
         \stemDown g32[( fis16.) a32( g16.)] fis32[( e16.) d32( c16.)] \once \override Slur #'direction = #UP \appoggiatura c8 a'8. c,16
-        \stemUp b32[( g16.) fis8] \appoggiatura fis8 g2\prallmordent
-        b4 b4( cis8.\prallmordent) d16
+        \stemUp b32[( g16.) fis8] \appoggiatura fis8 g2\prall
+        b4 b4( cis8.\prall) d16
         d16 cis16 b16 a16_~ \stemDown a2 \stemUp
         <g b e g>4\arpeggio \stemDown g'4.\downprall fis16 g16
         \override NoteColumn #'ignore-collision = ##t
-        g8 \appoggiatura fis16 e8 \once \override Stem #'length-fraction = #(magstep -6) cis4.\downprall e8
+        g8 \appoggiatura fis8 e8 \once \override Stem #'length-fraction = #(magstep -6) cis4.\lineprall e8
         a16( g16 fis16 e16) d8 \stemUp a4_~ a32 b32 c16
-        b16( a16 g16 fis16) e8 \appoggiatura d'16 cis4_~ cis32 d32 e16
+        b16( a16 g16 fis16) e8 \appoggiatura d'8 cis4_~ cis32 d32 e16
         d16^( cis16 b16 a16) g'8 b,4 cis8
-        \appoggiatura cis16 d8^~[ d32 e32 d32 cis32] \appoggiatura cis8 d2
+        \appoggiatura cis8 d8^~[ d32 e32 d32 cis32] \appoggiatura cis8 d2
     }
     \repeat volta 2 {
-        a4\prallmordent a4_~\downprall a16[ a32( b32 c32 d32 e16)]
-        \appoggiatura e16 d8 \appoggiatura c16 b8 \appoggiatura a8 g4. g'8
-        \appoggiatura fis16 e8. fis32 dis32 \appoggiatura dis8 e4.\prallmordent a32 b32 a32 g32
-        a8. fis16 \appoggiatura e8 dis4. b8
+        a4\prall a4_~\downprall a16[ a32( b32 c32 d32 e16)]
+        \appoggiatura e8 d8 \appoggiatura c8 b8 \appoggiatura a8 g4. g'8
+        \appoggiatura fis8 e8. fis32 dis32 \appoggiatura dis8 e4.\prall a32 b32 a32 g32
+        \appoggiatura g8 a8. fis16 \appoggiatura e8 dis4. b8
         \stemDown g'8. \prallup fis16 \appoggiatura fis8 e4^~ e16[ b16 c32( b32 a32 b32)]
         g'32[( e16.) fis32( dis16.)] \appoggiatura dis8 e4^~ \stemUp e16 g,16 fis16 e16
         fis8. e'16 \appoggiatura e16 dis8 a'8 \prallup g8 fis8
-        \appoggiatura fis16 e8. fis32 dis32 \appoggiatura dis8 e2
-        \stemDown e8 \appoggiatura d16 c8 \appoggiatura b16 a4. b16[ c16]
+        \appoggiatura fis8 e8. fis32 dis32 \appoggiatura dis8 e2
+        \stemDown e8 \appoggiatura d8 c8 \appoggiatura b8 a4. b16[ c16]
         d32[( c32 b16) c32( b32 a16)] \appoggiatura a8 \stemUp g4. a16 b16
         c16 d16 c16 b16 c16 a16 e16 a16 c4^~
         c16 d16 c16 b16 c16 a16 fis16 a16 c16 e16 d16 c16
@@ -52,7 +53,7 @@ bassOne = \relative c' {
     b2.
     c2_~ c8 d8
     e8 c8 d2
-    g,4. d'8[ e8.\prallmordent fis16]
+    g,4. d'8[ e8.\prall fis16]
     g2._~
     g4 fis8\prallprall e8 fis8 b8
     e,4. e8 fis8 g8
@@ -97,12 +98,12 @@ bassTwo = \relative c' {
     f'4\rest b,4 \staffUpper e4
     fis4 e8. fis16 g4_~
     g4 fis2
-    \staffLower a8\rest e8 \once \override Stem #'length-fraction = #(magstep -2) fis2^\prallmordent
+    \staffLower a8\rest e8 \once \override Stem #'length-fraction = #(magstep -2) fis2^\prall
     f8\rest c8 d2
-    f8\rest e8 g4 fis8^\prallprall e8
+    f8\rest e8 g4 fis8^\prall e8
     dis8 e8 \staffUpper fis2
-    \staffLower f8\rest a,8 g8^\prallprall fis8 g4
-    f'8\rest a,8 g8^\prallprall fis8 g8 b8
+    \staffLower f8\rest a,8 g8^\prall fis8 g4
+    f'8\rest a,8 g8^\prall fis8 g8 b8
     \staffUpper fis'4. c'8 b8 a8_~
     a4 g2
     \staffLower s4 e,2
