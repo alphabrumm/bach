@@ -113,6 +113,23 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #cursor{position:absolute;width:2px;margin-left:-1px;background:var(--on);opacity:.75;border-radius:1px;pointer-events:none;display:none;
   box-shadow:0 0 6px rgba(194,65,12,.5)}
 #msel{position:absolute;inset:0;pointer-events:none;display:none}
+#msel .hdl{position:absolute;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;z-index:2}
+#msel .hdl.side{width:34px;height:56px;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;cursor:ew-resize}
+#msel .hdl.side i{display:block;width:6px;height:30px;border-radius:3px;background:rgba(196,124,22,.85);box-shadow:0 0 0 1.5px rgba(255,250,238,.95),0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+#msel .hdl.side.drag i{transform:scaleY(1.2);background:rgba(196,124,22,1)}
+#msel .hdl.menu{width:28px;height:24px;transform:translate(-50%,-50%);border:1px solid rgba(196,124,22,.6);border-radius:6px;background:rgba(255,250,238,.95);
+  box-shadow:0 1px 3px rgba(0,0,0,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+#msel .hdl.menu i{display:block;width:13px;height:2px;border-radius:1px;background:rgba(160,100,20,.9)}
+#msel.pulse .hdl{opacity:.55}
+#selTools{position:fixed;left:calc(env(safe-area-inset-left,0px) + 14px);top:50%;transform:translate(-10px,-50%);z-index:15;display:flex;flex-direction:column;gap:4px;padding:5px;
+  border-radius:14px;background:rgba(250,244,230,.86);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(107,88,67,.22);
+  box-shadow:0 4px 14px rgba(40,25,10,.18);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+#selTools.show{opacity:1;pointer-events:auto;transform:translate(0,-50%)}
+#selTools button{width:40px;height:40px;border:0;border-radius:10px;background:rgba(208,138,30,.16);display:flex;align-items:center;justify-content:center;padding:0;color:#8a5a12}
+#selTools button.off{background:none;color:var(--ink2);opacity:.75}
+#selTools svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#selTools .sep{height:1px;background:rgba(107,88,67,.2);margin:2px 4px}
+#selTools #stClear{background:none;color:#9a3a1a}
 #msel .r{position:absolute;background:rgba(208,138,30,.10);border:1px solid rgba(208,138,30,.45);border-radius:4px}
 #msel.pulse .r{animation:mpulse .5s ease-in-out infinite alternate}
 @keyframes mpulse{from{background:rgba(208,138,30,.06);border-color:rgba(208,138,30,.35);box-shadow:0 0 0 0 rgba(208,138,30,0)}
@@ -297,6 +314,13 @@ input{-webkit-user-select:text;user-select:text}
     </div>
   </div>
 </section>
+
+<div id="selTools">
+  <button id="stSel" title="Markierung ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="1.5" stroke-dasharray="2.5 2"/><path d="M3 9v6M21 9v6" stroke-width="2.6"/></svg></button>
+  <button id="stInfo" title="Info-Fenster ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 13h17M7 16.5h7"/></svg></button>
+  <div class="sep"></div>
+  <button id="stClear" title="Markierung löschen"><svg viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.9 12.2c.1.9.8 1.6 1.7 1.6h5.8c.9 0 1.6-.7 1.7-1.6L17.5 7M10.2 10.5v6.5M13.8 10.5v6.5"/></svg></button>
+</div>
 
 <div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
 
@@ -812,7 +836,7 @@ function toast(msg, ms = 2200) { const t = $('#toast'); t.textContent = msg; t.c
 
 // ---------- Ansichten ----------
 function show(id) { $$('.view').forEach(v => v.classList.toggle('show', v.id === id)); hideCards(); }
-function hideCards() { if (typeof clearChordMarks === 'function') clearChordMarks(); $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#aboutPanel').classList.remove('show'); $('#page').style.paddingBottom = ''; }
+function hideCards() { if (typeof clearChordMarks === 'function') clearChordMarks(); $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#aboutPanel').classList.remove('show'); $('#page').style.paddingBottom = ''; if (typeof syncSelTools === 'function') syncSelTools(); }
 
 // Scroll-Bereiche nie ganz oben/unten (Safari-Wischgeste beendet sonst das Vollbild)
 function keepOffEdges(el) {
@@ -1080,21 +1104,99 @@ function markSelection() {
   $$('#score g.note.sel').forEach(el => el.classList.remove('sel'));
   if (selNote) { const el = document.getElementById(selNote.id); el && el.classList.add('sel'); }
   const ms = $('#msel');
-  ms.innerHTML = '';
-  if (!selRange || !layout) { ms.style.display = 'none'; return; }
+  ms.querySelectorAll('.r').forEach(r => r.remove());
+  syncSelTools();
+  if (!selRange || !layout || selHidden) { ms.style.display = 'none'; return; }
   ms.style.display = 'block';
   ms.classList.toggle('pulse', Date.now() < markUntil);
   // Ein Rechteck je System, aufeinanderfolgende Takte zusammengefasst
-  let cur = null;
+  let cur = null; const rects = [];
   const flush = () => { if (!cur) return; const d = document.createElement('div'); d.className = 'r';
-    Object.assign(d.style, { left: cur.l + 'px', top: (cur.t - 8) + 'px', width: (cur.r - cur.l) + 'px', height: (cur.b - cur.t + 16) + 'px' }); ms.appendChild(d); };
+    const r = { l: cur.l, t: cur.t - 8, w: cur.r - cur.l, h: cur.b - cur.t + 16 }; rects.push(r);
+    Object.assign(d.style, { left: r.l + 'px', top: r.t + 'px', width: r.w + 'px', height: r.h + 'px' }); ms.insertBefore(d, ms.firstChild); };
   for (let k = selRange.a; k <= selRange.b; k++) {
     const m = layout.measures[k]; if (!m) continue;
     if (cur && cur.sys === m.sys) { cur.r = m.r; cur.t = Math.min(cur.t, m.t); cur.b = Math.max(cur.b, m.b); }
     else { flush(); cur = { l: m.l, r: m.r, t: m.t, b: m.b, sys: m.sys }; }
   }
   flush();
+  // Griffe: links am Anfang, rechts am Ende, Menü-Griff mittig unten
+  const f = rects[0], z = rects[rects.length - 1];
+  if (!f) return;
+  const pos = (el, x, y) => { el.style.left = x + 'px'; el.style.top = y + 'px'; };
+  pos($('#hdlL'), f.l, f.t + f.h / 2);
+  pos($('#hdlR'), z.l + z.w, z.t + z.h / 2);
+  pos($('#hdlM'), z.l + z.w / 2, z.t + z.h);
 }
+
+// ---------- Markierung: Griffe & schwebende Werkzeugleiste ----------
+let selHidden = false, handleDrag = false;   // gelbes Rechteck ausgeblendet (Auswahl bleibt bestehen)
+function infoShown() { return $('#info').classList.contains('show'); }
+function syncSelTools() {
+  const on = !!(selRange && layout);
+  $('#selTools').classList.toggle('show', on);
+  $('#stSel').classList.toggle('off', selHidden);
+  $('#stInfo').classList.toggle('off', !infoShown());
+}
+function toggleInfo() {
+  if (!selRange) return;
+  if (infoShown()) { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); syncSelTools(); }
+  else showRangeInfo();
+}
+(function setupHandles() {
+  const ms = $('#msel');
+  ms.insertAdjacentHTML('beforeend',
+    '<div class="hdl side" id="hdlL"><i></i></div><div class="hdl side" id="hdlR"><i></i></div>' +
+    '<button class="hdl menu" id="hdlM" title="Info-Fenster ein-/ausblenden"><i></i><i></i><i></i></button>');
+  const nearestMeasure = (x, y) => {
+    let best = null, bd = Infinity;
+    for (const [k, m] of Object.entries(layout.measures)) {
+      const dy = y < m.t ? m.t - y : y > m.b ? y - m.b : 0, dx = x < m.l ? m.l - x : x > m.r ? x - m.r : 0;
+      const d = dy * 4 + dx;   // System zuerst, dann Takt
+      if (d < bd) { bd = d; best = +k; }
+    }
+    return best;
+  };
+  let drag = null;
+  for (const id of ['hdlL', 'hdlR']) {
+    const el = $('#' + id);
+    el.addEventListener('pointerdown', e => {
+      e.stopPropagation(); e.preventDefault();
+      if (!selRange || !layout) return;
+      endMarkMode(); if (playing && !loopOn) stopPlayback();
+      drag = { id: e.pointerId, side: id === 'hdlL' ? 'a' : 'b' }; handleDrag = true;
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      el.classList.add('drag');
+    });
+    el.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      e.preventDefault();
+      const pr = $('#page').getBoundingClientRect();
+      const k = nearestMeasure(e.clientX - pr.left, e.clientY - pr.top); if (!k) return;
+      let { a, b } = selRange;
+      if (drag.side === 'a') a = k; else b = k;
+      if (a > b) { [a, b] = [b, a]; drag.side = drag.side === 'a' ? 'b' : 'a'; }
+      if (a !== selRange.a || b !== selRange.b) {
+        selRange = { a, b }; playhead = (a - 1) * MEASURE; markSelection(); updateCursor();
+        if (infoShown()) showRangeInfo();
+      }
+    });
+    const end = e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      e.stopPropagation(); drag = null; handleDrag = false; el.classList.remove('drag');
+      requestAnimationFrame(keepSelectionVisible);
+      if (loopOn && playing) startPlayback((selRange.a - 1) * MEASURE);
+    };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  }
+  const m = $('#hdlM');
+  m.addEventListener('pointerdown', e => e.stopPropagation());
+  m.addEventListener('pointerup', e => e.stopPropagation());
+  m.onclick = e => { e.stopPropagation(); toggleInfo(); };
+  $('#stSel').onclick = () => { selHidden = !selHidden; markSelection(); };
+  $('#stInfo').onclick = toggleInfo;
+  $('#stClear').onclick = () => { clearSelection(); hideCards(); };
+})();
 
 // ---------- Hörfilter: nur Violin- oder Bassschlüssel ----------
 let hearStaff = 0; // 0 = beide Systeme, 1 = Violinschlüssel (oben), 2 = Bassschlüssel (unten)
@@ -1280,13 +1382,14 @@ function openInfo(html, onAct) {
   $('#infoBody').innerHTML = html;
   $('#infoBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) onAct(b.dataset.act); };
   $('#info').classList.add('show');
+  syncSelTools();
   requestAnimationFrame(keepSelectionVisible);
 }
-$('#infoX').onclick = () => { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); };
+$('#infoX').onclick = () => { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); syncSelTools(); };
 // Karte darf die markierten Noten nicht verdecken: unten Platz schaffen und ggf. hochscrollen
 function keepSelectionVisible() {
   const card = $('#info'), sc = $('#scroller'), pg = $('#page');
-  if (!card.classList.contains('show') || !layout) return;
+  if (!card.classList.contains('show') || !layout || handleDrag) return;   // beim Ziehen nicht scrollen
   const cardTop = card.getBoundingClientRect().top;
   pg.style.paddingBottom = Math.max(140, card.offsetHeight + 60) + 'px';
   let target = null;
@@ -1299,7 +1402,7 @@ function keepSelectionVisible() {
 
 function selectNote(n) { endMarkMode(); selNote = n; selRange = null; loopOn = false; playhead = n.onset; markSelection(); updateCursor(); showNoteInfo(n); }
 function selectMeasure(m) {
-  selNote = null;
+  selNote = null; selHidden = false;
   if (markAnchor != null && Date.now() < markUntil && m !== markAnchor) {
     // Markiermodus: vom ursprünglichen Takt bis zum angetippten Takt
     selRange = { a: Math.min(markAnchor, m), b: Math.max(markAnchor, m) };
@@ -1408,7 +1511,7 @@ function addSection(a, b) {
   return sec;
 }
 function selectSection(sec) {
-  endMarkMode(); selNote = null; selRange = { a: sec.a, b: sec.b };
+  endMarkMode(); selNote = null; selHidden = false; selRange = { a: sec.a, b: sec.b };
   playhead = (sec.a - 1) * MEASURE; markSelection(); updateCursor(); showSection(sec);
 }
 function practiceSec(sec) { return practice && practice.id === sec.id ? (Date.now() - practice.start) / 1000 : 0; }

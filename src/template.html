@@ -113,6 +113,23 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #cursor{position:absolute;width:2px;margin-left:-1px;background:var(--on);opacity:.75;border-radius:1px;pointer-events:none;display:none;
   box-shadow:0 0 6px rgba(194,65,12,.5)}
 #msel{position:absolute;inset:0;pointer-events:none;display:none}
+#msel .hdl{position:absolute;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent;z-index:2}
+#msel .hdl.side{width:34px;height:56px;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;cursor:ew-resize}
+#msel .hdl.side i{display:block;width:6px;height:30px;border-radius:3px;background:rgba(196,124,22,.85);box-shadow:0 0 0 1.5px rgba(255,250,238,.95),0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+#msel .hdl.side.drag i{transform:scaleY(1.2);background:rgba(196,124,22,1)}
+#msel .hdl.menu{width:28px;height:24px;transform:translate(-50%,-50%);border:1px solid rgba(196,124,22,.6);border-radius:6px;background:rgba(255,250,238,.95);
+  box-shadow:0 1px 3px rgba(0,0,0,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+#msel .hdl.menu i{display:block;width:13px;height:2px;border-radius:1px;background:rgba(160,100,20,.9)}
+#msel.pulse .hdl{opacity:.55}
+#selTools{position:fixed;left:calc(env(safe-area-inset-left,0px) + 14px);top:50%;transform:translate(-10px,-50%);z-index:15;display:flex;flex-direction:column;gap:4px;padding:5px;
+  border-radius:14px;background:rgba(250,244,230,.86);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(107,88,67,.22);
+  box-shadow:0 4px 14px rgba(40,25,10,.18);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+#selTools.show{opacity:1;pointer-events:auto;transform:translate(0,-50%)}
+#selTools button{width:40px;height:40px;border:0;border-radius:10px;background:rgba(208,138,30,.16);display:flex;align-items:center;justify-content:center;padding:0;color:#8a5a12}
+#selTools button.off{background:none;color:var(--ink2);opacity:.75}
+#selTools svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#selTools .sep{height:1px;background:rgba(107,88,67,.2);margin:2px 4px}
+#selTools #stClear{background:none;color:#9a3a1a}
 #msel .r{position:absolute;background:rgba(208,138,30,.10);border:1px solid rgba(208,138,30,.45);border-radius:4px}
 #msel.pulse .r{animation:mpulse .5s ease-in-out infinite alternate}
 @keyframes mpulse{from{background:rgba(208,138,30,.06);border-color:rgba(208,138,30,.35);box-shadow:0 0 0 0 rgba(208,138,30,0)}
@@ -297,6 +314,13 @@ input{-webkit-user-select:text;user-select:text}
     </div>
   </div>
 </section>
+
+<div id="selTools">
+  <button id="stSel" title="Markierung ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="12" rx="1.5" stroke-dasharray="2.5 2"/><path d="M3 9v6M21 9v6" stroke-width="2.6"/></svg></button>
+  <button id="stInfo" title="Info-Fenster ein-/ausblenden"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 13h17M7 16.5h7"/></svg></button>
+  <div class="sep"></div>
+  <button id="stClear" title="Markierung löschen"><svg viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.9 12.2c.1.9.8 1.6 1.7 1.6h5.8c.9 0 1.6-.7 1.7-1.6L17.5 7M10.2 10.5v6.5M13.8 10.5v6.5"/></svg></button>
+</div>
 
 <div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
 

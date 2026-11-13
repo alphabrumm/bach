@@ -21,7 +21,7 @@ function toast(msg, ms = 2200) { const t = $('#toast'); t.textContent = msg; t.c
 
 // ---------- Ansichten ----------
 function show(id) { $$('.view').forEach(v => v.classList.toggle('show', v.id === id)); hideCards(); }
-function hideCards() { if (typeof clearChordMarks === 'function') clearChordMarks(); $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#aboutPanel').classList.remove('show'); $('#page').style.paddingBottom = ''; }
+function hideCards() { if (typeof clearChordMarks === 'function') clearChordMarks(); $('#info').classList.remove('show'); $('#viewPanel').classList.remove('show'); $('#aboutPanel').classList.remove('show'); $('#page').style.paddingBottom = ''; if (typeof syncSelTools === 'function') syncSelTools(); }
 
 // Scroll-Bereiche nie ganz oben/unten (Safari-Wischgeste beendet sonst das Vollbild)
 function keepOffEdges(el) {
@@ -289,21 +289,99 @@ function markSelection() {
   $$('#score g.note.sel').forEach(el => el.classList.remove('sel'));
   if (selNote) { const el = document.getElementById(selNote.id); el && el.classList.add('sel'); }
   const ms = $('#msel');
-  ms.innerHTML = '';
-  if (!selRange || !layout) { ms.style.display = 'none'; return; }
+  ms.querySelectorAll('.r').forEach(r => r.remove());
+  syncSelTools();
+  if (!selRange || !layout || selHidden) { ms.style.display = 'none'; return; }
   ms.style.display = 'block';
   ms.classList.toggle('pulse', Date.now() < markUntil);
   // Ein Rechteck je System, aufeinanderfolgende Takte zusammengefasst
-  let cur = null;
+  let cur = null; const rects = [];
   const flush = () => { if (!cur) return; const d = document.createElement('div'); d.className = 'r';
-    Object.assign(d.style, { left: cur.l + 'px', top: (cur.t - 8) + 'px', width: (cur.r - cur.l) + 'px', height: (cur.b - cur.t + 16) + 'px' }); ms.appendChild(d); };
+    const r = { l: cur.l, t: cur.t - 8, w: cur.r - cur.l, h: cur.b - cur.t + 16 }; rects.push(r);
+    Object.assign(d.style, { left: r.l + 'px', top: r.t + 'px', width: r.w + 'px', height: r.h + 'px' }); ms.insertBefore(d, ms.firstChild); };
   for (let k = selRange.a; k <= selRange.b; k++) {
     const m = layout.measures[k]; if (!m) continue;
     if (cur && cur.sys === m.sys) { cur.r = m.r; cur.t = Math.min(cur.t, m.t); cur.b = Math.max(cur.b, m.b); }
     else { flush(); cur = { l: m.l, r: m.r, t: m.t, b: m.b, sys: m.sys }; }
   }
   flush();
+  // Griffe: links am Anfang, rechts am Ende, Menü-Griff mittig unten
+  const f = rects[0], z = rects[rects.length - 1];
+  if (!f) return;
+  const pos = (el, x, y) => { el.style.left = x + 'px'; el.style.top = y + 'px'; };
+  pos($('#hdlL'), f.l, f.t + f.h / 2);
+  pos($('#hdlR'), z.l + z.w, z.t + z.h / 2);
+  pos($('#hdlM'), z.l + z.w / 2, z.t + z.h);
 }
+
+// ---------- Markierung: Griffe & schwebende Werkzeugleiste ----------
+let selHidden = false, handleDrag = false;   // gelbes Rechteck ausgeblendet (Auswahl bleibt bestehen)
+function infoShown() { return $('#info').classList.contains('show'); }
+function syncSelTools() {
+  const on = !!(selRange && layout);
+  $('#selTools').classList.toggle('show', on);
+  $('#stSel').classList.toggle('off', selHidden);
+  $('#stInfo').classList.toggle('off', !infoShown());
+}
+function toggleInfo() {
+  if (!selRange) return;
+  if (infoShown()) { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); syncSelTools(); }
+  else showRangeInfo();
+}
+(function setupHandles() {
+  const ms = $('#msel');
+  ms.insertAdjacentHTML('beforeend',
+    '<div class="hdl side" id="hdlL"><i></i></div><div class="hdl side" id="hdlR"><i></i></div>' +
+    '<button class="hdl menu" id="hdlM" title="Info-Fenster ein-/ausblenden"><i></i><i></i><i></i></button>');
+  const nearestMeasure = (x, y) => {
+    let best = null, bd = Infinity;
+    for (const [k, m] of Object.entries(layout.measures)) {
+      const dy = y < m.t ? m.t - y : y > m.b ? y - m.b : 0, dx = x < m.l ? m.l - x : x > m.r ? x - m.r : 0;
+      const d = dy * 4 + dx;   // System zuerst, dann Takt
+      if (d < bd) { bd = d; best = +k; }
+    }
+    return best;
+  };
+  let drag = null;
+  for (const id of ['hdlL', 'hdlR']) {
+    const el = $('#' + id);
+    el.addEventListener('pointerdown', e => {
+      e.stopPropagation(); e.preventDefault();
+      if (!selRange || !layout) return;
+      endMarkMode(); if (playing && !loopOn) stopPlayback();
+      drag = { id: e.pointerId, side: id === 'hdlL' ? 'a' : 'b' }; handleDrag = true;
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      el.classList.add('drag');
+    });
+    el.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      e.preventDefault();
+      const pr = $('#page').getBoundingClientRect();
+      const k = nearestMeasure(e.clientX - pr.left, e.clientY - pr.top); if (!k) return;
+      let { a, b } = selRange;
+      if (drag.side === 'a') a = k; else b = k;
+      if (a > b) { [a, b] = [b, a]; drag.side = drag.side === 'a' ? 'b' : 'a'; }
+      if (a !== selRange.a || b !== selRange.b) {
+        selRange = { a, b }; playhead = (a - 1) * MEASURE; markSelection(); updateCursor();
+        if (infoShown()) showRangeInfo();
+      }
+    });
+    const end = e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      e.stopPropagation(); drag = null; handleDrag = false; el.classList.remove('drag');
+      requestAnimationFrame(keepSelectionVisible);
+      if (loopOn && playing) startPlayback((selRange.a - 1) * MEASURE);
+    };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  }
+  const m = $('#hdlM');
+  m.addEventListener('pointerdown', e => e.stopPropagation());
+  m.addEventListener('pointerup', e => e.stopPropagation());
+  m.onclick = e => { e.stopPropagation(); toggleInfo(); };
+  $('#stSel').onclick = () => { selHidden = !selHidden; markSelection(); };
+  $('#stInfo').onclick = toggleInfo;
+  $('#stClear').onclick = () => { clearSelection(); hideCards(); };
+})();
 
 // ---------- Hörfilter: nur Violin- oder Bassschlüssel ----------
 let hearStaff = 0; // 0 = beide Systeme, 1 = Violinschlüssel (oben), 2 = Bassschlüssel (unten)
@@ -489,13 +567,14 @@ function openInfo(html, onAct) {
   $('#infoBody').innerHTML = html;
   $('#infoBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) onAct(b.dataset.act); };
   $('#info').classList.add('show');
+  syncSelTools();
   requestAnimationFrame(keepSelectionVisible);
 }
-$('#infoX').onclick = () => { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); };
+$('#infoX').onclick = () => { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); syncSelTools(); };
 // Karte darf die markierten Noten nicht verdecken: unten Platz schaffen und ggf. hochscrollen
 function keepSelectionVisible() {
   const card = $('#info'), sc = $('#scroller'), pg = $('#page');
-  if (!card.classList.contains('show') || !layout) return;
+  if (!card.classList.contains('show') || !layout || handleDrag) return;   // beim Ziehen nicht scrollen
   const cardTop = card.getBoundingClientRect().top;
   pg.style.paddingBottom = Math.max(140, card.offsetHeight + 60) + 'px';
   let target = null;
@@ -508,7 +587,7 @@ function keepSelectionVisible() {
 
 function selectNote(n) { endMarkMode(); selNote = n; selRange = null; loopOn = false; playhead = n.onset; markSelection(); updateCursor(); showNoteInfo(n); }
 function selectMeasure(m) {
-  selNote = null;
+  selNote = null; selHidden = false;
   if (markAnchor != null && Date.now() < markUntil && m !== markAnchor) {
     // Markiermodus: vom ursprünglichen Takt bis zum angetippten Takt
     selRange = { a: Math.min(markAnchor, m), b: Math.max(markAnchor, m) };
@@ -617,7 +696,7 @@ function addSection(a, b) {
   return sec;
 }
 function selectSection(sec) {
-  endMarkMode(); selNote = null; selRange = { a: sec.a, b: sec.b };
+  endMarkMode(); selNote = null; selHidden = false; selRange = { a: sec.a, b: sec.b };
   playhead = (sec.a - 1) * MEASURE; markSelection(); updateCursor(); showSection(sec);
 }
 function practiceSec(sec) { return practice && practice.id === sec.id ? (Date.now() - practice.start) / 1000 : 0; }
