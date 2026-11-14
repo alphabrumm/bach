@@ -265,8 +265,7 @@ function chordName(ch, model, from, to) {
 }
 const QUALITY_TEXT = { maj: 'Dur-Dreiklang', min: 'Moll-Dreiklang', dim: 'verminderter Dreiklang', dom7: 'Dominantseptakkord', dim7: 'verminderter Septakkord', hdim7: 'halbverminderter Septakkord', min7: 'Moll-Septakkord' };
 
-function analyzeHarmony(model) {
-  const keys = analyzeKeys(model);
+function harmonize(model, keys) {
   const beats = [], perMeasure = Math.round(MEASURE / BEAT);
   for (let m = 1; m <= model.measures; m++) {
     for (let b = 0; b < perMeasure; b++) {
@@ -278,6 +277,54 @@ function analyzeHarmony(model) {
     }
   }
   return { keys, beats, perMeasure };
+}
+const sameKey = (x, y) => x.tonic === y.tonic && x.minor === y.minor;
+// Kadenz in Tonart K zwischen den Zählzeiten i0..i1? (V/V7 oder vii°/vii°7 → I/i, gleiche Akkorde übersprungen)
+function hasCadence(beats, K, i0, i1) {
+  const ch = i => beats[i] && beats[i].chord;
+  for (let i = Math.max(0, i0); i <= Math.min(beats.length - 2, i1); i++) {
+    const c = ch(i); if (!c) continue;
+    const dom = (c.root === (K.tonic + 7) % 12 && (c.q === 'maj' || c.q === 'dom7')) ||
+                (c.root === (K.tonic + 11) % 12 && (c.q === 'dim' || c.q === 'dim7'));
+    if (!dom) continue;
+    let j = i + 1;
+    while (ch(j) && ch(j).root === c.root && ch(j).q === c.q) j++;
+    const t = ch(j);
+    if (t && t.root === K.tonic && t.q === (K.minor ? 'min' : 'maj')) return true;
+  }
+  // grobe Taktarten (ein Akkord pro Takt): Leitton im Schlag davor, der sich in die Tonika auflöst
+  for (let j = Math.max(1, i0); j <= Math.min(beats.length - 1, i1); j++) {
+    const t = ch(j), p = ch(j - 1);
+    if (!t || t.root !== K.tonic || t.q !== (K.minor ? 'min' : 'maj') || (p && p.root === t.root)) continue;
+    const h = pcHist(MODEL_FOR_CAD.notes, beats[j - 1].from, beats[j - 1].to), tot = h.reduce((x, y) => x + y, 0);
+    if (tot && h[(K.tonic + 11) % 12] / tot >= 0.12) return true;
+  }
+  return false;
+}
+let MODEL_FOR_CAD = null;
+// Ein Tonartwechsel gilt nur, wenn er durch eine Kadenz in der neuen Tonart bestätigt wird;
+// sonst bleibt es bei der bisherigen Tonart (Ausweichung, Zwischendominanten, Orgelpunkt).
+function analyzeHarmony(model) {
+  MODEL_FOR_CAD = model;
+  let keys = analyzeKeys(model);
+  let H = harmonize(model, keys);
+  const pm = H.perMeasure;
+  for (let pass = 0; pass < 4; pass++) {
+    const regions = [];
+    keys.forEach((k, i) => { const r = regions[regions.length - 1]; if (r && sameKey(r.k, k)) r.b = i; else regions.push({ k, a: i, b: i }); });
+    let changed = false;
+    for (let r = 1; r < regions.length; r++) {
+      const R = regions[r];
+      const end = R.b === keys.length - 1 ? R.b : R.b + 1;   // Kadenz darf im ersten Schlag danach landen
+      if (hasCadence(H.beats, R.k, R.a * pm - pm, end * pm + pm - 1)) continue;
+      const prev = regions[r - 1].k;
+      for (let i = R.a; i <= R.b; i++) keys[i] = prev;
+      R.k = prev; changed = true;
+    }
+    if (!changed) break;
+    H = harmonize(model, keys);
+  }
+  return H;
 }
 function beatAt(harmony, t) { return harmony.beats[Math.min(harmony.beats.length - 1, Math.floor(t / BEAT + 1e-9))]; }
 

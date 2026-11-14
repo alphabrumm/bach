@@ -446,18 +446,18 @@ function toggleInfo() {
 })();
 
 // ---------- Hörfilter: nur Violin- oder Bassschlüssel ----------
-let hearStaff = 0; // 0 = beide Systeme, 1 = Violinschlüssel (oben), 2 = Bassschlüssel (unten)
-const HEAR_LABEL = { 1: 'nur Violinschlüssel', 2: 'nur Bassschlüssel' };
-function audible(n) { return !S.mute.includes(n.role) && (!hearStaff || n.staff === hearStaff); }
-function setHear(v) {
-  hearStaff = v;
-  const c = $('#handChip'); c.style.display = v ? '' : 'none'; c.textContent = v ? HEAR_LABEL[v] + ' ×' : '';
+// Hörfilter: Violin- bzw. Bassschlüssel einzeln stumm schalten (Symbole oben im Analyse-Fenster)
+const hearOff = { 1: false, 2: false };
+function audible(n) { return !S.mute.includes(n.role) && !hearOff[n.staff]; }
+function syncHear() {
+  $$('#hearTog button').forEach(b => b.classList.toggle('off', hearOff[b.dataset.st]));
+  const c = $('#handChip'), t = hearOff[1] && hearOff[2] ? 'beide Systeme stumm' : hearOff[1] ? 'nur Bassschlüssel' : hearOff[2] ? 'nur Violinschlüssel' : '';
+  c.style.display = t ? '' : 'none'; c.textContent = t ? t + ' ×' : '';
 }
-$('#handChip').onclick = () => { setHear(0); if ($('#info').classList.contains('show') && selRange) refreshCard(); };
-function hearControls() {
-  return `<div class="hearseg"><span class="k">Hören:</span>${[[0, 'beide'], [1, 'Violinschlüssel'], [2, 'Bassschlüssel']]
-    .map(([v, l]) => `<button data-act="hear${v}" class="${hearStaff === v ? 'act' : ''}">${l}</button>`).join('')}</div>`;
-}
+function setHear(v) { hearOff[1] = v === 2; hearOff[2] = v === 1; syncHear(); }   // 0 = beide, 1 = nur oben, 2 = nur unten
+$('#hearTog').onclick = e => { const b = e.target.closest('button'); if (!b) return; hearOff[b.dataset.st] = !hearOff[b.dataset.st]; syncHear(); };
+$('#handChip').onclick = () => setHear(0);
+function hearControls() { return ''; }
 function refreshCard() { const sec = selRange && sections.find(x => x.a === selRange.a && x.b === selRange.b); if (sec && Date.now() >= markUntil) showSection(sec); else showRangeInfo(); }
 
 // Ein Knopf für Abspielen/Stopp in den Karten
@@ -576,7 +576,7 @@ function clearChordMarks() {
   chordTimers.forEach(clearTimeout); chordTimers = [];
   $$('#score g.chordnote').forEach(el => el.classList.remove('chordnote', 'on'));
 }
-function toggleBeatExplain(i) { // erneutes Tippen spielt den Akkord noch einmal; schließen über ×
+function toggleBeatExplain(i, silent) { // erneutes Tippen spielt den Akkord noch einmal; schließen über ×
   const box = $('#beatExp'); if (!box) return;
   $$('#infoBody [data-act^="beat"]').forEach(b => b.classList.toggle('act', +b.dataset.act.slice(4) === i));
   openBeat = i;
@@ -587,6 +587,7 @@ function toggleBeatExplain(i) { // erneutes Tippen spielt den Akkord noch einmal
   clearChordMarks();
   const tones = model.notes.filter(n => n.onset < bt.to - 1e-6 && n.onset + n.ticks > bt.from + 1e-6 && (!bt.chord || bt.chord.pcs.includes(n.pc)));
   tones.forEach(n => { const el = document.getElementById(n.id); if (el) el.classList.add('chordnote'); });
+  if (silent) return;   // beim Mitverfolgen während der Wiedergabe nichts zusätzlich anspielen
   // aufgerollt von unten nach oben im Sechzehntel-Tempo; der gerade klingende Ton leuchtet auf
   audio.ensure();
   const snd = tones.filter(audible);
@@ -608,7 +609,17 @@ function analysisMeasure() {
 }
 function refreshAnalysis() {
   if (infoMode === 'range' && selRange && infoShown() && !selNote && analysisMeasure() !== shownCur) showRangeInfo();
+  followBeat();
 }
+// Aufgeklappte Stufen-Erklärung springt im Folgen-Modus zur Zählzeit des Abspielkopfs
+function followBeat() {
+  if (!S.follow || keepOpen == null || infoMode !== 'range' || !selRange || !infoShown()) return;
+  const t = playing ? curTick() : playhead;
+  const i = harmony.beats.findIndex(x => t >= x.from - 1e-6 && t < x.to - 1e-6);
+  if (i < 0 || harmony.beats[i].measure < selRange.a || harmony.beats[i].measure > selRange.b) return;
+  if (i !== openBeat && $('#infoBody [data-act="beat' + i + '"]')) { toggleBeatExplain(i, true); keepOpen = i; }
+}
+let keepOpen = null;   // ist eine Stufen-Erklärung aufgeklappt? (bleibt beim Neuaufbau des Fensters erhalten)
 function showRangeInfo() {
   openBeat = null;
   const { a, b } = selRange, single = a === b;
@@ -638,9 +649,10 @@ function showRangeInfo() {
     if (act === 'clear') { clearSelection(); }
     if (act.startsWith('hear')) { setHear(+act.slice(4)); showRangeInfo(); }
     if (act === 'addsec') { endMarkMode(); markSelection(); showSection(addSection(a, b)); }
-    if (act.startsWith('beat')) toggleBeatExplain(+act.slice(4));
+    if (act.startsWith('beat')) { toggleBeatExplain(+act.slice(4)); keepOpen = openBeat; }
   });
   infoMode = 'range';
+  if (keepOpen != null && S.follow) followBeat();
   const l = $('#infoBody .harmstrip .side.l'); if (l) l.scrollLeft = l.scrollWidth;
 }
 function openInfo(html, onAct) {
@@ -652,7 +664,7 @@ function openInfo(html, onAct) {
   syncSelTools();
   requestAnimationFrame(keepSelectionVisible);
 }
-$('#infoX').onclick = () => { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); syncSelTools(); };
+$('#infoX').onclick = () => { keepOpen = null; $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); syncSelTools(); };
 // Karte darf die markierten Noten nicht verdecken: unten Platz schaffen und ggf. hochscrollen
 function keepSelectionVisible() {
   const card = $('#info'), sc = $('#scroller'), pg = $('#page');

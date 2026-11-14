@@ -208,9 +208,17 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
 .harmstrip .main .beats{margin:2px 0 0}
 .card .beats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
 .card .beat{border:1px solid rgba(107,88,67,.3);border-radius:8px;padding:6px 4px;text-align:center;font-size:16px;background:rgba(255,255,255,.25);color:var(--ink);font-family:inherit}
-.card .beat.act{background:var(--ink);color:var(--paper);border-color:var(--ink)}.card .beat.act i{color:var(--paper2)}
+.card .beat.act{background:rgba(47,107,79,.14);color:var(--ink);border-color:rgba(47,107,79,.5)}.card .beat.act i{color:var(--ink2)}
 .card .rn{border:0;background:none;font-family:inherit;font-size:16px;color:var(--ink);padding:1px 3px;border-radius:5px;text-decoration:underline dotted rgba(107,88,67,.5)}
-.card .rn.act{background:var(--ink);color:var(--paper);text-decoration:none}
+.card .rn.act{background:rgba(47,107,79,.16);color:var(--ink);text-decoration:none;box-shadow:inset 0 0 0 1px rgba(47,107,79,.4)}
+.hearTog{position:absolute;right:62px;top:8px;display:flex;gap:4px;z-index:2}
+.hearTog button{width:36px;height:36px;border:0;background:none;padding:4px;border-radius:9px;color:var(--ink2)}
+.hearTog button:active{background:rgba(107,88,67,.12)}
+.hearTog svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.hearTog svg .f{fill:currentColor;stroke:none}
+.hearTog .strike{display:none;stroke:#9a3a1a;stroke-width:1.7}
+.hearTog button.off{opacity:.55}.hearTog button.off .strike{display:inline}
+#infoBody > .lbl:first-child{padding-right:110px}
 .beatexp{display:none;background:rgba(47,107,79,.10);border-left:3px solid var(--v2);border-radius:4px;padding:8px 10px;margin:8px 0 2px;font-size:17px;line-height:1.35}
 .beatexp.show{display:block}
 .card .beat b{display:block;font-size:19px;font-weight:600}
@@ -348,7 +356,7 @@ input{-webkit-user-select:text;user-select:text}
 </section>
 
 
-<div class="card sheet" id="info"><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
+<div class="card sheet" id="info"><div class="hearTog" id="hearTog"><button data-st="1" title="Violinschlüssel hören / stumm"><svg viewBox="0 0 24 24"><path d="M10.6 21.2c-.9 1-2.7.6-2.8-.6-.1-1 1.2-1.6 1.9-.9L12.9 4.2c.4-1.9 2.3-1.8 2.2.3-.1 2.6-2.4 4.2-4.3 5.9-1.9 1.7-2.9 3.3-2.5 5.1.5 2.1 2.8 3 4.6 2.4 1.8-.6 2.6-2.4 2-3.9-.6-1.5-2.5-2-3.7-1.1-1 .8-.9 2.2.2 2.7"/><path class="strike" d="M3.5 21.5L20.5 2.5"/></svg></button><button data-st="2" title="Bassschlüssel hören / stumm"><svg viewBox="0 0 24 24"><path d="M5.2 8.4c.1-2.5 2.3-3.9 4.6-3.9 3.3 0 5.3 2.4 5.3 5.4 0 4.6-4.2 8.3-9.4 10.2"/><circle cx="6.3" cy="8.6" r="1.5" class="f"/><circle cx="18.6" cy="7.6" r="1.05" class="f"/><circle cx="18.6" cy="12.4" r="1.05" class="f"/><path class="strike" d="M3.5 21.5L20.5 2.5"/></svg></button></div><button class="x" id="infoX">×</button><div id="infoBody"></div></div>
 
 <div class="card sheet" id="secPanel"><div class="lbl">Übe-Abschnitte</div><div id="secList"></div>
   <div class="btns" style="margin-top:10px"><button class="backupBtn dirtyable">Sichern …</button></div></div>
