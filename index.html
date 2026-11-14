@@ -44,6 +44,42 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 @media (max-width:600px){.libhead{padding-top:calc(var(--safe-t) + 76px)}.libhead h1{font-size:29px}.shelf{padding-top:28px}}
 .shelf{display:flex;flex-wrap:wrap;gap:30px 26px;justify-content:center;align-items:flex-end;
   padding:34px 24px 0;margin:10px auto 0;max-width:900px;position:relative}
+.deskhead{text-align:center;color:#eadbc0;font-variant:small-caps;letter-spacing:.08em;font-size:22px;margin:4px 0 16px}
+.desks{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;padding:0 16px}
+.desk{width:170px;min-height:104px;border:0;border-radius:4px;padding:12px 10px 10px;font-family:inherit;color:var(--ink);text-align:center;position:relative;
+  background:linear-gradient(160deg,#f6efdf,#e8dcc3);box-shadow:0 6px 14px rgba(0,0,0,.45),inset 0 0 0 1px rgba(107,88,67,.25)}
+.desk svg{width:44px;height:44px;fill:none;stroke:#6b5843;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round;display:block;margin:0 auto 6px}
+.desk b{display:block;font-weight:500;font-size:18px;font-variant:small-caps;letter-spacing:.04em}
+.desk span{font-size:13.5px;font-style:italic;color:var(--ink2)}
+.desk.dim{filter:brightness(.7) saturate(.6)}
+.circlepage{display:flex;gap:26px;align-items:flex-start;padding:22px 26px 60px;max-width:1150px;margin:0 auto}
+.circlecol{flex:0 0 min(42%,440px);position:sticky;top:10px}
+.circledetail{flex:1;min-width:0}
+@media (max-width:820px){.circlepage{flex-direction:column;align-items:stretch;padding:14px 12px 60px}.circlecol{flex:none;position:static;max-width:420px;margin:0 auto;width:100%}}
+#circle{width:100%;height:auto;display:block;touch-action:manipulation}
+#circle .seg{fill:rgba(255,255,255,.28);stroke:rgba(107,88,67,.55);stroke-width:1;cursor:pointer}
+#circle .seg.fam{fill:rgba(201,164,92,.3)}
+#circle .seg.sel{fill:rgba(47,107,79,.3);stroke:#2f6b4f;stroke-width:2}
+#circle text{font-family:'EB Garamond',serif;text-anchor:middle;dominant-baseline:central;pointer-events:none;fill:var(--ink)}
+#circle .maj{font-size:21px;font-weight:500}#circle .min{font-size:16px}
+#circle .fn{font-size:11px;fill:#7a5a22;font-style:italic}
+#circle .ctr{font-size:30px}#circle .ctr2{font-size:13px;fill:var(--ink2);font-style:italic}
+.circledetail h2{margin:0;font-weight:500;font-size:34px}
+.circledetail .sig{font-size:19px;margin:2px 0 2px}
+.circledetail .order{font-size:15px;color:var(--ink2)}.circledetail .order b{color:var(--ink)}
+.circledetail .k{font-variant:small-caps;letter-spacing:.05em;color:var(--ink2);font-size:15px;margin:14px 0 5px;border-bottom:1px solid rgba(107,88,67,.22)}
+.circledetail .rel,.circledetail .plays{display:flex;flex-wrap:wrap;gap:6px}
+.circledetail .rel button,.circledetail .plays button{font-family:inherit;font-size:16px;border:1px solid rgba(107,88,67,.4);background:rgba(255,255,255,.3);border-radius:9px;padding:6px 11px;color:var(--ink)}
+.circledetail .rel button i{color:var(--ink2);font-size:13px;display:block;font-style:normal;font-variant:small-caps;letter-spacing:.04em}
+.triads{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.triads button{font-family:inherit;border:1px solid rgba(107,88,67,.3);border-radius:8px;padding:6px 4px;text-align:center;background:rgba(255,255,255,.25);color:var(--ink);font-size:14.5px;line-height:1.25}
+.triads button b{display:block;font-size:20px;font-weight:600}.triads button em{display:block;font-style:normal;color:#7a5a22;font-size:16px}
+.triads button.on,.circledetail .plays button.on{background:rgba(47,107,79,.16);border-color:rgba(47,107,79,.5)}
+#studyStaff{margin:6px 0 2px;min-height:90px}
+#studyStaff svg{display:block;max-width:100%;height:auto}
+#studyStaff svg g.harm text{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
+#studyStaff svg g.on,#studyStaff svg g.on *{fill:#b5432e;stroke:#b5432e}
+#studyStaff svg g.note,#studyStaff svg g.chord{cursor:pointer}
 .board{height:16px;margin:0 auto 40px;max-width:940px;width:calc(100% - 20px);border-radius:3px;
   background:linear-gradient(#6b4f37,#4a3626 60%,#2e2118);box-shadow:0 10px 18px rgba(0,0,0,.5)}
 .book{width:150px;height:222px;border:0;padding:0;position:relative;border-radius:3px 9px 9px 3px;
@@ -317,9 +353,29 @@ input{-webkit-user-select:text;user-select:text}
     </div>
     <div class="shelf" id="shelf"></div>
     <div class="board"></div>
+    <div class="deskhead">Studierplätze</div>
+    <div class="desks" id="desks"></div>
     <div style="height:40px"></div>
   </div>
   <div style="position:fixed;right:14px;top:calc(var(--safe-t) + 12px);display:flex;gap:8px"><button class="tb backupBtn dirtyable" title="Sicherung">Sichern</button><button class="tb fsBtn" title="Vollbild">⤢</button></div>
+</section>
+
+<!-- Studierplatz: Quintenzirkel -->
+<section id="studyView" class="view linen" style="--c:#3b3327">
+  <div class="cover">
+    <div class="topbar">
+      <button class="tb" id="studyBack">‹ Regal</button>
+      <div class="title">Quintenzirkel</div>
+      <button class="tb fsBtn" title="Vollbild">⤢</button>
+    </div>
+    <div class="page-scroll sheet" id="studyScroll">
+      <div class="circlepage">
+        <div class="circlecol"><svg id="circle" viewBox="-200 -200 400 400"></svg>
+          <div class="small" style="text-align:center">Außen Dur, innen die parallele Molltonart. Getönt: die Haupt- und Nebendreiklänge der gewählten Tonart.</div></div>
+        <div class="circledetail" id="circleDetail"></div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- Inhaltsverzeichnis -->
@@ -1029,7 +1085,7 @@ function keepOffEdges(el) {
   el.addEventListener('touchstart', fix, { passive: true });
   setTimeout(fix, 300);
 }
-['#libScroll', '#tocScroll', '#scroller'].forEach(s => keepOffEdges($(s)));
+['#libScroll', '#tocScroll', '#scroller', '#studyScroll'].forEach(s => keepOffEdges($(s)));
 
 $$('.fsBtn').forEach(b => b.addEventListener('click', () => {
   const d = document, el = d.documentElement;
@@ -1060,6 +1116,140 @@ $('#shelf').addEventListener('click', e => {
   const book = BOOKS[+b.dataset.i];
   if (!book.active) return toast('Dieses Buch ist noch in Vorbereitung');
   openBook(book);
+});
+
+// ---------- Studierplätze ----------
+const DESKS = [
+  { id: 'circle', t: 'Quintenzirkel', s: 'Tonarten, Vorzeichen, Dreiklänge', active: true,
+    ic: '<circle cx="22" cy="22" r="17"/><circle cx="22" cy="22" r="9"/><path d="M22 5v8M22 31v8M5 22h8M31 22h8M10 10l5.6 5.6M28.4 28.4L34 34M34 10l-5.6 5.6M15.6 28.4L10 34"/>' },
+  { id: 'read', t: 'Notenlesen', s: 'auf Zeit: Töne und Dreiklänge', active: false,
+    ic: '<path d="M4 12h36M4 18h36M4 24h36M4 30h36M4 36h36"/><ellipse cx="15" cy="27" rx="4" ry="3" fill="#6b5843"/><path d="M19 27V9"/><ellipse cx="30" cy="21" rx="4" ry="3" fill="#6b5843"/><path d="M34 21V4"/>' },
+  { id: 'harm', t: 'Harmonien bestimmen', s: 'Stufen und Funktionen zuordnen', active: false,
+    ic: '<path d="M6 34V10M6 10h12c9 0 9 12 0 12H6M24 34V10h8c8 0 8 24 0 24z"/>' },
+];
+$('#desks').innerHTML = DESKS.map(d => `<button class="desk ${d.active ? '' : 'dim'}" data-d="${d.id}"><svg viewBox="0 0 44 44">${d.ic}</svg><b>${d.t}</b><span>${d.active ? d.s : 'in Vorbereitung'}</span></button>`).join('');
+$('#desks').addEventListener('click', e => {
+  const b = e.target.closest('.desk'); if (!b) return;
+  if (b.dataset.d === 'circle') { show('studyView'); renderCircle(); renderCircleDetail(); } else toast('Dieser Studierplatz ist noch in Vorbereitung');
+});
+$('#studyBack').onclick = () => show('library');
+
+// ----- Quintenzirkel -----
+const CQ = { pos: 0, minor: false, alt: false };   // pos 0 = C/a oben, im Uhrzeigersinn in Quinten
+const CQ_MAJ = ['C', 'G', 'D', 'A', 'E', 'H', 'Fis', 'Des', 'As', 'Es', 'B', 'F'], CQ_MIN = ['a', 'e', 'h', 'fis', 'cis', 'gis', 'dis', 'b', 'f', 'c', 'g', 'd'];
+const CQ_SHARPS = [3, 0, 4, 1, 5, 2, 6], CQ_FLATS = [6, 2, 5, 1, 4, 0, 3], CQ_NAT = [0, 2, 4, 5, 7, 9, 11];
+const cqFifths = (pos, alt) => { const f = pos <= 6 ? pos : pos - 12; return alt && pos >= 5 && pos <= 7 ? (f > 0 ? f - 12 : f + 12) : f; };
+const cqSigAlt = (step, f) => f > 0 && CQ_SHARPS.slice(0, f).includes(step) ? 1 : f < 0 && CQ_FLATS.slice(0, -f).includes(step) ? -1 : 0;
+const cqName = (step, alt, minor) => { const n = germanStepName(step, alt); return minor ? n : n[0].toUpperCase() + n.slice(1); };
+// Tonleiter (zwei Oktaven) der gewählten Tonart: Stufe, Vorzeichen, MIDI
+function cqScale(f, minor, raise7) {
+  const majStep = (((4 * f) % 7) + 7) % 7, tonicStep = minor ? (majStep + 5) % 7 : majStep, out = [];
+  let midi = 60 + CQ_NAT[tonicStep] + cqSigAlt(tonicStep, f); if (midi > 66) midi -= 12;
+  let prev = midi - 1;
+  for (let d = 0; d < 15; d++) {
+    const step = (tonicStep + d) % 7; let alt = cqSigAlt(step, f); if (minor && raise7 && d % 7 === 6) alt++;
+    let m = Math.floor(prev / 12) * 12 + ((CQ_NAT[step] + alt + 12) % 12); while (m <= prev) m += 12;
+    out.push({ step, alt, midi: m, sig: cqSigAlt(step, f) }); prev = m;
+  }
+  return out;
+}
+function cqTriads(f, minor) {
+  const ROM = minor ? ['i', 'ii°', 'III', 'iv', 'V', 'VI', 'vii°'] : ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+  const FN = minor ? ['t', 's6', 'tP', 's', 'D', 'sP', 'Đ7'] : ['T', 'Sp', 'Dp', 'S', 'D', 'Tp', 'Đ7'];
+  const FNT = minor ? ['Tonika', 'Subdominante mit Sexte', 'Tonikaparallele', 'Subdominante', 'Dominante (Dur, mit Leitton)', 'Subdominantparallele', 'verkürzte Dominante']
+    : ['Tonika', 'Subdominantparallele', 'Dominantparallele', 'Subdominante', 'Dominante', 'Tonikaparallele', 'verkürzte Dominante'];
+  const nat = cqScale(f, minor, false), har = cqScale(f, minor, true);
+  return ROM.map((rom, d) => {
+    const sc = minor && (d === 4 || d === 6) ? har : nat, tones = [sc[d], sc[d + 2], sc[d + 4]];
+    const a = tones[1].midi - tones[0].midi, b = tones[2].midi - tones[1].midi;
+    const q = a === 4 && b === 3 ? 'Dur' : a === 3 && b === 4 ? 'Moll' : 'vermindert';
+    return { rom, fn: FN[d], fnt: FNT[d], tones, q, name: q === 'vermindert' ? cqName(tones[0].step, tones[0].alt, true) + ' vermindert' : cqName(tones[0].step, tones[0].alt, q === 'Moll') + '-' + q };
+  });
+}
+function renderCircle() {
+  const P = (r, deg) => { const a = (deg - 90) * Math.PI / 180; return [r * Math.cos(a), r * Math.sin(a)]; };
+  const seg = (r0, r1, i) => { const a0 = i * 30 - 15, a1 = i * 30 + 15, [x0, y0] = P(r1, a0), [x1, y1] = P(r1, a1), [x2, y2] = P(r0, a1), [x3, y3] = P(r0, a0);
+    return `M${x0},${y0} A${r1},${r1} 0 0 1 ${x1},${y1} L${x2},${y2} A${r0},${r0} 0 0 0 ${x3},${y3} Z`; };
+  const fam = {}, F = CQ.minor ? { in0: 't', in1: 'd', in11: 's', out0: 'tP', out1: 'dP', out11: 'sP' } : { out0: 'T', out1: 'D', out11: 'S', in0: 'Tp', in1: 'Dp', in11: 'Sp' };
+  for (const [k, v] of Object.entries(F)) fam[(k.startsWith('out') ? 'o' : 'i') + ((CQ.pos + +k.replace(/\D+/, '')) % 12)] = v;
+  let h = '';
+  for (let i = 0; i < 12; i++) {
+    const selO = !CQ.minor && CQ.pos === i, selI = CQ.minor && CQ.pos === i;
+    const [xo, yo] = P(160, i * 30), [xi, yi] = P(103, i * 30), [xf, yf] = P(180, i * 30 + 9), [xg, yg] = P(120, i * 30 + 9);
+    const two = i >= 5 && i <= 7, mj = ['H', 'Fis', 'Des'][i - 5], mjA = ['Ces', 'Ges', 'Cis'][i - 5], mn = ['gis', 'dis', 'b'][i - 5], mnA = ['as', 'es', 'ais'][i - 5];
+    h += `<path class="seg${selO ? ' sel' : fam['o' + i] ? ' fam' : ''}" data-p="${i}" data-m="0" d="${seg(132, 192, i)}"/>`;
+    h += `<path class="seg${selI ? ' sel' : fam['i' + i] ? ' fam' : ''}" data-p="${i}" data-m="1" d="${seg(76, 132, i)}"/>`;
+    h += two ? `<text class="maj" x="${xo}" y="${yo - 9}" style="font-size:17px">${mj}</text><text class="maj" x="${xo}" y="${yo + 9}" style="font-size:13px;fill:var(--ink2)">${mjA}</text>` : `<text class="maj" x="${xo}" y="${yo}">${CQ_MAJ[i]}</text>`;
+    h += two ? `<text class="min" x="${xi}" y="${yi - 7}" style="font-size:14px">${mn}</text><text class="min" x="${xi}" y="${yi + 7}" style="font-size:11px;fill:var(--ink2)">${mnA}</text>` : `<text class="min" x="${xi}" y="${yi}">${CQ_MIN[i]}</text>`;
+    if (fam['o' + i]) h += `<text class="fn" x="${xf}" y="${yf}">${fam['o' + i]}</text>`;
+    if (fam['i' + i]) h += `<text class="fn" x="${xg}" y="${yg}">${fam['i' + i]}</text>`;
+  }
+  const f = cqFifths(CQ.pos, CQ.alt);
+  h += `<circle r="76" fill="rgba(255,255,255,.2)" stroke="rgba(107,88,67,.55)"/><text class="ctr" y="-8">${f === 0 ? '0' : Math.abs(f) + ' ' + (f > 0 ? '♯' : '♭')}</text><text class="ctr2" y="20">${f === 0 ? 'keine Vorzeichen' : f > 0 ? (f === 1 ? 'Kreuz' : 'Kreuze') : (f === -1 ? 'Be' : 'Bes')}</text>`;
+  $('#circle').innerHTML = h;
+}
+$('#circle').addEventListener('click', e => { const s = e.target.closest('.seg'); if (!s) return; CQ.pos = +s.dataset.p; CQ.minor = s.dataset.m === '1'; CQ.alt = false; renderCircle(); renderCircleDetail(); cqPlay('tonic'); });
+let cqTk = null, cqData = null, cqTimers = [];
+function renderCircleDetail() {
+  const f = cqFifths(CQ.pos, CQ.alt), minor = CQ.minor, sc = cqScale(f, minor, true), tri = cqTriads(f, minor);
+  cqData = { f, minor, sc, tri };
+  const title = cqName(sc[0].step, sc[0].alt, minor) + (minor ? '-Moll' : '-Dur');
+  const ord = f >= 0 ? CQ_SHARPS : CQ_FLATS, sgn = f >= 0 ? 1 : -1, n = Math.abs(f);
+  const names = ord.map((st, i) => { const nm = cqName(st, sgn, false); return i < n ? `<b>${nm}</b>` : nm; });
+  const keyAt = (pos, mi) => ({ pos: (pos + 12) % 12, minor: mi, label: (mi ? CQ_MIN : CQ_MAJ)[(pos + 12) % 12] + (mi ? '-Moll' : '-Dur') });
+  const varPos = minor ? CQ.pos + 3 : CQ.pos - 3;   // gleichnamige Tonart (Variante) liegt drei Quinten entfernt
+  const rel = [['Dominante', keyAt(CQ.pos + 1, minor)], ['Subdominante', keyAt(CQ.pos - 1, minor)], ['Parallele', keyAt(CQ.pos, !minor)], ['Variante', keyAt(varPos, !minor)]];
+  let h = `<h2>${title}</h2><div class="sig">${n === 0 ? 'keine Vorzeichen' : `${n} ${f > 0 ? (n === 1 ? 'Kreuz' : 'Kreuze') : (n === 1 ? 'Be' : 'Bes')}: ${names.slice(0, n).join(', ')}`}</div>`;
+  h += `<div class="order">Reihenfolge der ${f >= 0 ? 'Kreuze' : 'Bes'}: ${names.join(' · ')}</div>`;
+  if (CQ.pos >= 5 && CQ.pos <= 7) { const o = cqScale(cqFifths(CQ.pos, !CQ.alt), minor, false)[0];
+    h += `<div class="rel" style="margin-top:6px"><button data-act="enh">enharmonisch als ${cqName(o.step, o.alt, minor)}${minor ? '-Moll' : '-Dur'} schreiben</button></div>`; }
+  h += `<div class="k">Tonleiter${minor ? ' (harmonisch Moll: 7. Stufe erhöht als Leitton)' : ''} und Dreiklänge</div><div id="studyStaff"></div>`;
+  h += `<div class="plays"><button data-act="scale">${IC.play}Tonleiter</button><button data-act="cad">${IC.play}Kadenz ${minor ? 't – s – D – t' : 'T – S – D – T'}</button></div>`;
+  h += `<div class="k">Leitereigene Dreiklänge – antippen zum Hören</div><div class="triads">${tri.map((t, d) => `<button data-act="tri${d}" title="${t.fnt}"><b>${t.rom}</b><em>${t.fn}</em>${t.name}<br>${t.tones.map(x => cqName(x.step, x.alt, false)).join('–')}</button>`).join('')}</div>`;
+  h += `<div class="small" style="margin-top:4px">${minor ? 'In Moll ist die Dominante meist ein Dur-Akkord: die 7. Stufe wird zum Leitton erhöht.' : 'Hauptdreiklänge: T, S, D (Dur). Nebendreiklänge: ihre Parallelen Tp, Sp, Dp (Moll), jeweils eine kleine Terz tiefer.'}</div>`;
+  h += `<div class="k">Verwandte Tonarten</div><div class="rel">${rel.map(([t, k]) => `<button data-act="go${k.pos}_${k.minor ? 1 : 0}"><i>${t}</i>${k.label}</button>`).join('')}</div>`;
+  $('#circleDetail').innerHTML = h;
+  renderCircleStaff();
+}
+async function renderCircleStaff() {
+  const d = cqData, box = $('#studyStaff'); if (!box) return;
+  try { await initVerovio(); cqTk = cqTk || new verovio.toolkit(); } catch (e) { box.innerHTML = '<div class="small">Notenbild nicht verfügbar.</div>'; return; }
+  if (d !== cqData) return;
+  const LET = 'cdefgab', ACC = { '-2': 'ff', '-1': 'f', 0: 'n', 1: 's', 2: 'x' };
+  const note = (x, id, dur) => `<note${id ? ` xml:id="${id}"` : ''} pname="${LET[x.step]}" oct="${Math.floor((x.midi - x.alt) / 12) - 1}"${dur ? ` dur="${dur}"` : ''}${x.alt !== x.sig ? ` accid="${ACC[x.alt]}"` : ''}/>`;
+  let mei = '<?xml version="1.0" encoding="UTF-8"?><mei xmlns="http://www.music-encoding.org/ns/mei" meiversion="4.0.1"><meiHead><fileDesc><titleStmt><title/></titleStmt><pubStmt/></fileDesc></meiHead><music><body><mdiv><score>';
+  mei += `<scoreDef key.sig="${d.f === 0 ? '0' : Math.abs(d.f) + (d.f > 0 ? 's' : 'f')}"><staffGrp><staffDef n="1" lines="5" clef.shape="G" clef.line="2"/></staffGrp></scoreDef><section>`;
+  mei += `<measure n="1" right="dbl"><staff n="1"><layer n="1">${d.sc.slice(0, 8).map((x, i) => note(x, 'cqs' + i, 4)).join('')}</layer></staff></measure>`;
+  mei += `<measure n="2" right="end"><staff n="1"><layer n="1">${d.tri.map((t, i) => `<chord xml:id="cqc${i}" dur="1">${t.tones.map(x => note(x)).join('')}</chord>`).join('')}</layer></staff>${d.tri.map((t, i) => `<harm startid="#cqc${i}" place="below">${S.labels === 'funk' ? t.fn : t.rom}</harm>`).join('')}</measure>`;
+  mei += '</section></score></mdiv></body></music></mei>';
+  const w = Math.max(300, box.clientWidth), scale = w < 520 ? 34 : 42;
+  cqTk.setOptions({ pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale, breaks: 'auto', header: 'none', footer: 'none',
+    pageMarginLeft: 10, pageMarginRight: 10, pageMarginTop: 30, pageMarginBottom: 20, svgViewBox: false, smuflTextFont: 'embedded' });
+  cqTk.loadData(mei); box.innerHTML = cqTk.renderToSVG(1);
+}
+function cqLight(sel, at, dur) {
+  cqTimers.push(setTimeout(() => { $$(sel).forEach(el => el.classList.add('on')); }, at * 1000));
+  cqTimers.push(setTimeout(() => { $$(sel).forEach(el => el.classList.remove('on')); }, (at + dur) * 1000));
+}
+function cqPlay(what) {
+  const d = cqData; if (!d) return;
+  audio.ensure(); cqTimers.forEach(clearTimeout); cqTimers = []; $$('#studyStaff .on, .triads .on').forEach(el => el.classList.remove('on'));
+  const t0 = audio.now() + 0.04;
+  const chord = (i, at, dur) => { const t = d.tri[i]; audio.note(t.tones[0].midi - 12, t0 + at, dur, 0.5, 3); t.tones.forEach(x => audio.note(x.midi, t0 + at, dur, 0.55, 1));
+    cqLight('#cqc' + i + ', .triads [data-act="tri' + i + '"]', at, dur); };
+  if (what === 'tonic') chord(0, 0, 1.2);
+  else if (what === 'scale') d.sc.slice(0, 8).forEach((x, i) => { audio.note(x.midi, t0 + i * 0.34, i === 7 ? 1 : 0.36, 0.6, 1); cqLight('#cqs' + i, i * 0.34, 0.34); });
+  else if (what === 'cad') [0, 3, 4, 0].forEach((c, k) => chord(c, k * 0.85, k === 3 ? 1.6 : 0.85));
+  else if (what.startsWith('tri')) chord(+what.slice(3), 0, 1.3);
+  else if (what.startsWith('note')) { const x = d.sc[+what.slice(4)]; audio.note(x.midi, t0, 0.9, 0.6, 1); cqLight('#cqs' + what.slice(4), 0, 0.6); }
+}
+$('#circleDetail').addEventListener('click', e => {
+  const g = e.target.closest('#studyStaff g.chord, #studyStaff g.note');
+  if (g && g.id) { if (g.id.startsWith('cqc')) cqPlay('tri' + g.id.slice(3)); else if (g.id.startsWith('cqs')) cqPlay('note' + g.id.slice(3)); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return; const act = b.dataset.act;
+  if (act === 'enh') { CQ.alt = !CQ.alt; renderCircle(); renderCircleDetail(); }
+  else if (act.startsWith('go')) { const [p, m] = act.slice(2).split('_'); CQ.pos = +p; CQ.minor = m === '1'; CQ.alt = false; renderCircle(); renderCircleDetail(); cqPlay('tonic'); }
+  else cqPlay(act);
 });
 
 // ---------- Inhalt ----------
