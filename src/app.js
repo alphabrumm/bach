@@ -608,6 +608,7 @@ function analysisMeasure() {
   return m >= selRange.a && m <= selRange.b ? m : selRange.a;
 }
 function refreshAnalysis() {
+  if (document.activeElement && document.activeElement.id === 'secName') return;   // Namen nicht beim Tippen überschreiben
   if (infoMode === 'range' && selRange && infoShown() && !selNote && analysisMeasure() !== shownCur) showRangeInfo();
   followBeat();
 }
@@ -623,12 +624,13 @@ let keepOpen = null;   // ist eine Stufen-Erklärung aufgeklappt? (bleibt beim N
 function showRangeInfo() {
   openBeat = null;
   const { a, b } = selRange, single = a === b;
-  const existing = sections.find(x => x.a === a && x.b === b);
-  if (existing && Date.now() >= markUntil) return showSection(existing);
+  const sec = Date.now() >= markUntil ? sections.find(x => x.a === a && x.b === b) : null;
   const bs = harmony.beats.filter(x => x.measure >= a && x.measure <= b);
   const keys = bs.map(x => keyName(x.key)).filter((k, i, arr) => i === 0 || k !== arr[i - 1]).join(' → ');
   const pulsing = Date.now() < markUntil;
-  let h = `<div class="lbl">${single ? `Takt ${mLabel(a)} von ${mLabel(model.measures)}` : `Takte ${mLabel(a)}–${mLabel(b)} · ${b - a + 1} Takte markiert`}</div><h4>${keys}</h4>`;
+  const span = single ? `Takt ${mLabel(a)}` : `Takte ${mLabel(a)}–${mLabel(b)}`;
+  let h = `<div class="lbl">${sec ? 'Übe-Abschnitt · ' + span : single ? `Takt ${mLabel(a)} von ${mLabel(model.measures)}` : `${span} · ${b - a + 1} Takte markiert`}</div>`;
+  h += sec ? `<div class="sechead"><h4>${keys}</h4><input class="secname" id="secName" value="${sec.name.replace(/"/g, '&quot;')}" maxlength="60" enterkeyhint="done" title="Name des Übe-Abschnitts"></div>` + sectionHTML(sec) : `<h4>${keys}</h4>`;
   const bi = x => harmony.beats.indexOf(x);
   h += `<div class="beatexp" id="beatExp"></div>`;
   // Aktueller Takt groß, die übrigen markierten Takte links/rechts klein
@@ -641,17 +643,22 @@ function showRangeInfo() {
   shownCur = cur;
   if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
   h += hearControls();
-  h += `<div class="btns">${playBtn(single ? 'Takt spielen' : 'Abschnitt spielen')}<button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from" title="Spielt ab diesem Takt bis zum Ende des Stücks">ab hier bis Schluss</button><button data-act="addsec">＋ Übe-Abschnitt</button></div>`;
+  const running = sec && practice && practice.id === sec.id;
+  h += `<div class="btns">${sec ? `<button data-act="timer" class="${running ? 'timerOn' : ''}">${running ? IC.stop + 'Üben beenden' : IC.timer + 'Üben starten'}</button>` : ''}${playBtn(single ? 'Takt spielen' : 'Abschnitt spielen')}<button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from" title="Spielt ab diesem Takt bis zum Ende des Stücks">ab hier bis Schluss</button>${sec ? `<button data-act="del">${confirmDel === sec.id ? 'Wirklich löschen?' : 'Abschnitt löschen'}</button>` : '<button data-act="addsec">＋ Übe-Abschnitt</button>'}</div>`;
   openInfo(h, act => {
+    if (sec && sectionAct(sec, act)) return;
     if (act === 'play') { if (playing) stopPlayback(); else { loopOn = false; startPlayback((a - 1) * MEASURE, b * MEASURE); } }
     if (act === 'loop') { loopOn = !loopOn; if (loopOn) startPlayback((a - 1) * MEASURE); else stopPlayback(); showRangeInfo(); }
     if (act === 'from') { loopOn = false; startPlayback((a - 1) * MEASURE); }
     if (act === 'clear') { clearSelection(); }
     if (act.startsWith('hear')) { setHear(+act.slice(4)); showRangeInfo(); }
-    if (act === 'addsec') { endMarkMode(); markSelection(); showSection(addSection(a, b)); }
+    if (act === 'addsec') { endMarkMode(); markSelection(); addSection(a, b); showRangeInfo(); }
     if (act.startsWith('beat')) { toggleBeatExplain(+act.slice(4)); keepOpen = openBeat; }
   });
   infoMode = 'range';
+  if (sec) { const inp = $('#secName');
+    inp.addEventListener('change', () => { sec.name = inp.value.trim() || sec.name; saveSections(); drawSections(); renderSecList(); });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); }); }
   if (keepOpen != null && S.follow) followBeat();
   const l = $('#infoBody .harmstrip .side.l'); if (l) l.scrollLeft = l.scrollWidth;
 }
@@ -795,37 +802,28 @@ function selectSection(sec) {
   playhead = (sec.a - 1) * MEASURE; markSelection(); updateCursor(); showSection(sec);
 }
 function practiceSec(sec) { return practice && practice.id === sec.id ? (Date.now() - practice.start) / 1000 : 0; }
+// Ein Übe-Abschnitt ist ein normales Analyse-Fenster mit Namen, Bewertung und Übezeit
 function showSection(sec) {
-  const running = practice && practice.id === sec.id;
+  if (!selRange || selRange.a !== sec.a || selRange.b !== sec.b) selRange = { a: sec.a, b: sec.b };
+  showRangeInfo();
+}
+function sectionHTML(sec) {
   const last = sec.sessions.slice(-3).reverse();
-  const h = `<div class="lbl">Übe-Abschnitt · ${sec.a === sec.b ? `Takt ${mLabel(sec.a)}` : `Takte ${mLabel(sec.a)}–${mLabel(sec.b)}`}</div>
-    <input class="secname" id="secName" value="${sec.name.replace(/"/g, '&quot;')}" maxlength="60" enterkeyhint="done">
-    <div class="row"><span class="k">Wie klappt’s?</span></div>
+  return `<div class="row"><span class="k">Wie klappt’s?</span></div>
     <div class="rate">${RATINGS.map((r, i) => `<button data-act="rate${i}" class="${sec.rating === i ? 'act' : ''}" style="--rc:${r.c}">${r.name}</button>`).join('')}</div>
     <div class="row"><span class="k">Übezeit</span><span id="secTime">${fmtTime(sec.total + practiceSec(sec))} gesamt · ${sec.sessions.length} Mal geübt</span></div>
-    ${last.length ? `<div class="sesslog">${last.map(x => `<div>${fmtDate(x.at)} · ${fmtTime(x.sec)} · <span style="color:${RATINGS[x.rating].c}">${RATINGS[x.rating].name}</span></div>`).join('')}</div>` : ''}
-    ${hearControls()}
-    <div class="btns">
-      <button data-act="timer" class="${running ? 'timerOn' : ''}">${running ? IC.stop + 'Üben beenden' : IC.timer + 'Üben starten'}</button>
-      ${playBtn('spielen')}
-      <button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button>
-      <button data-act="del">${confirmDel === sec.id ? 'Wirklich löschen?' : 'Löschen'}</button>
-    </div>`;
-  openInfo(h, act => {
-    if (act.startsWith('rate')) { sec.rating = +act.slice(4); saveSections(); drawSections(); renderSecList(); showSection(sec); }
-    if (act === 'timer') { if (running) stopPractice(); else startPractice(sec); showSection(sec); }
-    if (act === 'play') { if (playing) stopPlayback(); else { loopOn = false; startPlayback((sec.a - 1) * MEASURE, sec.b * MEASURE); } }
-    if (act.startsWith('hear')) { setHear(+act.slice(4)); showSection(sec); }
-    if (act === 'loop') { selRange = { a: sec.a, b: sec.b }; loopOn = !loopOn; if (loopOn) startPlayback((sec.a - 1) * MEASURE); else stopPlayback(); showSection(sec); }
-    if (act === 'del') {
-      if (confirmDel !== sec.id) { confirmDel = sec.id; showSection(sec); setTimeout(() => { confirmDel = null; }, 3000); return; }
-      if (practice && practice.id === sec.id) stopPractice();
-      sections = sections.filter(x => x.id !== sec.id); saveSections(); drawSections(); renderSecList(); clearSelection();
-    }
-  });
-  const inp = $('#secName');
-  inp.addEventListener('change', () => { sec.name = inp.value.trim() || sec.name; saveSections(); drawSections(); renderSecList(); });
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    ${last.length ? `<div class="sesslog">${last.map(x => `<div>${fmtDate(x.at)} · ${fmtTime(x.sec)} · <span style="color:${RATINGS[x.rating].c}">${RATINGS[x.rating].name}</span></div>`).join('')}</div>` : ''}`;
+}
+function sectionAct(sec, act) {
+  const running = practice && practice.id === sec.id;
+  if (act.startsWith('rate')) { sec.rating = +act.slice(4); saveSections(); drawSections(); renderSecList(); showRangeInfo(); return true; }
+  if (act === 'timer') { if (running) stopPractice(); else startPractice(sec); showRangeInfo(); return true; }
+  if (act === 'del') {
+    if (confirmDel !== sec.id) { confirmDel = sec.id; showRangeInfo(); setTimeout(() => { confirmDel = null; }, 3000); return true; }
+    if (practice && practice.id === sec.id) stopPractice();
+    sections = sections.filter(x => x.id !== sec.id); saveSections(); drawSections(); renderSecList(); confirmDel = null; showRangeInfo(); return true;
+  }
+  return false;
 }
 function startPractice(sec) {
   if (practice) stopPractice();
