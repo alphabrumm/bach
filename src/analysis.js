@@ -279,27 +279,48 @@ function harmonize(model, keys) {
   return { keys, beats, perMeasure };
 }
 const sameKey = (x, y) => x.tonic === y.tonic && x.minor === y.minor;
-// Kadenz in Tonart K zwischen den Zählzeiten i0..i1? (V/V7 oder vii°/vii°7 → I/i, gleiche Akkorde übersprungen)
-function hasCadence(beats, K, i0, i1) {
-  const ch = i => beats[i] && beats[i].chord;
-  for (let i = Math.max(0, i0); i <= Math.min(beats.length - 2, i1); i++) {
-    const c = ch(i); if (!c) continue;
-    const dom = (c.root === (K.tonic + 7) % 12 && (c.q === 'maj' || c.q === 'dom7')) ||
-                (c.root === (K.tonic + 11) % 12 && (c.q === 'dim' || c.q === 'dim7'));
-    if (!dom) continue;
-    let j = i + 1;
-    while (ch(j) && ch(j).root === c.root && ch(j).q === c.q) j++;
-    const t = ch(j);
-    if (t && t.root === K.tonic && t.q === (K.minor ? 'min' : 'maj')) return true;
+// Basston einer Zählzeit: tiefster Ton, der zu Beginn klingt (sonst der tiefste im Schlag)
+function bassPc(model, b) {
+  let best = null;
+  for (const n of model.notes) {
+    if (n.onset > b.from + 1e-6 || n.onset + n.ticks <= b.from + 1e-6) continue;
+    if (!best || n.midi < best.midi) best = n;
   }
-  // grobe Taktarten (ein Akkord pro Takt): Leitton im Schlag davor, der sich in die Tonika auflöst
+  if (!best) for (const n of model.notes) { if (n.onset >= b.from - 1e-6 && n.onset < b.to - 1e-6 && (!best || n.midi < best.midi)) best = n; }
+  return best ? best.pc : null;
+}
+function lowPc(model, b) {   // tiefster Ton irgendwo im Schlag
+  let best = null;
+  for (const n of model.notes) if (n.onset < b.to - 1e-6 && n.onset + n.ticks > b.from + 1e-6 && (!best || n.midi < best.midi)) best = n;
+  return best ? best.pc : null;
+}
+// Kadenzen in Tonart K zwischen den Zählzeiten i0..i1 → Liste der Ankunfts-Zählzeiten.
+// Dominante (V, V7, vii°, vii°7 oder kadenzierender Quartsextakkord) → I bzw. i mit der Tonika im Bass.
+function cadences(beats, K, i0, i1) {
+  const M = MODEL_FOR_CAD, ch = i => beats[i] && beats[i].chord, out = [];
+  const dom = (K.tonic + 7) % 12, lt = (K.tonic + 11) % 12, tq = K.minor ? 'min' : 'maj';
+  const one = Math.round(MEASURE / BEAT) === 1;
   for (let j = Math.max(1, i0); j <= Math.min(beats.length - 1, i1); j++) {
-    const t = ch(j), p = ch(j - 1);
-    if (!t || t.root !== K.tonic || t.q !== (K.minor ? 'min' : 'maj') || (p && p.root === t.root)) continue;
-    const h = pcHist(MODEL_FOR_CAD.notes, beats[j - 1].from, beats[j - 1].to), tot = h.reduce((x, y) => x + y, 0);
-    if (tot && h[(K.tonic + 11) % 12] / tot >= 0.12) return true;
+    const t = ch(j); if (!t || t.root !== K.tonic || t.q !== tq || bassPc(M, beats[j]) !== K.tonic) continue;
+    let i = j - 1; while (ch(i) && ch(i).root === K.tonic && ch(i).q === tq && bassPc(M, beats[i]) === K.tonic) i--;
+    const c = ch(i), b = beats[i]; if (!b) continue;
+    const isV = c && ((c.root === dom && (c.q === 'maj' || c.q === 'dom7')) || (c.root === lt && (c.q === 'dim' || c.q === 'dim7')));
+    const cad64 = c && c.root === K.tonic && c.q === tq && (bassPc(M, b) === dom || lowPc(M, b) === dom);
+    let ltOK = false;
+    if (one) { const h = pcHist(M.notes, b.from, b.to), tot = h.reduce((x, y) => x + y, 0); ltOK = tot && h[lt] / tot >= 0.08; }
+    if (isV || cad64 || ltOK) out.push(j);
   }
-  return false;
+  return out;
+}
+// Ausweichung oder Modulation? Passt die Musik nach der Kadenz (vier Takte, eine Phrase) wieder besser
+// zur alten Tonart (z. B. c statt cis), war es nur eine Ausweichung (Tonikalisierung).
+function persists(beats, K, P, j) {
+  const M = MODEL_FOR_CAD, pm = Math.round(MEASURE / BEAT);
+  const from = beats[j].to, to = Math.min(beats[beats.length - 1].to, beats[j].from + (pm === 1 ? 8 : 4) * MEASURE);
+  if (to - from < BEAT) return true;   // Schluss des Stücks
+  const h = pcHist(M.notes, from, to);
+  const prof = k => { const base = k.minor ? KK_MIN : KK_MAJ; return base.map((_, i) => base[(i - k.tonic + 12) % 12]); };
+  return corr(h, prof(K)) > corr(h, prof(P));
 }
 let MODEL_FOR_CAD = null;
 // Ein Tonartwechsel gilt nur, wenn er durch eine Kadenz in der neuen Tonart bestätigt wird;
@@ -316,8 +337,12 @@ function analyzeHarmony(model) {
     for (let r = 1; r < regions.length; r++) {
       const R = regions[r];
       const end = R.b === keys.length - 1 ? R.b : R.b + 1;   // Kadenz darf im ersten Schlag danach landen
-      if (hasCadence(H.beats, R.k, R.a * pm - pm, end * pm + pm - 1)) continue;
       const prev = regions[r - 1].k;
+      if (r === regions.length - 1 && sameKey(R.k, pieceKey(model.piece)) && R.b === keys.length - 1) continue;   // Schluss in der Grundtonart
+      const arr = cadences(H.beats, R.k, R.a * pm - pm, end * pm + pm - 1);
+      // Ausweichung, wenn innerhalb einer Phrase (4 Takte) schon wieder eine Kadenz in der alten Tonart folgt
+      const L = (pm === 1 ? 8 : 4) * pm;
+      if (arr.some(j => !cadences(H.beats, prev, j + 1, j + L).length)) continue;
       for (let i = R.a; i <= R.b; i++) keys[i] = prev;
       R.k = prev; changed = true;
     }
