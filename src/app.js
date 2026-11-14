@@ -12,9 +12,11 @@ const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)', 4: 'var(-
 const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel', '32': 'Zweiunddreißigstel' };
 
 // ---------- Einstellungen ----------
-const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, orn: true, follow: false, explain: true, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
+const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, orn: true, follow: false, explain: true, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'samples/salamander/' };
 let S = Object.assign({}, DEFAULTS);
 try { Object.assign(S, JSON.parse(localStorage.getItem('bach.settings') || '{}')); } catch (e) {}
+// Flügel-Samples liegen inzwischen in der App (offline); die alte Online-Adresse wird umgestellt
+if (S.sampleBase === 'https://tonejs.github.io/audio/salamander/') S.sampleBase = DEFAULTS.sampleBase;
 const save = () => { try { localStorage.setItem('bach.settings', JSON.stringify(S)); } catch (e) {} };
 
 function toast(msg, ms = 2200) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms); }
@@ -117,7 +119,7 @@ function loadScript(src) {
 }
 function initVerovio() {
   if (verovioReady) return verovioReady;
-  const urls = ['https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js',
+  const urls = ['lib/verovio-toolkit-wasm.js', 'https://www.verovio.org/javascript/latest/verovio-toolkit-wasm.js',
     'https://cdn.jsdelivr.net/npm/verovio@4.3.1/dist/verovio-toolkit-wasm.js'];
   verovioReady = (async () => {
     for (const u of urls) {
@@ -1356,8 +1358,10 @@ function cursorVisible() {
   const top = p.top + pageEl.offsetTop, bottom = top + p.h;
   if (top < sc.scrollTop + 10 || bottom > sc.scrollTop + sc.clientHeight - 40) sc.scrollTo({ top: Math.max(1, top - sc.clientHeight * 0.25), behavior: 'smooth' });
 }
+let lastJump = null;
 function jumpTo(tick, audition) {
   tick = Math.max(0, Math.min(TOTAL - 1, tick));
+  lastJump = { tick, at: performance.now() };
   if (playing) { startPlayback(tick); return; }
   playhead = tick; updateCursor(); cursorVisible(); snapSelToPlayhead(tick); refreshAnalysis();
   if (audition) {   // angesprungenen Zusammenklang kurz anspielen
@@ -1372,7 +1376,10 @@ document.addEventListener('keydown', e => {
   if (!$('#scoreView').classList.contains('show') || !model) return;
   const tg = e.target; if (tg && (tg.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName) && tg.type !== 'range')) return;
   const k = e.key, mod = e.metaKey || e.ctrlKey, alt = e.altKey, eps = 1e-6;
-  const here = playing ? curTick() : playhead;
+  // Während der Wiedergabe läuft der Abspielkopf weiter: schnell hintereinander gedrückte Tasten
+  // zählen vom letzten Sprungziel aus, sonst von der gerade klingenden Note bzw. dem Taktanfang
+  let here = playing ? curTick() : playhead;
+  if (playing && lastJump && performance.now() - lastJump.at < 1500) here = lastJump.tick;
   const curM = Math.floor(here / MEASURE + eps) + 1;
   if (k === ' ') { e.preventDefault(); if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur(); $('#play').click(); return; }
   if (k === 'ArrowLeft' || k === 'ArrowRight') {
@@ -1390,12 +1397,14 @@ document.addEventListener('keydown', e => {
       jumpTo(t, false); toast('Übe-Abschnitt: ' + sec.name);
     } else if (alt) {     // taktweise
       const st = measStart(curM);
-      const t = right ? measStart(curM + 1) : (here > firstOnsetFrom(st) + eps ? st : measStart(curM - 1));
+      const inside = here > firstOnsetFrom(st) + (playing ? BEAT : 0) + eps;
+      const t = right ? measStart(curM + 1) : (inside ? st : measStart(curM - 1));
       if (t >= TOTAL) return;
       jumpTo(Math.max(firstOnsetFrom(Math.max(0, t)), 0), true);
     } else {              // notenweise
       const ons = [...new Set(playable.filter(n => !n.grace).map(n => n.onset))];
-      const t = right ? ons.find(x => x > here + eps) : ons.filter(x => x < here - eps).pop();
+      const cur = ons.filter(x => x <= here + eps).pop();   // Anfang der gerade klingenden Note
+      const t = right ? ons.find(x => x > here + eps) : ons.filter(x => x < (cur == null ? here : cur) - eps).pop();
       if (t != null) jumpTo(t, true);
     }
     return;
@@ -1456,6 +1465,15 @@ $('#ghostSw').onclick = () => { S.ghosts = !S.ghosts; save(); syncPanel(); reren
 $('#zoomIn').onclick = () => { S.zoom = Math.min(1.6, +(S.zoom + 0.1).toFixed(2)); save(); rerender(); };
 $('#zoomOut').onclick = () => { S.zoom = Math.max(0.6, +(S.zoom - 0.1).toFixed(2)); save(); rerender(); };
 $('#sampleBase').onchange = () => { S.sampleBase = $('#sampleBase').value.trim() || DEFAULTS.sampleBase; save(); audio.buffers = {}; audio.loading = null; if (audio.ctx && S.instr === 'grand') audio.loadSamples(); };
+// ---------- Offline: Service Worker ----------
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  const first = !navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    if (!first) return;
+    const sw = reg.installing || reg.waiting; if (!sw) return;
+    sw.addEventListener('statechange', () => { if (sw.state === 'activated') toast('Alles gespeichert – die App funktioniert jetzt auch offline', 3500); });
+  }).catch(e => console.warn('Service Worker', e));
+}
 function rerender() { if (rendered && tk) render(); }
 let rz = null;
 window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(rerender, 250); });

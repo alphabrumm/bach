@@ -27,6 +27,7 @@ node tools/build.js          # src/ -> index.html
 
 - Notentexte: [Mutopia Project](https://www.mutopiaproject.org) – Inventionen (BWV 772–786) unter CC BY-SA 3.0 (u. a. jeff covey, Urs Metzger), Sinfonien (BWV 787–801) gesetzt von Olivier Vermersch (Sinfonia 2: Public Domain). Lizenzangaben je Stück siehe Kopfzeile in `tools/ly/`.
 - Goldberg-Variationen: Mutopia Project, CC BY-SA 3.0 – Aria, Var. 1–2 JD Erickson; Var. 18 Benjamin D. Esham; übrige Variationen Hajo Dezelski (Quelle: Bach-Gesellschaft).
+- Offline-Dateien: Flügel-Samples „Salamander Grand Piano V2“ (Alexander Holm, CC BY 3.0, über Tone.js); Notensatz Verovio (RISM Digital, LGPL-3.0) in `lib/`; Schrift EB Garamond (SIL OFL) in `fonts/`.
 - Schlüssel-Symbole im Analyse-Fenster: Glyphen aus GNU FreeFont (FreeSerif), GPLv3 mit Font-Ausnahme.
 - WTK I Fuge 1: Mutopia, Andreas Scherer, Public Domain. Goldberg-Variationen: Mutopia, JD Erickson, CC BY-SA 3.0.
 - Anpassungen: Bei Wiederholungen mit 1./2. Klammer (Variatio 2) wird nur die 2. Klammer dargestellt. Sinfonia 15 – Schlussnote auf die 9/16-Taktlänge gebracht.
