@@ -12,7 +12,7 @@ const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)', 4: 'var(-
 const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel', '32': 'Zweiunddreißigstel' };
 
 // ---------- Einstellungen ----------
-const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, orn: true, follow: false, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
+const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, orn: true, follow: false, explain: true, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
 let S = Object.assign({}, DEFAULTS);
 try { Object.assign(S, JSON.parse(localStorage.getItem('bach.settings') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('bach.settings', JSON.stringify(S)); } catch (e) {} };
@@ -455,7 +455,7 @@ function syncHear() {
   c.style.display = t ? '' : 'none'; c.textContent = t ? t + ' ×' : '';
 }
 function setHear(v) { hearOff[1] = v === 2; hearOff[2] = v === 1; syncHear(); }   // 0 = beide, 1 = nur oben, 2 = nur unten
-$('#hearTog').onclick = e => { const b = e.target.closest('button'); if (!b) return; hearOff[b.dataset.st] = !hearOff[b.dataset.st]; syncHear(); };
+$('#hearTog').onclick = e => { const b = e.target.closest('button[data-st]'); if (!b) return; hearOff[b.dataset.st] = !hearOff[b.dataset.st]; syncHear(); };
 $('#handChip').onclick = () => setHear(0);
 function hearControls() { return ''; }
 function refreshCard() { const sec = selRange && sections.find(x => x.a === selRange.a && x.b === selRange.b); if (sec && Date.now() >= markUntil) showSection(sec); else showRangeInfo(); }
@@ -613,14 +613,22 @@ function refreshAnalysis() {
   followBeat();
 }
 // Aufgeklappte Stufen-Erklärung springt im Folgen-Modus zur Zählzeit des Abspielkopfs
+// Ausgeklappt (Standard): die Stufe unter dem Abspielkopf ist grün hinterlegt und erklärt
 function followBeat() {
-  if (!S.follow || keepOpen == null || infoMode !== 'range' || !selRange || !infoShown()) return;
+  if (!S.explain || infoMode !== 'range' || !selRange || !infoShown()) return;
   const t = playing ? curTick() : playhead;
-  const i = harmony.beats.findIndex(x => t >= x.from - 1e-6 && t < x.to - 1e-6);
-  if (i < 0 || harmony.beats[i].measure < selRange.a || harmony.beats[i].measure > selRange.b) return;
-  if (i !== openBeat && $('#infoBody [data-act="beat' + i + '"]')) { toggleBeatExplain(i, true); keepOpen = i; }
+  let i = harmony.beats.findIndex(x => t >= x.from - 1e-6 && t < x.to - 1e-6);
+  if (i < 0 || harmony.beats[i].measure < selRange.a || harmony.beats[i].measure > selRange.b)
+    i = harmony.beats.findIndex(x => x.measure === analysisMeasure());
+  if (i >= 0 && i !== openBeat && $('#infoBody [data-act="beat' + i + '"]')) toggleBeatExplain(i, true);
 }
-let keepOpen = null;   // ist eine Stufen-Erklärung aufgeklappt? (bleibt beim Neuaufbau des Fensters erhalten)
+function collapseExplain() {
+  openBeat = null; clearChordMarks();
+  const box = $('#beatExp'); if (box) { box.classList.remove('show'); box.innerHTML = ''; }
+  $$('#infoBody [data-act^="beat"]').forEach(b => b.classList.remove('act'));
+}
+function syncExp() { const b = $('#expTog'); b.classList.toggle('on', !!S.explain); b.style.display = infoMode === 'range' ? '' : 'none'; $('#hearTog .sep').style.display = b.style.display; }
+$('#expTog').onclick = e => { e.stopPropagation(); S.explain = !S.explain; save(); syncExp(); if (S.explain) followBeat(); else collapseExplain(); };
 function showRangeInfo() {
   openBeat = null;
   const { a, b } = selRange, single = a === b;
@@ -653,25 +661,25 @@ function showRangeInfo() {
     if (act === 'clear') { clearSelection(); }
     if (act.startsWith('hear')) { setHear(+act.slice(4)); showRangeInfo(); }
     if (act === 'addsec') { endMarkMode(); markSelection(); addSection(a, b); showRangeInfo(); }
-    if (act.startsWith('beat')) { toggleBeatExplain(+act.slice(4)); keepOpen = openBeat; }
+    if (act.startsWith('beat')) { toggleBeatExplain(+act.slice(4)); if (!S.explain) { S.explain = true; save(); syncExp(); } }
   });
   infoMode = 'range';
   if (sec) { const inp = $('#secName');
     inp.addEventListener('change', () => { sec.name = inp.value.trim() || sec.name; saveSections(); drawSections(); renderSecList(); });
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); }); }
-  if (keepOpen != null && S.follow) followBeat();
+  syncExp(); followBeat();
   const l = $('#infoBody .harmstrip .side.l'); if (l) l.scrollLeft = l.scrollWidth;
 }
 function openInfo(html, onAct) {
-  clearChordMarks(); infoMode = null;
+  clearChordMarks(); infoMode = null; openBeat = null;
   $('#viewPanel').classList.remove('show'); $('#aboutPanel').classList.remove('show'); const sp = $('#secPanel'); if (sp) sp.classList.remove('show');
   $('#infoBody').innerHTML = html;
   $('#infoBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) onAct(b.dataset.act); };
   $('#info').classList.add('show');
-  syncSelTools();
+  syncSelTools(); syncExp();
   requestAnimationFrame(keepSelectionVisible);
 }
-$('#infoX').onclick = () => { keepOpen = null; $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); syncSelTools(); };
+$('#infoX').onclick = () => { $('#info').classList.remove('show'); $('#page').style.paddingBottom = ''; clearChordMarks(); syncSelTools(); };
 // Karte darf die markierten Noten nicht verdecken: unten Platz schaffen und ggf. hochscrollen
 function keepSelectionVisible() {
   const card = $('#info'), sc = $('#scroller'), pg = $('#page');
