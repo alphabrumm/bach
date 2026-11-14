@@ -600,6 +600,15 @@ function toggleBeatExplain(i) { // erneutes Tippen spielt den Akkord noch einmal
   chordTimers.push(setTimeout(() => $$('#score g.chordnote.on').forEach(el => el.classList.remove('on')), (0.03 + total + 0.9) * 1000));
 }
 
+// Analyse-Fenster: welcher markierte Takt ist „aktuell“? Der des Abspielkopfs, sonst der erste
+let shownCur = null, infoMode = null;
+function analysisMeasure() {
+  const t = playing ? curTick() : playhead, m = Math.floor(t / MEASURE + 1e-6) + 1;
+  return m >= selRange.a && m <= selRange.b ? m : selRange.a;
+}
+function refreshAnalysis() {
+  if (infoMode === 'range' && selRange && infoShown() && !selNote && analysisMeasure() !== shownCur) showRangeInfo();
+}
 function showRangeInfo() {
   openBeat = null;
   const { a, b } = selRange, single = a === b;
@@ -607,14 +616,18 @@ function showRangeInfo() {
   if (existing && Date.now() >= markUntil) return showSection(existing);
   const bs = harmony.beats.filter(x => x.measure >= a && x.measure <= b);
   const keys = bs.map(x => keyName(x.key)).filter((k, i, arr) => i === 0 || k !== arr[i - 1]).join(' → ');
-  const ghosts = model.notes.filter(n => n.measure >= a && n.measure <= b && n.ghost);
   const pulsing = Date.now() < markUntil;
   let h = `<div class="lbl">${single ? `Takt ${mLabel(a)} von ${mLabel(model.measures)}` : `Takte ${mLabel(a)}–${mLabel(b)} · ${b - a + 1} Takte markiert`}</div><h4>${keys}</h4>`;
   const bi = x => harmony.beats.indexOf(x);
   h += `<div class="beatexp" id="beatExp"></div>`;
-  if (single) h += `<div class="beats" style="grid-template-columns:repeat(${Math.min(4, harmony.perMeasure)},1fr)">${bs.map((x, i) => `<button class="beat" data-act="beat${bi(x)}"><i>${i + 1}</i><b>${x.chord ? x.chord.roman : '–'}</b>${x.chord ? x.chord.name : ''}</button>`).join('')}</div>`;
-  else h += `<div class="rangeharm">${[...new Set(bs.map(x => x.measure))].map(m => `<div><i>${mLabel(m)}</i> ${bs.filter(x => x.measure === m).map(x => `<button class="rn" data-act="beat${bi(x)}">${x.chord ? x.chord.roman : '–'}</button>`).join(' · ')}</div>`).join('')}</div>`;
-  if (ghosts.length) h += `<div class="ghostnote">${IC.warn}${ghosts.length} Ton${ghosts.length > 1 ? 'e' : ''} mit takt-gültigem Vorzeichen: ${ghosts.map(n => `${helmholtz(n)} (T. ${mLabel(n.measure)})`).join(', ')}</div>`;
+  // Aktueller Takt groß, die übrigen markierten Takte links/rechts klein
+  const cur = analysisMeasure();
+  const big = m => { const mb = bs.filter(x => x.measure === m);
+    return `<div class="main">${single ? '' : `<div class="mlbl">Takt ${mLabel(m)}</div>`}<div class="beats" style="grid-template-columns:repeat(${Math.min(4, harmony.perMeasure)},1fr)">${mb.map((x, i) => `<button class="beat" data-act="beat${bi(x)}"><i>${i + 1}</i><b>${x.chord ? x.chord.roman : '–'}</b>${x.chord ? x.chord.name : ''}</button>`).join('')}</div></div>`; };
+  const mini = m => `<div class="mini"><i>T. ${mLabel(m)}</i>${bs.filter(x => x.measure === m).map(x => `<button class="rn" data-act="beat${bi(x)}">${x.chord ? x.chord.roman : '–'}</button>`).join('')}</div>`;
+  const before = [], after = []; for (let m = a; m <= b; m++) { if (m < cur) before.push(m); if (m > cur) after.push(m); }
+  h += `<div class="harmstrip">${before.length ? `<div class="side l">${before.map(mini).join('')}</div>` : ''}${big(cur)}${after.length ? `<div class="side r">${after.map(mini).join('')}</div>` : ''}</div>`;
+  shownCur = cur;
   if (single && pulsing) h += `<div class="small" style="margin-top:6px">Markiermodus: Tippe jetzt auf einen anderen Takt, um bis dorthin zu markieren.</div>`;
   h += hearControls();
   h += `<div class="btns">${playBtn(single ? 'Takt spielen' : 'Abschnitt spielen')}<button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from" title="Spielt ab diesem Takt bis zum Ende des Stücks">ab hier bis Schluss</button><button data-act="addsec">＋ Übe-Abschnitt</button></div>`;
@@ -627,9 +640,11 @@ function showRangeInfo() {
     if (act === 'addsec') { endMarkMode(); markSelection(); showSection(addSection(a, b)); }
     if (act.startsWith('beat')) toggleBeatExplain(+act.slice(4));
   });
+  infoMode = 'range';
+  const l = $('#infoBody .harmstrip .side.l'); if (l) l.scrollLeft = l.scrollWidth;
 }
 function openInfo(html, onAct) {
-  clearChordMarks();
+  clearChordMarks(); infoMode = null;
   $('#viewPanel').classList.remove('show'); $('#aboutPanel').classList.remove('show'); const sp = $('#secPanel'); if (sp) sp.classList.remove('show');
   $('#infoBody').innerHTML = html;
   $('#infoBody').onclick = e => { const b = e.target.closest('[data-act]'); if (b) onAct(b.dataset.act); };
@@ -653,7 +668,7 @@ function keepSelectionVisible() {
 }
 
 function selectNote(n) { endMarkMode(); selNote = n;   // eine bestehende Takt-Markierung bleibt erhalten
-  if (!selRange) loopOn = false; playhead = n.onset; markSelection(); updateCursor(); showNoteInfo(n); }
+  if (!selRange) loopOn = false; playhead = n.onset; snapSelToPlayhead(n.onset); markSelection(); updateCursor(); showNoteInfo(n); }
 function selectMeasure(m) {
   selNote = null; selHidden = false;
   if (markAnchor != null && Date.now() < markUntil && m !== markAnchor) {
@@ -1147,6 +1162,7 @@ function startPlayback(from, until) {
     loopStart = (r.a - 1) * MEASURE; loopEnd = r.b * MEASURE;
     if (from < loopStart || from >= loopEnd) from = loopStart;
   }
+  snapSelToPlayhead(from);
   pl = { t0Tick: from, t0Time: audio.now() + 0.08, prev: null, idx: playable.findIndex(n => n.onset >= from),
     end: until || (loopOn ? loopEnd : TOTAL), loopStart };
   if (pl.idx < 0) pl.idx = playable.length;
@@ -1250,7 +1266,7 @@ function frame() {
   if (!playing) return;
   const t = Math.min(curTick(), pl.end - 0.01);
   if (t >= 0) {
-    playhead = t; updateCursor(); followPlayhead(t);
+    playhead = t; updateCursor(); followPlayhead(t); refreshAnalysis();
     const ids = model.notes.filter(n => n.onset <= t && n.onset + n.ticks > t && audible(n)).map(n => n.id);
     if (ids.join() !== onSet.join()) { flashNotes(ids); onSet = ids; }
     autoScroll();
@@ -1260,14 +1276,20 @@ function frame() {
 // Markierung folgt dem Abspielkopf: erreicht er die erste Note hinter dem markierten Abschnitt,
 // rückt das Rechteck um seine eigene Länge weiter
 function firstOnsetFrom(tick) { const n = playable.find(x => x.onset >= tick - 1e-6 && !x.grace); return n ? n.onset : Infinity; }
+function snapSelToPlayhead(t) {   // bei Neupositionierung: Rechteck springt zum Abspielkopf
+  if (!S.follow || !selRange || loopOn || handleDrag) return;
+  const m = Math.floor(t / MEASURE + 1e-6) + 1;
+  if (m >= selRange.a && m <= selRange.b) return;
+  const len = selRange.b - selRange.a + 1, N = model.measures;
+  selRange = { a: m, b: Math.min(N, m + len - 1) }; markSelection();
+  if (infoShown() && !selNote) showRangeInfo();
+}
 function followPlayhead(t) {
   if (!S.follow || !selRange || loopOn || handleDrag) return;
   let { a, b } = selRange, moved = false;
   const len = b - a + 1, N = model.measures;
   while (b < N && t >= firstOnsetFrom(b * MEASURE)) { a = b + 1; b = Math.min(N, b + len); moved = true; }
-  if (!moved) return;
-  selRange = { a, b }; markSelection();
-  if (infoShown() && !selNote) showRangeInfo();
+  if (moved) { selRange = { a, b }; markSelection(); if (infoShown() && !selNote) showRangeInfo(); }
 }
 function autoScroll() {
   if (Date.now() - lastUserScroll < 2000) return;
@@ -1317,7 +1339,7 @@ function cursorVisible() {
 function jumpTo(tick, audition) {
   tick = Math.max(0, Math.min(TOTAL - 1, tick));
   if (playing) { startPlayback(tick); return; }
-  playhead = tick; updateCursor(); cursorVisible();
+  playhead = tick; updateCursor(); cursorVisible(); snapSelToPlayhead(tick); refreshAnalysis();
   if (audition) {   // angesprungenen Zusammenklang kurz anspielen
     audio.ensure();
     const ns = playable.filter(n => !n.grace && Math.abs(n.onset - tick) < 1e-6 && audible(n));

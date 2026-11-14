@@ -194,6 +194,18 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
 .card .lbl{font-variant:small-caps;letter-spacing:.05em;color:var(--ink2);font-size:15px}
 .card .row{display:flex;gap:10px;margin:6px 0;font-size:17px;line-height:1.3}
 .card .row .k{min-width:96px;color:var(--ink2);font-style:italic}
+.card#info{width:min(80%,calc(100% - 24px))}
+@media (max-width:700px){.card#info{width:calc(100% - 24px)}}
+.harmstrip{display:flex;align-items:stretch;gap:10px;margin:8px 0}
+.harmstrip .side{flex:0 1 auto;display:flex;gap:6px;overflow-x:auto;min-width:0;align-items:center;scrollbar-width:none}
+.harmstrip .side::-webkit-scrollbar{display:none}
+.harmstrip .side.l{justify-content:flex-start}
+.harmstrip .mini{flex:0 0 auto;border:1px solid rgba(107,88,67,.18);border-radius:8px;padding:3px 6px 4px;text-align:center;background:rgba(255,255,255,.12);opacity:.8}
+.harmstrip .mini i{display:block;font-size:12px;color:var(--ink2);font-style:normal;letter-spacing:.04em}
+.harmstrip .mini .rn{font-size:15px;padding:0 2px}
+.harmstrip .main{flex:1 1 auto;min-width:min(330px,60%)}
+.harmstrip .main .mlbl{font-size:13px;color:var(--ink2);text-align:center;letter-spacing:.05em;font-variant:small-caps}
+.harmstrip .main .beats{margin:2px 0 0}
 .card .beats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
 .card .beat{border:1px solid rgba(107,88,67,.3);border-radius:8px;padding:6px 4px;text-align:center;font-size:16px;background:rgba(255,255,255,.25);color:var(--ink);font-family:inherit}
 .card .beat.act{background:var(--ink);color:var(--paper);border-color:var(--ink)}.card .beat.act i{color:var(--paper2)}
