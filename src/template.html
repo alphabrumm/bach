@@ -63,6 +63,15 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #circle text{font-family:'EB Garamond',serif;text-anchor:middle;dominant-baseline:central;pointer-events:none;fill:var(--ink)}
 #circle .maj{font-size:21px;font-weight:500}#circle .min{font-size:16px}
 #circle .fn{font-size:11px;fill:#7a5a22;font-style:italic}
+#circle .stl{stroke:rgba(60,45,30,.55);stroke-width:.6}
+#circle .acc{font-size:16px;fill:var(--ink);font-family:'EB Garamond',serif}
+.cqtog{font-family:inherit;font-size:15px;border:1px solid rgba(107,88,67,.4);background:rgba(255,255,255,.3);border-radius:9px;padding:5px 12px;color:var(--ink)}
+.cqstaff{margin:4px 0 2px;min-height:60px}
+.cqstaff svg{display:block;max-width:100%;height:auto}
+.cqstaff svg g.harm text{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
+.cqstaff svg g.on,.cqstaff svg g.on *{fill:#b5432e;stroke:#b5432e}
+.cqstaff svg g.chord{cursor:pointer}
+.cqdesc{font-size:15.5px;min-height:22px;margin-top:5px;color:var(--ink);font-style:italic}
 #circle .ctr{font-size:30px}#circle .ctr2{font-size:13px;fill:var(--ink2);font-style:italic}
 .circledetail h2{margin:0;font-weight:500;font-size:34px}
 .circledetail .sig{font-size:19px;margin:2px 0 2px}
@@ -371,6 +380,7 @@ input{-webkit-user-select:text;user-select:text}
     <div class="page-scroll sheet" id="studyScroll">
       <div class="circlepage">
         <div class="circlecol"><svg id="circle" viewBox="-200 -200 400 400"></svg>
+          <div style="text-align:center;margin:2px 0 6px"><button class="cqtog" id="cqSigBtn"></button></div>
           <div class="small" style="text-align:center">Außen Dur, innen die parallele Molltonart. Getönt: die Haupt- und Nebendreiklänge der gewählten Tonart.</div></div>
         <div class="circledetail" id="circleDetail"></div>
       </div>
