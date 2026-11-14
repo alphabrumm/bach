@@ -205,14 +205,20 @@ class Parser {
       const A = pm(a), B = pm(b);
       const old = [st.transDn || 0, st.transSemi || 0, st.modal];
       st.transDn = old[0] + B.dn - A.dn; st.transSemi = old[1] + B.midi - A.midi;
+      const prevBefore = st.prev, rel0 = this.relCount = this.relCount || 0;
+      if (st.prev != null) st.prev -= B.dn - A.dn;   // Bezug in den untransponierten Raum
       if (tk === '\\modalTranspose') {   // Transposition innerhalb einer Tonleiter: Vorzeichen aus der Tonleiter
         const sc = this.toks[this.i++].slice(1), alt = {};
         (this.vars[sc] || '').replace(/(?<![A-Za-z\\])([a-g])(isis|eses|is|es|s)?(?![A-Za-z])/g, (_, n, x) => { alt[STEPS.indexOf(n)] = { undefined: 0, is: 1, isis: 2, es: -1, eses: -2, s: -1 }[x]; });
         st.modal = alt;
       }
-      this.item(st); [st.transDn, st.transSemi, st.modal] = old; return;
+      this.item(st);
+      // Bezug danach: enthält der Block ein eigenes \relative, bleibt der äußere Bezug unverändert; sonst die transponierte letzte Note
+      if (this.relCount !== rel0) st.prev = prevBefore; else if (st.prev != null) st.prev += st.transDn - old[0];
+      [st.transDn, st.transSemi, st.modal] = old; return;
     }
     if (tk === '\\relative') {
+      this.relCount = (this.relCount || 0) + 1;
       let ref = 'f';
       if (!/^[{<\\]/.test(this.toks[this.i])) ref = this.toks[this.i++];
       const m = /^([a-g])\w*?([',]*)$/.exec(ref);
@@ -236,8 +242,10 @@ class Parser {
     }
     if (tk === '\\repeat' && (this.toks[this.i] === 'unfold' || this.toks[this.i] === 'percent')) {
       const n = +this.toks[this.i + 1]; this.i += 2;   // ausgeschriebene Wiederholung: Inhalt n-mal
-      const start = this.i;
-      for (let k = 0; k < n; k++) { this.i = start; this.item(st); }
+      const start = this.i, prev0 = st.prev; let prevAfter = null;
+      // relativ wird der Inhalt nur einmal gelesen; jede Wiederholung hat dieselben Tonhöhen
+      for (let k = 0; k < n; k++) { this.i = start; st.prev = prev0; this.item(st); if (k === 0) prevAfter = st.prev; }
+      st.prev = prevAfter;
       return;
     }
     if (tk === '\\repeat') {
@@ -384,7 +392,7 @@ class Parser {
     const saveVoice = st.voice;
     while (this.i < this.toks.length && this.toks[this.i] !== '>>') {
       if (this.toks[this.i] === '\\\\') { this.i++; continue; }
-      st.t = start; st.prev = prev0;
+      st.t = start; if (branch === 0) st.prev = prev0;   // relativ: in Eingabe-Reihenfolge, Zweig für Zweig (wie LilyPond)
       st.voice = branch === 0 ? saveVoice : saveVoice + '.' + branch;
       const before = this.ev.length;
       this.item(st);
@@ -393,7 +401,7 @@ class Parser {
       maxT = Math.max(maxT, st.t); branch++;
     }
     this.i++;
-    st.voice = saveVoice; st.t = maxT; st.prev = firstPrev ?? prev0; st.last = firstLast;
+    st.voice = saveVoice; st.t = maxT; st.last = firstLast;   // Bezug danach: letzte Note des letzten Zweigs
   }
 }
 
