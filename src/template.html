@@ -111,6 +111,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 #score svg g.ghost,#score svg g.ghost *{fill:#b07a3a!important;color:#b07a3a!important;opacity:.75}
 #score svg g.harm text{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
 #score svg g.harm tspan{fill:#7a5530}
+#score svg g.harm.own text,#score svg g.harm.own tspan{fill:#2f6b4f;font-weight:600}
 #cursor{position:absolute;width:2px;margin-left:-1px;background:var(--on);opacity:.75;border-radius:1px;pointer-events:none;display:none;
   box-shadow:0 0 6px rgba(194,65,12,.5)}
 #msel{position:absolute;inset:0;pointer-events:none;display:none}
@@ -194,7 +195,7 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
 .card .lbl{font-variant:small-caps;letter-spacing:.05em;color:var(--ink2);font-size:15px}
 .card .row{display:flex;gap:10px;margin:6px 0;font-size:17px;line-height:1.3}
 .card .row .k{min-width:96px;color:var(--ink2);font-style:italic}
-.card#info{width:min(80%,calc(100% - 24px))}
+.card#info{width:min(80%,calc(100% - 24px));max-height:calc(100% - var(--safe-t) - var(--safe-b) - 96px);overflow-y:auto;-webkit-overflow-scrolling:touch}
 @media (max-width:700px){.card#info{width:calc(100% - 24px)}}
 .harmstrip{display:flex;align-items:stretch;gap:10px;margin:8px 0}
 .harmstrip .side{flex:0 1 auto;display:flex;gap:6px;overflow-x:auto;min-width:0;align-items:center;scrollbar-width:none}
@@ -226,6 +227,21 @@ select{font-family:inherit;font-size:16px;background:rgba(255,255,255,.35);color
 #infoBody > .lbl:first-child{padding-right:160px}
 .beatexp{display:none;background:rgba(47,107,79,.10);border-left:3px solid var(--v2);border-radius:4px;padding:8px 10px;margin:8px 0 2px;font-size:17px;line-height:1.35}
 .beatexp.show{display:block}
+.beatexp .exbtns{display:flex;gap:6px;margin-top:8px}
+.beatexp button,.beatexp select{font-family:inherit;font-size:15px;border:1px solid rgba(47,107,79,.4);background:rgba(255,255,255,.4);border-radius:8px;padding:4px 10px;color:var(--ink)}
+.beatexp button.act{background:rgba(47,107,79,.2);border-color:rgba(47,107,79,.7)}
+.beatexp button i{color:var(--ink2);font-size:13px}
+.beatexp .whybox,.beatexp .altbox{margin-top:8px;padding-top:8px;border-top:1px solid rgba(47,107,79,.25);font-size:15.5px;line-height:1.4}
+.beatexp .k{font-variant:small-caps;letter-spacing:.05em;color:var(--ink2);font-size:14px;margin:6px 0 3px}
+.beatexp .k:first-child{margin-top:0}
+.beatexp .altrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:4px}
+.beatexp .tones{display:grid;grid-template-columns:auto auto 1fr;gap:1px 12px;align-items:baseline}
+.beatexp .tones b{font-weight:600}
+.beatexp .tones .pc{color:var(--ink2);font-variant-numeric:tabular-nums;text-align:right}
+.beatexp .tones .nc{color:#8a5a12}
+.owntag{color:#2f6b4f;font-weight:600}
+.card .beat.own b,.card .rn.own{color:#2f6b4f}
+.card .beat.own{border-style:dashed;border-color:rgba(47,107,79,.6)}
 .card .beat b{display:block;font-size:19px;font-weight:600}
 .card .beat i{color:var(--ink2);font-size:14px}
 .card .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
@@ -376,6 +392,7 @@ input{-webkit-user-select:text;user-select:text}
   <div class="opt"><span>Färbung</span>
     <div class="seg" id="colSeg"><button data-c="none">aus</button><button data-c="voices">Stimmen</button><button data-c="hands">Hände</button></div></div>
   <div class="opt"><span>Harmonik im Notenbild</span><button class="sw" id="harmSw"></button></div>
+  <div class="opt"><span>Harmonik als</span><div class="seg" id="labSeg"><button data-l="stufen">Stufen</button><button data-l="funk">Funktionen</button></div></div>
   <div class="opt"><span>Verzierungen &amp; Vorschläge spielen</span><button class="sw" id="ornSw"></button></div>
   <div class="opt"><span>Geister-Vorzeichen <span class="small" id="ghostCount"></span></span><button class="sw" id="ghostSw"></button></div>
   <div class="opt"><span>Notengröße</span><div class="seg"><button id="zoomOut">A−</button><button id="zoomIn">A+</button></div></div>

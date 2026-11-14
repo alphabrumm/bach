@@ -160,7 +160,7 @@ function detectChord(model, from, to, key, noLook) {
   const total = w.reduce((a, b) => a + b, 0);
   if (!total) return null;
   const sc = scaleSet(key);
-  let best = null;
+  let best = null; const all = [];
   for (let r = 0; r < 12; r++) for (const c of CHORDS) {
     const pcs = c.iv.map(i => (i + r) % 12);
     if (c.sev != null && w[(r + c.sev) % 12] < total * 0.06) continue;
@@ -173,8 +173,11 @@ function detectChord(model, from, to, key, noLook) {
     if (bass === r) s += 0.18 * total;
     if (pcs.every(p => sc.has(p))) s += 0.12 * total;
     s *= c.prior;
+    all.push({ root: r, q: c.q, pcs, score: s });
     if (!best || s > best.score) best = { root: r, q: c.q, pcs, score: s, bass };
   }
+  // Belege für „Warum?“: Tongewichte und die besten Deutungen
+  if (best) best.ev = { w, total, bass, top: best.score, cands: all.sort((a, b) => b.score - a.score).slice(0, 6) };
   // Terz fehlt in diesem Schlag (z. B. Präludium C-Dur: d–a–d, das f kommt erst danach)?
   // Dann entscheidet der nächste Schlag über Dur/Moll, sofern derselbe Grundton bleibt.
   if (best && !noLook && w[(best.root + (CHORDS.find(c => c.q === best.q).iv[1])) % 12] === 0) {
@@ -265,6 +268,48 @@ function chordName(ch, model, from, to) {
 }
 const QUALITY_TEXT = { maj: 'Dur-Dreiklang', min: 'Moll-Dreiklang', dim: 'verminderter Dreiklang', dom7: 'Dominantseptakkord', dim7: 'verminderter Septakkord', hdim7: 'halbverminderter Septakkord', min7: 'Moll-Septakkord' };
 
+// ---------- Funktionsbezeichnungen (Riemann) ----------
+const FUNC_MAJ = { 0: { maj: 'T', min: 't' }, 1: { maj: 'sN' }, 2: { min: 'Sp', min7: 'Sp7', dim: 's6', hdim7: 's65' }, 3: { maj: 'tP' }, 4: { min: 'Dp', min7: 'Dp7' }, 5: { maj: 'S', min: 's', min7: 's7' }, 8: { maj: 'sP' }, 10: { maj: 'dP' },
+  7: { maj: 'D', dom7: 'D7', min: 'd', min7: 'd7' }, 9: { min: 'Tp', min7: 'Tp7' }, 11: { dim: 'Đ7', hdim7: 'Đ9', dim7: 'Dv' } };
+const FUNC_MIN = { 0: { min: 't', min7: 't7', maj: 'T' }, 1: { maj: 'sN' }, 2: { dim: 's6', hdim7: 's65' }, 3: { maj: 'tP' }, 5: { min: 's', min7: 's7', maj: 'S' },
+  7: { min: 'd', min7: 'd7', maj: 'D', dom7: 'D7' }, 8: { maj: 'sP' }, 10: { maj: 'dP' }, 11: { dim: 'Đ7', hdim7: 'Đ9', dim7: 'Dv' } };
+function plainFunc(root, q, key) { const t = (key.minor ? FUNC_MIN : FUNC_MAJ)[(root - key.tonic + 12) % 12]; return t && t[q]; }
+function functionLabel(ch, key) {
+  const roman = ch.roman || chordRoman(ch, key);
+  if (roman.includes('/')) {   // Zwischendominante: (D) zum Zielklang, zur Dominante = Doppeldominante
+    const lead = roman.startsWith('vii'), target = (ch.root + (lead ? 1 : 5)) % 12;
+    const d = lead ? (ch.q === 'dim7' ? 'Dv' : 'Đ7') : (ch.q === 'dom7' ? 'D7' : 'D');
+    if ((target - key.tonic + 12) % 12 === 7) return 'D' + d;
+    const tf = plainFunc(target, diatonicQuality(target, key), key);
+    return '(' + d + ')' + (tf || '');
+  }
+  return plainFunc(ch.root, ch.q, key) || roman.replace(/ \(.*\)$/, '');
+}
+// Akkord nach eigener Angabe (Grundton + Art) an einer Zählzeit
+function makeChord(model, bt, root, q) {
+  const def = CHORDS.find(c => c.q === q), pcs = def.iv.map(i => (i + root) % 12);
+  const ch = { root, q, pcs, bass: bassPc(model, bt), score: 0 };
+  ch.roman = chordRoman(ch, bt.key); ch.func = functionLabel(ch, bt.key); ch.name = chordName(ch, model, bt.from, bt.to); ch.quality = QUALITY_TEXT[q];
+  return ch;
+}
+// Eigene Deutungen des Nutzers über die berechnete Analyse legen: Tonart je Takt, Akkord je Zählzeit
+function applyOwn(model, H, ov) {
+  H.autoKeys = H.keys.slice();
+  if (!ov) return H;
+  const km = ov.keys || {};
+  if (Object.keys(km).length) {
+    const auto = H.autoKeys;
+    H = harmonize(model, H.keys.map((k, i) => km[i + 1] ? { tonic: km[i + 1].tonic, minor: !!km[i + 1].minor } : k));
+    H.autoKeys = auto;
+    H.beats.forEach(b => { if (km[b.measure]) b.keyOwn = true; });
+  }
+  for (const [i, o] of Object.entries(ov.beats || {})) {
+    const bt = H.beats[+i]; if (!bt) continue;
+    const auto = bt.chord; bt.auto = auto;
+    bt.chord = makeChord(model, bt, o.root, o.q); bt.chord.own = true; if (auto) bt.chord.ev = auto.ev;
+  }
+  return H;
+}
 function harmonize(model, keys) {
   const beats = [], perMeasure = Math.round(MEASURE / BEAT);
   for (let m = 1; m <= model.measures; m++) {
@@ -272,7 +317,7 @@ function harmonize(model, keys) {
       const from = (m - 1) * MEASURE + b * BEAT, to = from + BEAT;
       const key = keys[m - 1];
       const ch = detectChord(model, from, to, key);
-      if (ch) { ch.roman = chordRoman(ch, key); ch.name = chordName(ch, model, from, to); ch.quality = QUALITY_TEXT[ch.q]; }
+      if (ch) { ch.roman = chordRoman(ch, key); ch.func = functionLabel(ch, key); ch.name = chordName(ch, model, from, to); ch.quality = QUALITY_TEXT[ch.q]; }
       beats.push({ measure: m, beat: b, from, to, key, chord: ch });
     }
   }
@@ -325,7 +370,7 @@ function persists(beats, K, P, j) {
 let MODEL_FOR_CAD = null;
 // Ein Tonartwechsel gilt nur, wenn er durch eine Kadenz in der neuen Tonart bestätigt wird;
 // sonst bleibt es bei der bisherigen Tonart (Ausweichung, Zwischendominanten, Orgelpunkt).
-function analyzeHarmony(model) {
+function analyzeHarmony(model, ov) {
   MODEL_FOR_CAD = model;
   let keys = analyzeKeys(model);
   let H = harmonize(model, keys);
@@ -349,7 +394,7 @@ function analyzeHarmony(model) {
     if (!changed) break;
     H = harmonize(model, keys);
   }
-  return H;
+  return applyOwn(model, H, ov);
 }
 function beatAt(harmony, t) { return harmony.beats[Math.min(harmony.beats.length - 1, Math.floor(t / BEAT + 1e-9))]; }
 
@@ -451,8 +496,9 @@ function buildMEI(model, harmony, opts) {
         if (m === 1 && P.pickup && b * BEAT < shift - 1e-6) continue;
         const prev = harmony.beats[(m - 1) * per + b - 1];
         const keyChanged = !prev || prev.key.tonic !== bt.key.tonic || prev.key.minor !== bt.key.minor;
-        if (!keyChanged && prev && prev.chord && prev.chord.roman === bt.chord.roman) continue;
-        const txt = (keyChanged ? keyShort(bt.key) + ': ' : '') + bt.chord.roman;
+        const L = c => (opts.func ? c.func : c.roman).replace(/ \(picardische Terz\)/, '');
+        if (!keyChanged && !bt.chord.own && prev && prev.chord && !prev.chord.own && L(prev.chord) === L(bt.chord)) continue;
+        const txt = (keyChanged ? keyShort(bt.key) + ': ' : '') + L(bt.chord);
         const pos = b * BEAT - (m === 1 ? shift : 0);
         out.push(`<harm xml:id="h${m}_${b}" staff="${bassStaff}" tstamp="${+(1 + pos / UNIT).toFixed(3)}" place="below">${esc(txt)}</harm>`);
       }

@@ -12,7 +12,7 @@ const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)', 4: 'var(-
 const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel', '32': 'Zweiunddreißigstel' };
 
 // ---------- Einstellungen ----------
-const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, orn: true, follow: false, explain: true, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'samples/salamander/' };
+const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, orn: true, follow: false, explain: true, labels: 'stufen', why: false, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'samples/salamander/' };
 let S = Object.assign({}, DEFAULTS);
 try { Object.assign(S, JSON.parse(localStorage.getItem('bach.settings') || '{}')); } catch (e) {}
 // Flügel-Samples liegen inzwischen in der App (offline); die alte Online-Adresse wird umgestellt
@@ -156,7 +156,7 @@ async function openPiece(id) {
   try {
     const [p] = await Promise.all([fetch('pieces/' + id + '.json').then(r => { if (!r.ok) throw new Error('Stück fehlt'); return r.json(); }), initVerovio()]);
     piece = p;
-    model = buildModel(piece); computeAccidentals(model); harmony = analyzeHarmony(model);
+    model = buildModel(piece); computeAccidentals(model); loadOwn(id); harmony = analyzeHarmony(model, own);
     playable = model.notes.filter(n => !n.tieEnd).sort((a, b) => a.onset - b.onset || a.role - b.role);
     TOTAL = model.measures * MEASURE;
     VOICE_NAMES = model.voiceCount === 2 ? { 1: 'Oberstimme', 3: 'Unterstimme' } : { 1: 'Sopran', 2: 'Alt', 4: 'Tenor', 3: 'Bass' };
@@ -178,7 +178,7 @@ function render() {
   const w = Math.min($('#scroller').clientWidth, 1100);
   pageEl.style.width = w + 'px';
   const scale = Math.round(S.zoom * Math.max(28, Math.min(48, w / 19)));
-  const mei = buildMEI(model, harmony, { harm: S.harm, ghosts: S.ghosts });
+  const mei = buildMEI(model, harmony, { harm: S.harm, ghosts: S.ghosts, func: S.labels === 'funk' });
   tk.setOptions({
     pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale,
     breaks: 'auto', header: 'none', footer: 'none',
@@ -196,6 +196,8 @@ function render() {
 
 function decorate() {
   const root = $('#score');
+  // eigene Deutungen im Notenbild grün
+  harmony.beats.forEach(bt => { if ((bt.chord && bt.chord.own) || bt.keyOwn) { const h = document.getElementById(`h${bt.measure}_${bt.beat}`); if (h) h.classList.add('own'); } });
   for (const e of model.events) {
     if (e.type === 'space') continue;
     const el = document.getElementById(e.id);
@@ -506,6 +508,111 @@ function showNoteInfo(n) {
     if (act === 'measure') selectMeasure(n.measure);
   });
 }
+// ---------- Eigene Deutungen, „Warum?“ und Alternativen ----------
+let own = { keys: {}, beats: {} }, OWN_KEY = 'bach.harm.none', altOpen = false, pinBeat = null;
+function loadOwn(id) {
+  OWN_KEY = 'bach.harm.' + id; own = { keys: {}, beats: {} }; altOpen = false;
+  try { Object.assign(own, JSON.parse(localStorage.getItem(OWN_KEY) || '{}')); } catch (e) {}
+  own.keys = own.keys || {}; own.beats = own.beats || {};
+}
+function saveOwn() { try { localStorage.setItem(OWN_KEY, JSON.stringify(own)); } catch (e) {} markDirty(); }
+const lab = ch => (S.labels === 'funk' ? ch.func : ch.roman).replace(/ \(picardische Terz\)/, '');
+const capName = s => s[0].toUpperCase() + s.slice(1);
+function reanalyze() {
+  harmony = analyzeHarmony(model, own);
+  pinBeat = openBeat; rerender();
+  if (infoMode === 'range' && selRange) showRangeInfo();
+}
+function beatBoxHTML(i) {
+  const bt = harmony.beats[i], ch = bt.chord;
+  const tag = ch && ch.own ? ' · <span class="owntag">deine Deutung</span>' : bt.keyOwn ? ' · <span class="owntag">deine Tonart</span>' : '';
+  let h = `<div class="small" style="font-style:normal;margin-bottom:2px">Takt ${mLabel(bt.measure)}, Zählzeit ${bt.beat + 1}${tag}</div>`;
+  h += (S.labels === 'funk' && ch && lab(ch) !== ch.roman ? `<b>${lab(ch)}</b> · ` : '') + explainChord(bt);
+  if (ch && ch.own) h += `<div class="small" style="margin-top:4px">Vorschlag der App: ${bt.auto ? lab(bt.auto) + ' (' + bt.auto.name + ')' : 'keiner'}</div>`;
+  h += `<div class="exbtns"><button data-act="why" class="${S.why ? 'act' : ''}">Warum?</button><button data-act="alt" class="${altOpen ? 'act' : ''}">Andere Deutung</button></div>`;
+  if (S.why) h += whyHTML(bt);
+  if (altOpen) h += altHTML(bt);
+  return h;
+}
+// Offenlegen, worauf die Deutung beruht: Töne, Bass, Alternativen, Tonart
+function whyHTML(bt) {
+  const ch = bt.chord, ev = ch && ch.ev;
+  let h = '<div class="whybox">';
+  if (!ch || !ev) return h + 'Zu dieser Zählzeit gibt es keine Berechnung.</div>';
+  const TONE = iv => iv === 0 ? 'Grundton' : (iv === 3 || iv === 4) ? 'Terz' : (iv === 6 || iv === 7) ? 'Quinte' : 'Septime';
+  const sounding = model.notes.filter(n => n.onset < bt.to - 1e-6 && n.onset + n.ticks > bt.from + 1e-6);
+  const rows = ev.w.map((x, pc) => ({ pc, x })).filter(r => r.x > 0).sort((a, b) => b.x - a.x).map(r => {
+    const name = capName(pcSpelling(r.pc, model, bt.from, bt.to)), share = Math.round(100 * r.x / ev.total);
+    if (ch.pcs.includes(r.pc)) return `<b>${name}</b><span class="pc">${share} %</span><span>${TONE((r.pc - ch.root + 12) % 12)}</span>`;
+    const n = sounding.filter(n => n.pc === r.pc).sort((a, b) => b.ticks - a.ticks)[0];
+    let role = 'akkordfremd';
+    if (n && !ch.own) { const t = noteRole(n, harmony).text; if (t && !/des Akkords/.test(t)) role = t; }
+    return `<b class="nc">${name}</b><span class="pc">${share} %</span><span class="nc">${role}</span>`;
+  });
+  h += `<div class="k">Töne dieser Zählzeit (Anteil nach Dauer und Gewicht)</div><div class="tones">${rows.join('')}</div>`;
+  const missing = ch.pcs.filter(p => !ev.w[p]).map(p => TONE((p - ch.root + 12) % 12));
+  if (missing.length) h += `<div class="small">Nicht erklingend: ${missing.join(', ')} – aus dem Zusammenhang ergänzt.</div>`;
+  if (ev.bass != null) { const bn = capName(pcSpelling(ev.bass, model, bt.from, bt.to));
+    h += `<div class="k">Bass</div>${bn} – ${ch.pcs.includes(ev.bass) ? (ev.bass === ch.root ? 'Grundton im Bass (Grundstellung)' : TONE((ev.bass - ch.root + 12) % 12) + ' im Bass (Umkehrung)') : 'kein Akkordton (Durchgang oder Orgelpunkt im Bass)'}`; }
+  // Alternativen
+  const auto = bt.auto || ch, alts = ev.cands.filter(c => !(c.root === auto.root && c.q === auto.q) && !(auto.q === 'dim7' && c.q === 'dim7' && c.pcs.every(p => auto.pcs.includes(p)))).slice(0, 3);
+  if (ev.top > 0 && alts.length) h += `<div class="k">Was sonst in Frage käme</div>` + alts.map(c => { const d = makeChord(model, bt, c.root, c.q);
+    return `${lab(d)} (${d.name}) – passt zu ${Math.max(0, Math.round(100 * c.score / ev.top))} % so gut wie ${lab(auto)}`; }).join('<br>');
+  h += `<div class="small" style="margin-top:3px">Die App wählt den Akkord, dessen Töne am längsten und gewichtigsten klingen; fremde Töne zählen dagegen, Grundton im Bass und leitereigene Töne geben einen kleinen Bonus.</div>`;
+  // Tonart
+  h += `<div class="k">Warum ${keyName(bt.key)}?</div>` + keyWhy(bt) + '</div>';
+  return h;
+}
+function keyWhy(bt) {
+  if (bt.keyOwn) return 'Diese Tonart hast du selbst festgelegt. Die App hätte ' + keyName(harmony.autoKeys[bt.measure - 1]) + ' gewählt.';
+  const K = bt.key, ks = harmony.keys, same = (x, y) => x.tonic === y.tonic && x.minor === y.minor, pm = harmony.perMeasure;
+  let a = bt.measure - 1, b = a; while (a > 0 && same(ks[a - 1], K)) a--; while (b < ks.length - 1 && same(ks[b + 1], K)) b++;
+  const home = same(K, pieceKey(piece)), span = a === b ? `Takt ${mLabel(a + 1)}` : `Takte ${mLabel(a + 1)}–${mLabel(b + 1)}`;
+  if (a === 0 && home) return `Grundtonart des Stücks (Vorzeichnung). Sie gilt, bis eine andere Tonart durch eine Kadenz bestätigt wird.`;
+  const cad = cadences(harmony.beats, K, a * pm, Math.min(ks.length, b + 2) * pm - 1).map(j => mLabel(harmony.beats[j].measure));
+  const uniq = [...new Set(cad)];
+  let t = `Die Töne der ${span} passen am besten zu ${keyName(K)}. `;
+  if (uniq.length) t += `Bestätigt durch eine Kadenz (Dominante → Tonika mit Grundton im Bass) in Takt ${uniq.slice(0, 4).join(', ')}${uniq.length > 4 ? ' …' : ''}; danach folgt nicht gleich wieder eine Kadenz in der vorigen Tonart.`;
+  else if (home) t += 'Rückkehr zur Grundtonart am Schluss.';
+  return t;
+}
+const QUAL_SHORT = { maj: 'Dur', min: 'Moll', dim: 'vermindert', dom7: 'Dominantsept (Dur + kl. 7)', min7: 'Moll-Sept', hdim7: 'halbvermindert', dim7: 'vermindert-Sept' };
+function altHTML(bt) {
+  const cur = bt.chord, auto = bt.auto || (cur && !cur.own ? cur : null), ev = (auto && auto.ev) || (cur && cur.ev);
+  const opts = []; if (auto) opts.push(auto);
+  if (ev) ev.cands.forEach(c => { if (c.score > 0 && !opts.some(o => o.root === c.root && o.q === c.q)) opts.push(c); });
+  const isCur = c => cur && cur.root === c.root && cur.q === c.q;
+  let h = '<div class="altbox"><div class="k">Akkord dieser Zählzeit</div><div class="altrow">';
+  h += opts.slice(0, 5).map((c, k) => { const d = makeChord(model, bt, c.root, c.q); return `<button data-act="pick${c.root}_${c.q}" class="${isCur(c) ? 'act' : ''}">${lab(d)} <i>${d.name}${k === 0 && auto ? ' · App' : ''}</i></button>`; }).join('');
+  h += '</div><div class="altrow">eigener Akkord: <select id="ownRoot">' + Array.from({ length: 12 }, (_, pc) => `<option value="${pc}"${cur && cur.root === pc ? ' selected' : ''}>${capName(pcSpelling(pc, model, bt.from, bt.to))}</option>`).join('') + '</select>';
+  h += '<select id="ownQ">' + Object.entries(QUAL_SHORT).map(([q, t]) => `<option value="${q}"${cur && cur.q === q ? ' selected' : ''}>${t}</option>`).join('') + '</select><button data-act="ownset">übernehmen</button>';
+  if (cur && cur.own) h += '<button data-act="ownreset">zurück zum Vorschlag</button>';
+  const { a, b } = selRange, span = a === b ? `Takt ${mLabel(a)}` : `Takte ${mLabel(a)}–${mLabel(b)}`;
+  let hasKey = false; for (let m = a; m <= b; m++) if (own.keys[m]) hasKey = true;
+  h += `</div><div class="k">Tonart für ${span} (die Markierung)</div><div class="altrow"><select id="ownKey">`;
+  for (let t = 0; t < 12; t++) for (const minor of [false, true]) h += `<option value="${t}_${minor ? 1 : 0}"${bt.key.tonic === t && !!bt.key.minor === minor ? ' selected' : ''}>${keyName({ tonic: t, minor })}</option>`;
+  h += `</select><button data-act="keyset">festlegen</button>${hasKey ? '<button data-act="keyreset">zurück zum Vorschlag</button>' : ''}</div>`;
+  return h + '<div class="small">Eigene Deutungen erscheinen grün und werden mit „Sichern“ exportiert.</div></div>';
+}
+function ownAct(act) {
+  if (openBeat == null || !/^(why|alt|pick|ownset|ownreset|keyset|keyreset)/.test(act)) return false;
+  const i = openBeat, bt = harmony.beats[i], box = $('#beatExp');
+  if (act === 'why') { S.why = !S.why; save(); box.innerHTML = beatBoxHTML(i); requestAnimationFrame(keepSelectionVisible); return true; }
+  if (act === 'alt') { altOpen = !altOpen; box.innerHTML = beatBoxHTML(i); requestAnimationFrame(keepSelectionVisible); return true; }
+  const setBeat = (root, q) => { const auto = bt.auto || (bt.chord && !bt.chord.own ? bt.chord : null);
+    if (auto && auto.root === root && auto.q === q) delete own.beats[i]; else own.beats[i] = { root, q }; };
+  if (act.startsWith('pick')) { const [r, q] = act.slice(4).split('_'); setBeat(+r, q); }
+  if (act === 'ownset') setBeat(+$('#ownRoot').value, $('#ownQ').value);
+  if (act === 'ownreset') delete own.beats[i];
+  if (act === 'keyset') { const [t, mi] = $('#ownKey').value.split('_'); for (let m = selRange.a; m <= selRange.b; m++) { const k = harmony.autoKeys[m - 1];
+    if (k.tonic === +t && !!k.minor === (mi === '1')) delete own.keys[m]; else own.keys[m] = { tonic: +t, minor: mi === '1' }; } }
+  if (act === 'keyreset') for (let m = selRange.a; m <= selRange.b; m++) delete own.keys[m];
+  saveOwn(); reanalyze();
+  // geänderten Klang kurz anspielen
+  if (/^(pick|ownset|ownreset)/.test(act)) { audio.ensure(); const c = harmony.beats[i].chord; if (c) { const lo = 48 + ((c.root - 0 + 12) % 12); c.pcs.forEach((pc, k) => audio.note(lo + ((pc - c.root + 12) % 12), audio.now() + 0.03 + k * 0.05, 1.1, 0.5, 1)); } }
+  return true;
+}
+
 // ---------- Stufen erklären ----------
 const DEG_WORD = ['1.', '2.', '3.', '4.', '5.', '6.', '7.'];
 function spellChord(ch, from, to) {
@@ -585,7 +692,7 @@ function toggleBeatExplain(i, silent) { // erneutes Tippen spielt den Akkord noc
   $$('#infoBody [data-act^="beat"]').forEach(b => b.classList.toggle('act', +b.dataset.act.slice(4) === i));
   openBeat = i;
   const bt = harmony.beats[i];
-  box.innerHTML = `<div class="small" style="font-style:normal;margin-bottom:2px">Takt ${mLabel(bt.measure)}, Zählzeit ${bt.beat + 1}</div>${explainChord(bt)}`;
+  box.innerHTML = beatBoxHTML(i);
   box.classList.add('show');
   // Noten im Notenbild markieren, die den Akkord bilden
   clearChordMarks();
@@ -619,7 +726,9 @@ function refreshAnalysis() {
 // Aufgeklappte Stufen-Erklärung springt im Folgen-Modus zur Zählzeit des Abspielkopfs
 // Ausgeklappt (Standard): die Stufe unter dem Abspielkopf ist grün hinterlegt und erklärt
 function followBeat() {
-  if (!S.explain || infoMode !== 'range' || !selRange || !infoShown()) return;
+  if (infoMode !== 'range' || !selRange || !infoShown()) return;
+  if (pinBeat != null) { const p = pinBeat; pinBeat = null; if ($('#infoBody [data-act="beat' + p + '"]')) { toggleBeatExplain(p, true); return; } }
+  if (!S.explain || altOpen) return;   // beim Bearbeiten einer Deutung nicht weiterspringen
   const t = playing ? curTick() : playhead;
   let i = harmony.beats.findIndex(x => t >= x.from - 1e-6 && t < x.to - 1e-6);
   if (i < 0 || harmony.beats[i].measure < selRange.a || harmony.beats[i].measure > selRange.b)
@@ -648,8 +757,8 @@ function showRangeInfo() {
   // Aktueller Takt groß, die übrigen markierten Takte links/rechts klein
   const cur = analysisMeasure();
   const big = m => { const mb = bs.filter(x => x.measure === m);
-    return `<div class="main">${single ? '' : `<div class="mlbl">Takt ${mLabel(m)}</div>`}<div class="beats" style="grid-template-columns:repeat(${Math.min(4, harmony.perMeasure)},1fr)">${mb.map((x, i) => `<button class="beat" data-act="beat${bi(x)}"><i>${i + 1}</i><b>${x.chord ? x.chord.roman : '–'}</b>${x.chord ? x.chord.name : ''}</button>`).join('')}</div></div>`; };
-  const mini = m => `<div class="mini"><i>T. ${mLabel(m)}</i>${bs.filter(x => x.measure === m).map(x => `<button class="rn" data-act="beat${bi(x)}">${x.chord ? x.chord.roman : '–'}</button>`).join('')}</div>`;
+    return `<div class="main">${single ? '' : `<div class="mlbl">Takt ${mLabel(m)}</div>`}<div class="beats" style="grid-template-columns:repeat(${Math.min(4, harmony.perMeasure)},1fr)">${mb.map((x, i) => `<button class="beat${(x.chord && x.chord.own) || x.keyOwn ? ' own' : ''}" data-act="beat${bi(x)}"><i>${i + 1}</i><b>${x.chord ? lab(x.chord) : '–'}</b>${x.chord ? x.chord.name : ''}</button>`).join('')}</div></div>`; };
+  const mini = m => `<div class="mini"><i>T. ${mLabel(m)}</i>${bs.filter(x => x.measure === m).map(x => `<button class="rn${(x.chord && x.chord.own) || x.keyOwn ? ' own' : ''}" data-act="beat${bi(x)}">${x.chord ? lab(x.chord) : '–'}</button>`).join('')}</div>`;
   const before = [], after = []; for (let m = a; m <= b; m++) { if (m < cur) before.push(m); if (m > cur) after.push(m); }
   h += `<div class="harmstrip">${before.length ? `<div class="side l">${before.map(mini).join('')}</div>` : ''}${big(cur)}${after.length ? `<div class="side r">${after.map(mini).join('')}</div>` : ''}</div>`;
   shownCur = cur;
@@ -658,6 +767,7 @@ function showRangeInfo() {
   const running = sec && practice && practice.id === sec.id;
   h += `<div class="btns">${sec ? `<button data-act="timer" class="${running ? 'timerOn' : ''}">${running ? IC.stop + 'Üben beenden' : IC.timer + 'Üben starten'}</button>` : ''}${playBtn(single ? 'Takt spielen' : 'Abschnitt spielen')}<button data-act="loop">${loopOn ? IC.loop + 'Schleife aus' : IC.loop + 'Schleife'}</button><button data-act="from" title="Spielt ab diesem Takt bis zum Ende des Stücks">ab hier bis Schluss</button>${sec ? `<button data-act="del">${confirmDel === sec.id ? 'Wirklich löschen?' : 'Abschnitt löschen'}</button>` : '<button data-act="addsec">＋ Übe-Abschnitt</button>'}</div>`;
   openInfo(h, act => {
+    if (ownAct(act)) return;
     if (sec && sectionAct(sec, act)) return;
     if (act === 'play') { if (playing) stopPlayback(); else { loopOn = false; startPlayback((a - 1) * MEASURE, b * MEASURE); } }
     if (act === 'loop') { loopOn = !loopOn; if (loopOn) startPlayback((a - 1) * MEASURE); else stopPlayback(); showRangeInfo(); }
@@ -736,6 +846,10 @@ function collectData() {
     const k = localStorage.key(i); if (!k || !k.startsWith('bach.sections.')) continue;
     try { pieces[k.slice('bach.sections.'.length)] = { sections: JSON.parse(localStorage.getItem(k)) }; } catch (e) {}
   }
+  for (let i = 0; i < localStorage.length; i++) {   // eigene Harmonie-Deutungen
+    const k = localStorage.key(i); if (!k || !k.startsWith('bach.harm.')) continue;
+    try { const id = k.slice('bach.harm.'.length), h = JSON.parse(localStorage.getItem(k)); if (Object.keys(h.keys || {}).length || Object.keys(h.beats || {}).length) (pieces[id] = pieces[id] || { sections: [] }).harm = h; } catch (e) {}
+  }
   return { app: 'bach-notenbuecher', version: 1, exported: new Date().toISOString(), settings: S, pieces };
 }
 async function exportData() {
@@ -764,7 +878,9 @@ function importFile(file) {
 function applyImport() {
   const d = pendingImport; pendingImport = null;
   Object.entries(d.pieces).forEach(([k, v]) => { try { localStorage.setItem('bach.sections.' + k, JSON.stringify(v.sections || [])); } catch (e) {} });
+  Object.entries(d.pieces).forEach(([k, v]) => { try { if (v.harm) localStorage.setItem('bach.harm.' + k, JSON.stringify(v.harm)); else localStorage.removeItem('bach.harm.' + k); } catch (e) {} });
   try { sections = JSON.parse(localStorage.getItem(SEC_KEY) || '[]'); } catch (e) {}
+  if (model && piece) { loadOwn(piece.id); harmony = analyzeHarmony(model, own); }
   meta.changes = 0; meta.lastExport = Date.parse(d.exported) || Date.now(); saveMeta(); syncDirty();
   if (rendered) rerender(); renderSecList(); toast('Sicherung eingespielt'); showBackup();
 }
@@ -1451,6 +1567,7 @@ $('#viewBtn').onclick = () => { $('#aboutPanel').classList.remove('show'); $('#i
 function syncPanel() {
   $$('#colSeg button').forEach(b => b.classList.toggle('act', b.dataset.c === S.col));
   $('#harmSw').classList.toggle('act', S.harm);
+  $$('#labSeg button').forEach(b => b.classList.toggle('act', b.dataset.l === S.labels));
   $('#ornSw').classList.toggle('act', S.orn);
   $$('#roomSeg button').forEach(b => b.classList.toggle('act', b.dataset.r === S.room));
   $('#ghostSw').classList.toggle('act', S.ghosts);
@@ -1459,6 +1576,7 @@ function syncPanel() {
 }
 syncPanel();
 $('#colSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.col = b.dataset.c; save(); syncPanel(); decorate(); };
+$('#labSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.labels = b.dataset.l; save(); syncPanel(); rerender(); if (infoMode === 'range' && infoShown()) { pinBeat = openBeat; showRangeInfo(); } };
 $('#harmSw').onclick = () => { S.harm = !S.harm; save(); syncPanel(); rerender(); };
 $('#ornSw').onclick = () => { S.orn = !S.orn; save(); syncPanel(); };
 $('#ghostSw').onclick = () => { S.ghosts = !S.ghosts; save(); syncPanel(); rerender(); };
