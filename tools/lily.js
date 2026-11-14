@@ -65,8 +65,49 @@ function stripScheme(s) {
   }
   return out;
 }
+// Italienische Notennamen (do re mi … mit d = Kreuz, b = Be) in die niederländischen umschreiben
+function fromItaliano(s) {
+  const base = { do: 'c', re: 'd', mi: 'e', fa: 'f', sol: 'g', la: 'a', si: 'b' };
+  const acc = { '': '', d: 'is', dd: 'isis', b: 'es', bb: 'eses' };
+  return s.replace(/(?<![A-Za-z\\#"])(do|re|mi|fa|sol|la|si)(dd|bb|d|b)?(?![A-Za-z])/g, (_, n, a) => {
+    let r = base[n] + acc[a || ''];
+    return r.replace(/^ees/, 'es').replace(/^aes/, 'as');
+  });
+}
+// Englische Notennamen (cs = cis, bf = b/es …)
+function fromEnglish(s) {
+  const acc = { '': '', s: 'is', sharp: 'is', ss: 'isis', x: 'isis', sharpsharp: 'isis', f: 'es', flat: 'es', ff: 'eses', flatflat: 'eses' };
+  return s.replace(/(?<![A-Za-z\\#"])([a-g])(sharpsharp|flatflat|sharp|flat|ss|ff|x|s|f)?(?![A-Za-z])/g, (_, n, a) =>
+    (n + acc[a || '']).replace(/^ees/, 'es').replace(/^aes/, 'as'));
+}
+// Deutsche Notennamen: h = H, b = B (niederländisch bes), heses usw.
+function fromDeutsch(s) {
+  return s.replace(/(?<![A-Za-z\\#"])(h|b)(isis|is|eses|es|s)?(?![A-Za-z])/g, (_, n, a) => n === 'h' ? 'b' + (a || '') : (a ? 'bes' + a : 'bes'));
+}
+// \tag midi {…} weglassen (nur für die MIDI-Ausgabe), \tag layout {…} behalten
+function stripTags(s) {
+  s = s.replace(/\\(?:keepWithTag|removeWithTag)\s+#?'?\w+/g, ' ');
+  let m; const re = /\\tag\s+#?'?(\w+)\s*/g;
+  while ((m = re.exec(s))) {
+    let j = m.index + m[0].length;
+    if (m[1] !== 'midi') { s = s.slice(0, m.index) + ' ' + s.slice(j); re.lastIndex = m.index; continue; }
+    if (s[j] === '{') j = balanced(s, j); else if (s.startsWith('<<', j)) { let d = 0; for (; j < s.length; j++) { if (s.startsWith('<<', j)) { d++; j++; } else if (s.startsWith('>>', j)) { d--; j++; if (!d) { j++; break; } } } }
+    else { while (j < s.length && !/\s/.test(s[j])) j++; }
+    s = s.slice(0, m.index) + ' ' + s.slice(j); re.lastIndex = m.index;
+  }
+  return s;
+}
 function clean(s) {
   s = stripComments(s);
+  if (/\\include\s+"deutsch\.ly"|\\language\s+"deutsch"/.test(s)) s = fromDeutsch(removeBlock(s, /\\header\s*\{/g));
+  if (/\\include\s+"english\.ly"|\\language\s+"english"/.test(s)) s = fromEnglish(removeBlock(s, /\\header\s*\{/g));
+  if (/\\include\s+"italiano\.ly"|\\language\s+"italiano"/.test(s)) s = fromItaliano(removeBlock(s, /\\header\s*\{/g));
+  s = s.replace(/(\\relative\s+[a-g](?:is|es|s)?[',]*)\s*\\context\s+Staff\s*=\s*"?(\w+)"?\s*(?:\\new\s+Voice)?\s*\{/g, '$1 { \\change Staff = "$2" ');   // Stimme mit fester Notenzeile
+  s = s.replace(/(\d\.*)(?=[rs]\d)/g, '$1 ');            // zusammengeschrieben: mid4r8
+  s = s.replace(/(\d\.*)\s*\*\s*(\d+(?:\/\d+)?)/g, '$1*$2');   // Dauer-Faktor mit Leerzeichen: a,8. * 5/6
+  s = s.replace(/(?<![\\\w])([a-g](?:isis|eses|is|es|s)?[',]*\d+\.*)(?=[a-g](?:isis|eses|is|es|s)?[',!?]*(?:\d|\s|$))/g, '$1 ');   // zusammengeschrieben: b16a
+  s = s.replace(/((?<![A-Za-z\\])(?:[a-g](?:isis|eses|is|es|s)?|[rs])[',]*[!?]?|>)[ \t]+(\d+\.*)(?=[\s|~\[\]()])/g, '$1$2');   // Dauer mit Leerzeichen: c 16
+  s = s.replace(/(?<=[a-z]['",]+)(?=[a-g](?:is|es|s)?['",\d\s])/g, ' ');   // zusammengeschrieben: sib'la
   s = s.replace(/#\(ly:set-option[^)]*\)/g, ' ');
   s = removeBlock(s, /\\header\s*\{/g);
   s = removeBlock(s, /\\paper\s*\{/g);
@@ -74,11 +115,18 @@ function clean(s) {
   s = removeBlock(s, /\\midi\s*\{/g);
   s = removeBlock(s, /\\markup(?:\s*\\override\s*#'\([^)]*\))*\s*\{/g);
   s = s.replace(/\\version\s+"[^"]*"/g, ' ');
-  s = s.replace(/\\(?:once\s*\\)?(?:override|revert)\s+[A-Za-z.-]+(?:\s*#'[\w-]+)?(?:\s*\.\s*[\w-]+)*(?:\s*=)?/g, ' ');   // Overrides: Eigenschaft weg, Wert fällt mit Scheme
+  s = s.replace(/\\(?:once\s*\\)?(?:override|revert)\s+[A-Za-z.-]+(?:\s*#'[\w-]+)?(?:\s*\.\s*[\w-]+)*(?:\s*=(?:\s*-?\d+(?:\.\d+)?(?=\s))?)?/g, ' ');   // Overrides: Eigenschaft weg, Wert fällt mit Scheme
   s = s.replace(/\\set\s+[A-Za-z.-]+\s*=\s*(?:"[^"]*"|\\\w+)?/g, ' ');
   s = s.replace(/\\scaleDurations\s*#'\(\s*(\d+)\s*\.\s*(\d+)\s*\)/g, ' \\times $1/$2 ');   // z. B. 18/16 gegen 3/4 (Var. 26)
+  s = stripTags(s);
+  for (let k = 0; k < 3; k++) s = s.replace(/\\after\s+\d+\.*\s+[-^_]?(?:\\[<>!]|\\[A-Za-z]+|\S+)/g, ' ');   // \after 16 \<  (Nachschlag-Dynamik)
+  s = s.replace(/\\[<>!](?![<>])/g, ' ');                                   // Crescendo-/Decrescendo-Gabeln
+  s = s.replace(/([a-gsr\d.',>])-(?=\s|$)/g, '$1').replace(/\s-\s/g, ' ');     // Richtungs-Strich ohne Inhalt
+  s = s.replace(/\\tweak\s+[\w.-]+\s+(?:#'\([^)]*\)|#?'?[-\w.]+)/g, ' ');   // \tweak Eigenschaft Wert
+  s = s.replace(/\\(?:omit|hide|undo)\s+[A-Za-z.]+/g, ' ');
+  s = s.replace(/\*(\d+)(?:\/(\d+))?\s*\*\s*(\d+)(?:\/(\d+))?/g, (_, a, b, c, d) => '*' + (+a * +c) + '/' + ((+b || 1) * (+d || 1)));   // s1*9/8 * 8
   s = stripScheme(s);
-  s = s.replace(/\\barNumberCheck\s+#\d+/g, ' ');
+  s = s.replace(/\\barNumberCheck\s+#?\d+/g, " ");
   s = s.replace(/\\(?:once\s*\\)?(?:override|revert)\s+[A-Za-z.]+\s*(?:#'[\w-]+)?(?:\s*\.\s*[\w-]+)*\s*(?:=\s*(?:#'\([^)]*\)|#'?[\w-]+(?:\s*\.\s*[\w-]+)*|#"[^"]*"|##[tf]|#-?[\d.]+|#\([^)]*\)|#[\w-]+))?/g, ' ');
   s = s.replace(/\\set\s+[A-Za-z.]+\s*=\s*(?:#'\([^)]*\)|#'?[\w-]+|#"[^"]*"|##[tf]|#-?[\d.]+|#\([^)]*\)|"[^"]*"|\\[\w]+)/g, ' ');
   s = s.replace(/\\unset\s+[A-Za-z.]+/g, ' ');
@@ -140,18 +188,29 @@ class Parser {
     }
   }
   item(st) {
-    const tk = this.toks[this.i++];
+    let tk = this.toks[this.i++];
+    if (tk === '-' ) return;
+    if (tk.length > 1 && tk.endsWith('-') && !tk.startsWith('\\')) tk = tk.slice(0, -1);   // s-\markup …
     if (tk === '{') return this.seq(st, '}');
     if (tk === '<<') return this.simul(st);
     if (tk === '|') { this.ctx.barchecks.push({ voice: st.voice, t: st.t }); return; }
     if (tk === '~') { const l = this.lastNotes(st); l.forEach(n => n.tieStart = true); return; }
     if (tk.startsWith('\\clef:')) { this.ctx.clefs.push({ voice: st.voice, staff: st.staff, t: st.t, clef: tk.slice(6) }); return; }
     if (tk.startsWith('\\change:')) { const n = this.staffNames[tk.slice(8)]; if (n) st.staff = n; return; }
-    if (tk === '\\transpose') {
+    if (tk === '\\transpose' || tk === '\\modalTranspose') {
       const a = this.toks[this.i++], b = this.toks[this.i++];
-      const dnOf = x => { const m = /^([a-g])\w*?([',]*)$/.exec(x); return STEPS.indexOf(m[1]) + 7 * (3 + (m[2].match(/'/g) || []).length - (m[2].match(/,/g) || []).length); };
-      const old = st.transDn || 0; st.transDn = old + dnOf(b) - dnOf(a);
-      this.item(st); st.transDn = old; return;
+      const pm = x => { const m = /^([a-g])(isis|eses|is|es|s)?([',]*)$/.exec(x); const step = STEPS.indexOf(m[1]);
+        const oct = 3 + (m[3].match(/'/g) || []).length - (m[3].match(/,/g) || []).length;
+        return { dn: step + 7 * oct, midi: 12 * (oct + 1) + SEMI[step] + { undefined: 0, is: 1, isis: 2, es: -1, eses: -2, s: -1 }[m[2]] }; };
+      const A = pm(a), B = pm(b);
+      const old = [st.transDn || 0, st.transSemi || 0, st.modal];
+      st.transDn = old[0] + B.dn - A.dn; st.transSemi = old[1] + B.midi - A.midi;
+      if (tk === '\\modalTranspose') {   // Transposition innerhalb einer Tonleiter: Vorzeichen aus der Tonleiter
+        const sc = this.toks[this.i++].slice(1), alt = {};
+        (this.vars[sc] || '').replace(/(?<![A-Za-z\\])([a-g])(isis|eses|is|es|s)?(?![A-Za-z])/g, (_, n, x) => { alt[STEPS.indexOf(n)] = { undefined: 0, is: 1, isis: 2, es: -1, eses: -2, s: -1 }[x]; });
+        st.modal = alt;
+      }
+      this.item(st); [st.transDn, st.transSemi, st.modal] = old; return;
     }
     if (tk === '\\relative') {
       let ref = 'f';
@@ -174,6 +233,12 @@ class Parser {
     }
     if (tk === '\\grace' || tk === '\\appoggiatura' || tk === '\\acciaccatura' || tk === '\\slashedGrace') {
       const g = st.grace; st.grace = tk === '\\appoggiatura' ? 'acc' : 'unacc'; this.item(st); st.grace = g; return;
+    }
+    if (tk === '\\repeat' && (this.toks[this.i] === 'unfold' || this.toks[this.i] === 'percent')) {
+      const n = +this.toks[this.i + 1]; this.i += 2;   // ausgeschriebene Wiederholung: Inhalt n-mal
+      const start = this.i;
+      for (let k = 0; k < n; k++) { this.i = start; this.item(st); }
+      return;
     }
     if (tk === '\\repeat') {
       this.i++; this.i++; // volta N
@@ -219,8 +284,24 @@ class Parser {
     }
     m = /^([a-g])(isis|eses|is|es|s)?([',]*)(=[',]*)?(!?)(\??)(\d+)?(\.*)(?:\*(\d+)(?:\/(\d+))?)?$/.exec(tk);
     if (m) return this.note(m, st);
-    if (tk === 'q') return;
-    throw new Error(`Unbekanntes Token "${tk}" (Stimme ${st.voice}, t=${st.t})`);
+    const bare = /^(\d+)(\.*)$/.exec(tk);
+    if (bare && st.last && st.last.length && st.last[0].type === 'note') {   // nackte Dauer = Ton wiederholen (ef16 16)
+      st.dur = [+bare[1], bare[2].length];
+      if (st.skip || st.grace) return;
+      const ticks = this.durTicks(st.dur[0], st.dur[1]) * st.scale[0] / st.scale[1];
+      const list = st.last.map(n => Object.assign({}, n, { onset: st.t, ticks, dur: st.dur[0], dots: st.dur[1], tieStart: false, tieEnd: false, orn: null }));
+      list.forEach(e => this.ev.push(e)); st.last = list; st.t += ticks; return;
+    }
+    const qm = /^q(\d+)?(\.*)$/.exec(tk);
+    if (qm) {   // Akkord wiederholen
+      if (qm[1]) st.dur = [+qm[1], qm[2].length];
+      const ticks = this.durTicks(st.dur[0], st.dur[1]) * st.scale[0] / st.scale[1];
+      if (st.skip || st.grace) return;
+      const chordId = 'c' + (this.ctx.chordId++), list = (st.lastChord || []).map(n => Object.assign({}, n, { onset: st.t, ticks, dur: st.dur[0], dots: st.dur[1], chord: chordId, tieStart: false, tieEnd: false, orn: null, tuplet: st.tuplet || undefined }));
+      list.forEach(e => this.ev.push(e)); st.last = list; st.t += ticks; return;
+    }
+    if (tk.includes('"')) return;   // Text (Anmerkungen, Markup-Reste)
+    throw new Error(`Unbekanntes Token "${tk}" (Stimme ${st.voice}, t=${st.t}) bei: ${this.toks.slice(Math.max(0, this.i - 8), this.i + 3).join(' ')}`);
   }
   skipItem() { // springt über einen Ausdruck, ohne ihn auszuwerten
     const tk = this.toks[this.i++];
@@ -233,9 +314,14 @@ class Parser {
     // relativ (Bezug = vorige Note) oder absolut (c = C3, c' = C4)
     let dn = !st.rel || st.prev == null ? step + 21 : step + 7 * Math.round((st.prev - step) / 7);
     dn += ((m[3].match(/'/g) || []).length - (m[3].match(/,/g) || []).length) * 7;
-    const out = dn + (st.transDn || 0); // \transpose um ganze Oktaven
-    const oct = Math.floor(out / 7);
-    return { step, alter, oct, dn, midi: 12 * (oct + 1) + SEMI[step] + alter };
+    if (!st.transDn && !st.transSemi) { const oct = Math.floor(dn / 7); return { step, alter, oct, dn, midi: 12 * (oct + 1) + SEMI[step] + alter }; }
+    // \transpose: Stufe verschieben, Vorzeichen so, dass der Halbtonabstand stimmt (bzw. aus der Tonleiter bei \modalTranspose)
+    const out = dn + (st.transDn || 0), oct = Math.floor(out / 7), nstep = ((out % 7) + 7) % 7;
+    const natural = 12 * (oct + 1) + SEMI[nstep];
+    let nalter;
+    if (st.modal) nalter = st.modal[nstep] || 0;
+    else nalter = (12 * (Math.floor(dn / 7) + 1) + SEMI[step] + alter + (st.transSemi || 0)) - natural;
+    return { step: nstep, alter: nalter, oct, dn, midi: natural + nalter };
   }
   note(m, st) {
     if (this.toks[this.i] === '\\rest') { // Note mit \rest = Pause an fester Position
@@ -259,9 +345,9 @@ class Parser {
   chord(tk, st) {
     // tk wie "<c" ... wir sammeln bis zum Token mit ">"
     let body = tk.slice(1), durTok = '';
-    while (!body.includes('>')) body += ' ' + this.toks[this.i++];
+    while (!body.includes('>')) { if (this.i >= this.toks.length) throw new Error('Akkord ohne Ende: <' + body.slice(0, 40)); body += ' ' + this.toks[this.i++]; }
     const k = body.indexOf('>'); durTok = body.slice(k + 1); body = body.slice(0, k);
-    const notes = body.split(/\s+/).filter(Boolean).filter(x => !x.startsWith('\\'));
+    const notes = body.split(/\s+/).filter(Boolean).filter(x => !x.startsWith('\\') && !/^[~()\[\]]+$/.test(x)).map(x => x.replace(/[~()\[\]]+$/, ''));
     const dm = /^(\d+)?(\.*)/.exec(durTok);
     if (dm[1]) st.dur = [+dm[1], dm[2].length];
     const ticks = this.durTicks(st.dur[0], st.dur[1]) * st.scale[0] / st.scale[1];
@@ -269,7 +355,8 @@ class Parser {
     let ref = st.prev;
     for (const n of notes) {
       const m = /^([a-g])(isis|eses|is|es|s)?([',]*)(!?)(\??)/.exec(n);
-      const p = this.pitch([null, m[1], m[2], m[3]], { prev: ref, transDn: st.transDn, rel: st.rel });
+      if (!m) throw new Error(`Akkord nicht lesbar: <${body}>`);
+      const p = this.pitch([null, m[1], m[2], m[3]], { prev: ref, transDn: st.transDn, transSemi: st.transSemi, modal: st.modal, rel: st.rel });
       ref = p.dn; if (first == null) first = p.dn;
       if (st.skip) continue;
       const e = { type: 'note', voice: st.voice, staff: st.staff, onset: st.t, ticks, dur: st.dur[0], dots: st.dur[1],
@@ -279,7 +366,7 @@ class Parser {
       this.ev.push(e); list.push(e);
     }
     st.prev = first;
-    if (!st.grace && !st.skip) { st.last = list; st.t += ticks; }
+    if (!st.grace && !st.skip) { st.last = list; st.lastChord = list; st.t += ticks; }
   }
   addRest(st, type, d, dots, mult, measureRest) {
     st.dur = [d, dots];
@@ -299,7 +386,9 @@ class Parser {
       if (this.toks[this.i] === '\\\\') { this.i++; continue; }
       st.t = start; st.prev = prev0;
       st.voice = branch === 0 ? saveVoice : saveVoice + '.' + branch;
+      const before = this.ev.length;
       this.item(st);
+      if (branch === 0 && this.ev.length === before) { maxT = Math.max(maxT, st.t); continue; }   // z. B. \global: keine eigene Stimme
       if (branch === 0) { firstPrev = st.prev; firstLast = st.last; }
       maxT = Math.max(maxT, st.t); branch++;
     }
@@ -318,6 +407,12 @@ function parseLily(src, opts = {}) {
     if (m.index > scoreIdx && scoreIdx >= 0) break;
     let i = m.index + m[0].length;
     let j = i;
+    const relPar = /^\\relative\s+[a-g](?:isis|eses|is|es|s)?[',]*\s*(?=<<)/.exec(s.slice(i, i + 40));
+    if (relPar) { // left = \relative c' << {…} \\ {…} >>
+      let d = 0, k = i + relPar[0].length;
+      for (; k < s.length; k++) { if (s.startsWith('<<', k)) { d++; k++; } else if (s.startsWith('>>', k)) { d--; k++; if (!d) { k++; break; } } }
+      vars[m[1]] = s.slice(i, k); re.lastIndex = k; continue;
+    }
     if (s.startsWith('<<', i)) { // Variable aus parallelen Stimmen: soprano = << \sopranoOne \\ \sopranoTwo >>
       let d = 0, k = i;
       for (; k < s.length; k++) { if (s.startsWith('<<', k)) { d++; k++; } else if (s.startsWith('>>', k)) { d--; k++; if (!d) { k++; break; } } }
@@ -328,14 +423,15 @@ function parseLily(src, opts = {}) {
     const back = () => { re.lastIndex = m.index + m[0].trimEnd().length; };   // Zeilenumbruch nicht verschlucken
     if (b < 0) { back(); continue; }
     const between = s.slice(i, b);
-    if (!/^\s*(\\relative\s+[a-g][',]*\s*|\\transpose[^{]*)?$/.test(between) && !/^\s*$/.test(between)) { back(); continue; }
+    if (!/^\s*(\\relative(?:\s+[a-g](?:isis|eses|is|es|s)?[',]*)?\s*|\\transpose[^{]*|\\new\s+(?:Piano|Grand)Staff\s*)?$/.test(between) && !/^\s*$/.test(between)) { back(); continue; }
     j = balanced(s, b);
     vars[m[1]] = s.slice(i, j);
     re.lastIndex = j;
   }
   // Score: Systeme und ihre Stimmen
   const sb = s.indexOf('{', scoreIdx), se = balanced(s, sb);
-  const score = s.slice(sb + 1, se - 1);
+  // Variablen, die selbst Notensysteme enthalten (staffPiano = \new PianoStaff {...}), in den Score einsetzen
+  const score = s.slice(sb + 1, se - 1).replace(/\\([A-Za-z]+)/g, (x, n) => vars[n] && /\\(?:new|context)\s+Staff/.test(vars[n]) ? ' ' + vars[n] + ' ' : x);
   const staffRe = /\\(?:context|new)\s+Staff\s*(?:=\s*"?(\w+)"?)?/g;
   const staffPos = []; while ((m = staffRe.exec(score))) staffPos.push({ name: m[1] || ('s' + staffPos.length), at: m.index + m[0].length });
   const staffNames = {}; staffPos.forEach((p, k) => staffNames[p.name] = k + 1);
@@ -343,23 +439,50 @@ function parseLily(src, opts = {}) {
   const parser = new Parser(vars, staffNames);
   const voices = [];
   staffPos.forEach((p, k) => {
-    const seg = score.slice(p.at, k + 1 < staffPos.length ? staffPos[k + 1].at : score.length);
+    let seg = score.slice(p.at, k + 1 < staffPos.length ? staffPos[k + 1].at : score.length);
     // Inline-Einstellungen im Score (\time, \key, \clef)
     const ti = /\\time\s+(\d+)\/(\d+)/.exec(seg); if (ti && !ctx.time) ctx.time = { num: +ti[1], den: +ti[2] };
     const ki = /\\key\s+([a-g]\w*)\s+\\(major|minor)/.exec(seg); if (ki && !ctx.key) ctx.key = parseKey(ki[1], ki[2]);
-    const ci = /\\clef:(\w+)/.exec(seg);
+    const ci0 = /\\clef:(\w+)/.exec(seg);
+    // Noten direkt im Score (ohne Variable): den Block des Systems selbst als Stimme lesen
+    if (![...seg.matchAll(/\\([A-Za-z]+)/g)].some(x => vars[x[1]] != null && /[a-g]\d|[a-g][',]|\br\d|\\relative/.test(vars[x[1]]))) {
+      let j = 0; while (j < seg.length && /\s/.test(seg[j])) j++;
+      if (seg.startsWith('\\with', j)) { const w = seg.indexOf('{', j); j = balanced(seg, w); while (/\s/.test(seg[j])) j++; }
+      let body = null;
+      if (seg[j] === '{') body = seg.slice(j, balanced(seg, j));
+      else if (seg.startsWith('<<', j)) { let d = 0, k = j; for (; k < seg.length; k++) { if (seg.startsWith('<<', k)) { d++; k++; } else if (seg.startsWith('>>', k)) { d--; k++; if (!d) { k++; break; } } } body = seg.slice(j, k); }
+      if (body && /[a-g]\d|[a-g][',]/.test(body)) { const vn = 'zzStaff' + String.fromCharCode(65 + k); vars[vn] = body; seg = seg.replace(body, ' \\' + vn + ' '); }
+    }
     let refs = [...seg.matchAll(/\\([A-Za-z]+)/g)].map(x => x[1]).filter(n => vars[n] != null);
     // zusammengesetzte Variablen (<< \a \\ \b >>) in ihre Stimmen auflösen
-    refs = refs.flatMap(n => /^\s*<</.test(vars[n]) ? [...vars[n].matchAll(/\\([A-Za-z]+)/g)].map(x => x[1]).filter(x => vars[x] != null) : [n]);
+    // auch verschachtelt: right = { \clef treble << \sopran \alt >> }
+    const isMus = t => /[a-g]\d|[a-g][',]|\br\d|\\relative/.test(t.replace(/\\[A-Za-z]+/g, ' '));
+    const flat = (n, depth) => {
+      const body = vars[n];
+      if (depth > 4 || isMus(body)) return [n];
+      const inner = [...body.matchAll(/\\([A-Za-z]+)/g)].map(x => x[1]).filter(x => vars[x] != null);
+      const sub = inner.flatMap(x => flat(x, depth + 1));
+      if (!sub.some(x => isMus(vars[x]))) return [n];
+      if (!ci0) { const c2 = /\\clef:(\w+)/.exec(body); if (c2) ciVar = c2; }
+      return sub;
+    };
+    let ciVar = null;
+    refs = refs.flatMap(n => flat(n, 0));
+    const ci = ci0 || ciVar;
     refs.forEach(n => {
       const body = vars[n];
       const isMusic = /[a-g]\d|[a-g][',]|\br\d|\\relative/.test(body);
-      if (!isMusic) { const save = ctx.events.length; parser.parseVoiceVar(n, 'g', k + 1, ctx); ctx.events.length = save; return; }
+      if (!isMusic) { const save = ctx.events.length; try { parser.parseVoiceVar(n, 'g', k + 1, ctx); } catch (e) { /* Dynamik/Layout-Spur: Fehler egal */ } ctx.events.length = save; return; }
       const vid = String(voices.length + 1);
       if (ci && !voices.some(v => v.staff === k + 1)) ctx.clefs.push({ voice: vid, staff: k + 1, t: -1, clef: ci[1] });
       voices.push({ id: vid, staff: k + 1, name: n });
       parser.parseVoiceVar(n, vid, k + 1, ctx);
     });
+  });
+  // Stimmen, die sich selbst einer Notenzeile zuordnen (\context Staff = "one" in der Variablen): dort beheimaten
+  voices.forEach(v => {
+    const m = /^\s*\\relative[^{]*\{\s*\\change:(\w+)/.exec(vars[v.name] || '');
+    if (m && staffNames[m[1]]) v.staff = staffNames[m[1]];
   });
   if (!ctx.key) ctx.key = { fifths: 0, mode: 'major', tonicStep: 0, tonicAlter: 0 };
   if (!ctx.time) ctx.time = { num: 4, den: 4 };

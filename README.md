@@ -26,6 +26,7 @@ node tools/build.js          # src/ -> index.html
 ## Quellen & Lizenzen
 
 - Notentexte: [Mutopia Project](https://www.mutopiaproject.org) – Inventionen (BWV 772–786) unter CC BY-SA 3.0 (u. a. jeff covey, Urs Metzger), Sinfonien (BWV 787–801) gesetzt von Olivier Vermersch (Sinfonia 2: Public Domain). Lizenzangaben je Stück siehe Kopfzeile in `tools/ly/`.
+- Wohltemperiertes Klavier I: Mutopia Project (u. a. Davide Castellone, Stelios Samelis, Sven Reichard, Itay Perl, Andrew Hawryluk, Urs Metzger, Heikki Junes; Public Domain bzw. CC BY-SA 4.0) und für Nr. 7, 9 (Präludium und Fuge), 13, 14, 18, 19, 21, 22, 23: Knute Snortum, github.com/ksnortum/bach-well-tempered-1, CC BY-SA 4.0. Lizenz je Stück in der Kopfzeile in `tools/ly/`.
 - Goldberg-Variationen: Mutopia Project, CC BY-SA 3.0 – Aria, Var. 1–2 JD Erickson; Var. 18 Benjamin D. Esham; übrige Variationen Hajo Dezelski (Quelle: Bach-Gesellschaft).
 - Offline-Dateien: Flügel-Samples „Salamander Grand Piano V2“ (Alexander Holm, CC BY 3.0, über Tone.js); Notensatz Verovio (RISM Digital, LGPL-3.0) in `lib/`; Schrift EB Garamond (SIL OFL) in `fonts/`.
 - Schlüssel-Symbole im Analyse-Fenster: Glyphen aus GNU FreeFont (FreeSerif), GPLv3 mit Font-Ausnahme.

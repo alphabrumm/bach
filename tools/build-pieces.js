@@ -26,15 +26,16 @@ for (let bwv = 772; bwv <= 801; bwv++) {
 // Wohltemperiertes Klavier I
 const WTK_KEYS = ['C-Dur', 'c-Moll', 'Cis-Dur', 'cis-Moll', 'D-Dur', 'd-Moll', 'Es-Dur', 'es-Moll', 'E-Dur', 'e-Moll', 'F-Dur', 'f-Moll',
   'Fis-Dur', 'fis-Moll', 'G-Dur', 'g-Moll', 'As-Dur', 'gis-Moll', 'A-Dur', 'a-Moll', 'B-Dur', 'b-Moll', 'H-Dur', 'h-Moll'];
+const FUGUE_VOICES = [4, 3, 3, 5, 4, 3, 3, 3, 3, 2, 3, 4, 3, 4, 3, 4, 4, 4, 3, 4, 3, 5, 4, 4];
 for (let i = 0; i < 24; i++) for (const kind of ['Praeludium', 'Fuga']) {
   const bwv = 846 + i, id = `bwv${bwv}${kind === 'Fuga' ? 'f' : 'p'}`;
   const meta = { book: 'wtk1', id, bwv, kind, num: i + 1, title: `${kind === 'Fuga' ? 'Fuge' : 'Präludium'} ${i + 1}`, keyName: WTK_KEYS[i],
     license: 'Mutopia Project' };
   const f = path.join(__dirname, 'ly', id + '.ly');
   if (fs.existsSync(f)) {
-    const src = fs.readFileSync(f, 'utf8');
-    const voices = (src.match(/\\new Voice/g) || []).length;
-    meta.voicesLabel = kind === 'Fuga' ? `${voices || 4}-stimmige Fuge` : '';
+    const head = fs.readFileSync(f, 'utf8').split('\n')[0];
+    const lic = /–\s*(.+)$/.exec(head); if (lic) meta.license = lic[1].replace(/^Mutopia-[\d\/-]+,\s*/, 'Mutopia Project, ');
+    meta.voicesLabel = kind === 'Fuga' ? `${FUGUE_VOICES[i]}-stimmige Fuge` : '';
     addPiece(f, meta, WTK_KEYS[i]);
   } else catalog.push(Object.assign({ available: false }, meta));
 }
