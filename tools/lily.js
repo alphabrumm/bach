@@ -52,6 +52,19 @@ function removeBlock(s, re) { // entfernt "\cmd { ... }" inklusive Klammerinhalt
   }
   return s;
 }
+// Scheme-Ausdrücke (#'(…), #(…), #"…", #t, #-0.5, #+inf.0 …) entfernen – sie sind nie Musik
+function stripScheme(s) {
+  let out = '', i = 0;
+  while (i < s.length) {
+    if (s[i] !== '#') { out += s[i++]; continue; }
+    let j = i + 1; while (s[j] === '#' || s[j] === "'" || s[j] === '`') j++;
+    if (s[j] === '(') { let d = 0; for (; j < s.length; j++) { if (s[j] === '"') { j = s.indexOf('"', j + 1); continue; } if (s[j] === '(') d++; else if (s[j] === ')') { d--; if (!d) { j++; break; } } } }
+    else if (s[j] === '"') j = s.indexOf('"', j + 1) + 1;
+    else while (j < s.length && /[^\s{}<>]/.test(s[j]) && !(s[j] === '\\')) j++;
+    out += ' '; i = j;
+  }
+  return out;
+}
 function clean(s) {
   s = stripComments(s);
   s = s.replace(/#\(ly:set-option[^)]*\)/g, ' ');
@@ -59,8 +72,12 @@ function clean(s) {
   s = removeBlock(s, /\\paper\s*\{/g);
   s = removeBlock(s, /\\layout\s*\{/g);
   s = removeBlock(s, /\\midi\s*\{/g);
-  s = removeBlock(s, /\\markup\s*\{/g);
+  s = removeBlock(s, /\\markup(?:\s*\\override\s*#'\([^)]*\))*\s*\{/g);
   s = s.replace(/\\version\s+"[^"]*"/g, ' ');
+  s = s.replace(/\\(?:once\s*\\)?(?:override|revert)\s+[A-Za-z.-]+(?:\s*#'[\w-]+)?(?:\s*\.\s*[\w-]+)*(?:\s*=)?/g, ' ');   // Overrides: Eigenschaft weg, Wert fällt mit Scheme
+  s = s.replace(/\\set\s+[A-Za-z.-]+\s*=\s*(?:"[^"]*"|\\\w+)?/g, ' ');
+  s = s.replace(/\\scaleDurations\s*#'\(\s*(\d+)\s*\.\s*(\d+)\s*\)/g, ' \\times $1/$2 ');   // z. B. 18/16 gegen 3/4 (Var. 26)
+  s = stripScheme(s);
   s = s.replace(/\\barNumberCheck\s+#\d+/g, ' ');
   s = s.replace(/\\(?:once\s*\\)?(?:override|revert)\s+[A-Za-z.]+\s*(?:#'[\w-]+)?(?:\s*\.\s*[\w-]+)*\s*(?:=\s*(?:#'\([^)]*\)|#'?[\w-]+(?:\s*\.\s*[\w-]+)*|#"[^"]*"|##[tf]|#-?[\d.]+|#\([^)]*\)|#[\w-]+))?/g, ' ');
   s = s.replace(/\\set\s+[A-Za-z.]+\s*=\s*(?:#'\([^)]*\)|#'?[\w-]+|#"[^"]*"|##[tf]|#-?[\d.]+|#\([^)]*\)|"[^"]*"|\\[\w]+)/g, ' ');
@@ -74,6 +91,7 @@ function clean(s) {
   s = s.replace(/\\new\s+Voice(?:\s*=\s*"?\w+"?)?/g, ' ');
   s = s.replace(/[-^_]"[^"]*"/g, ' ');                 // Text-Anmerkungen
   s = s.replace(/[-^_](?=\\)/g, ' ');                   // Richtung vor Artikulation
+  s = s.replace(/[\^_](?=[\[\]()~\s])/g, m => ' ');      // Richtung vor Balken/Bogen/Haltebogen oder allein
   s = s.replace(/[-^_][.>^+!_|]/g, ' ');                 // Kurz-Artikulationen
   s = s.replace(/(?<=[\d\]a-z>.'),])[-^_]\d+/g, ' ');   // Fingersätze
   s = s.replace(/\\\(|\\\)/g, ' ');
@@ -172,7 +190,7 @@ class Parser {
         const endI = this.i;
         alts.forEach((ai, k) => {
           this.i = ai; const sk = st.skip;
-          if (k < alts.length - 1) st.skip = true;
+          if (k !== (this.ctx.altKeep === 'first' ? 0 : alts.length - 1)) st.skip = true;
           this.item(st); st.skip = sk;
         });
         this.i = endI;
@@ -199,7 +217,7 @@ class Parser {
       this.addRest(st, m[1] === 's' ? 'space' : 'rest', st.dur[0], st.dur[1], mult, m[1] === 'R');
       return;
     }
-    m = /^([a-g])(isis|eses|is|es|s)?([',]*)(=[',]*)?(!?)(\??)(\d+)?(\.*)(?:\*(\d+))?$/.exec(tk);
+    m = /^([a-g])(isis|eses|is|es|s)?([',]*)(=[',]*)?(!?)(\??)(\d+)?(\.*)(?:\*(\d+)(?:\/(\d+))?)?$/.exec(tk);
     if (m) return this.note(m, st);
     if (tk === 'q') return;
     throw new Error(`Unbekanntes Token "${tk}" (Stimme ${st.voice}, t=${st.t})`);
@@ -224,13 +242,13 @@ class Parser {
       this.i++;
       st.prev = this.pitch(m, st).dn; // die Tonhöhe der Pause gilt als Bezug für die nächste relative Note
       if (m[7]) st.dur = [+m[7], m[8].length];
-      return this.addRest(st, 'rest', st.dur[0], st.dur[1], 1);
+      return this.addRest(st, 'rest', st.dur[0], st.dur[1], m[9] ? +m[9] / (m[10] ? +m[10] : 1) : 1);
     }
     const p = this.pitch(m, st);
     st.prev = p.dn;
     if (m[7]) st.dur = [+m[7], m[8].length];
     if (st.skip) return;
-    const ticks = st.grace ? 0 : this.durTicks(st.dur[0], st.dur[1]) * st.scale[0] / st.scale[1] * (m[9] ? +m[9] : 1);
+    const ticks = st.grace ? 0 : this.durTicks(st.dur[0], st.dur[1]) * st.scale[0] / st.scale[1] * (m[9] ? +m[9] / (m[10] ? +m[10] : 1) : 1);
     const e = { type: 'note', voice: st.voice, staff: st.staff, onset: st.t, ticks, dur: st.dur[0], dots: st.dur[1],
       step: p.step, alter: p.alter, oct: p.oct, midi: p.midi, forced: !!m[5], cautionary: !!m[6] };
     if (st.grace) { e.grace = st.grace; this.ev.push(e); return; } // Vorschlag: keine eigene Zeit
@@ -290,7 +308,7 @@ class Parser {
   }
 }
 
-function parseLily(src) {
+function parseLily(src, opts = {}) {
   const s = clean(src);
   // Variablen
   const vars = {};
@@ -300,11 +318,17 @@ function parseLily(src) {
     if (m.index > scoreIdx && scoreIdx >= 0) break;
     let i = m.index + m[0].length;
     let j = i;
+    if (s.startsWith('<<', i)) { // Variable aus parallelen Stimmen: soprano = << \sopranoOne \\ \sopranoTwo >>
+      let d = 0, k = i;
+      for (; k < s.length; k++) { if (s.startsWith('<<', k)) { d++; k++; } else if (s.startsWith('>>', k)) { d--; k++; if (!d) { k++; break; } } }
+      vars[m[1]] = s.slice(i, k); re.lastIndex = k; continue;
+    }
     // Ausdruck: optional \relative X, dann { ... }
     const b = s.indexOf('{', i);
-    if (b < 0) continue;
+    const back = () => { re.lastIndex = m.index + m[0].trimEnd().length; };   // Zeilenumbruch nicht verschlucken
+    if (b < 0) { back(); continue; }
     const between = s.slice(i, b);
-    if (!/^\s*(\\relative\s+[a-g][',]*\s*|\\transpose[^{]*)?$/.test(between) && !/^\s*$/.test(between)) continue;
+    if (!/^\s*(\\relative\s+[a-g][',]*\s*|\\transpose[^{]*)?$/.test(between) && !/^\s*$/.test(between)) { back(); continue; }
     j = balanced(s, b);
     vars[m[1]] = s.slice(i, j);
     re.lastIndex = j;
@@ -315,7 +339,7 @@ function parseLily(src) {
   const staffRe = /\\(?:context|new)\s+Staff\s*(?:=\s*"?(\w+)"?)?/g;
   const staffPos = []; while ((m = staffRe.exec(score))) staffPos.push({ name: m[1] || ('s' + staffPos.length), at: m.index + m[0].length });
   const staffNames = {}; staffPos.forEach((p, k) => staffNames[p.name] = k + 1);
-  const ctx = { events: [], clefs: [], repeats: [], barchecks: [], key: null, time: null, partial: 0, tupId: 0, chordId: 0 };
+  const ctx = { events: [], clefs: [], repeats: [], barchecks: [], key: null, time: null, partial: 0, tupId: 0, chordId: 0, altKeep: opts.alt };
   const parser = new Parser(vars, staffNames);
   const voices = [];
   staffPos.forEach((p, k) => {
@@ -324,7 +348,9 @@ function parseLily(src) {
     const ti = /\\time\s+(\d+)\/(\d+)/.exec(seg); if (ti && !ctx.time) ctx.time = { num: +ti[1], den: +ti[2] };
     const ki = /\\key\s+([a-g]\w*)\s+\\(major|minor)/.exec(seg); if (ki && !ctx.key) ctx.key = parseKey(ki[1], ki[2]);
     const ci = /\\clef:(\w+)/.exec(seg);
-    const refs = [...seg.matchAll(/\\([A-Za-z]+)/g)].map(x => x[1]).filter(n => vars[n] != null);
+    let refs = [...seg.matchAll(/\\([A-Za-z]+)/g)].map(x => x[1]).filter(n => vars[n] != null);
+    // zusammengesetzte Variablen (<< \a \\ \b >>) in ihre Stimmen auflösen
+    refs = refs.flatMap(n => /^\s*<</.test(vars[n]) ? [...vars[n].matchAll(/\\([A-Za-z]+)/g)].map(x => x[1]).filter(x => vars[x] != null) : [n]);
     refs.forEach(n => {
       const body = vars[n];
       const isMusic = /[a-g]\d|[a-g][',]|\br\d|\\relative/.test(body);
@@ -342,9 +368,19 @@ function parseLily(src) {
 
 // ---------- Zu Stück-JSON verarbeiten und prüfen ----------
 const CLEFS = { treble: ['G', 2], violin: ['G', 2], G: ['G', 2], bass: ['F', 4], F: ['F', 4], alto: ['C', 3], tenor: ['C', 4], soprano: ['C', 1], C: ['C', 3] };
-function buildPiece(src, meta) {
-  const { ctx, voices, staffCount } = parseLily(src);
+// opts: alt ('first' = erste statt letzte Klammer), from/to (Ausschnitt in Ticks), time (andere Taktart, z. B. Var. 16)
+function buildPiece(src, meta, opts = {}) {
+  const { ctx, voices, staffCount } = parseLily(src, opts);
+  if (opts.time) ctx.time = opts.time;
+  if (opts.from != null || opts.to != null) {
+    const a = opts.from || 0, b = opts.to == null ? Infinity : opts.to;
+    ctx.events = ctx.events.filter(e => e.voice === 'g' || (e.onset >= a - 1e-6 && e.onset < b - 1e-6));
+    ctx.events.forEach(e => { if (e.voice !== 'g') { e.onset -= a; if (e.onset + e.ticks > b - a) e.ticks = b - a - e.onset; } });
+    ctx.barchecks = ctx.barchecks.filter(x => x.t >= a && x.t <= b).map(x => Object.assign({}, x, { t: x.t - a }));
+    ctx.partial = 0;
+  }
   const measure = TPW * ctx.time.num / ctx.time.den;
+  if (opts.clipLast) ctx.events.forEach(e => { const m0 = Math.floor(e.onset / measure + 1e-9); if (e.onset + e.ticks > (m0 + 1) * measure + 1e-6 && e.onset >= opts.clipLast - 1e-6) e.ticks = (m0 + 1) * measure - e.onset; });
   const shift = ctx.partial ? measure - ctx.partial : 0;
   const ev = ctx.events.filter(e => e.voice !== 'g');
   ev.forEach(e => e.onset += shift);

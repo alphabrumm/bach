@@ -87,7 +87,9 @@ function renderToc() {
     const gk = n => [15, 21, 25].includes(n) ? 'g-Moll' : 'G-Dur';
     const ge = (label, n, id) => tocEntry(label, gk(n), 988, id, avail(id));
     $('#tocInv').innerHTML = ge('Aria', 0, 'bwv988a') + Array.from({ length: 15 }, (_, i) => ge('Variatio ' + (i + 1), i + 1, 'bwv988v' + (i + 1))).join('');
-    $('#tocSin').innerHTML = Array.from({ length: 15 }, (_, i) => ge('Variatio ' + (i + 16), i + 16, 'bwv988v' + (i + 16))).join('') + ge('Aria da capo', 31, 'bwv988da');
+    // Variatio 16 (Ouverture) wechselt die Taktart und steht deshalb als zwei Teile im Inhalt
+    $('#tocSin').innerHTML = ge('Variatio 16 · Ouverture', 16, 'bwv988v16a') + ge('Variatio 16 · Fughetta', 16, 'bwv988v16b') +
+      Array.from({ length: 14 }, (_, i) => ge('Variatio ' + (i + 17), i + 17, 'bwv988v' + (i + 17))).join('') + ge('Aria da capo', 31, 'bwv988da');
   } else {
     $('#tocInv').innerHTML = WTK_KEYS.map((k, i) => tocEntry('Präludium ' + (i + 1), k, 846 + i, `bwv${846 + i}p`, avail(`bwv${846 + i}p`))).join('');
     $('#tocSin').innerHTML = WTK_KEYS.map((k, i) => tocEntry('Fuge ' + (i + 1), k, 846 + i, `bwv${846 + i}f`, avail(`bwv${846 + i}f`))).join('');
