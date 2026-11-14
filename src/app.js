@@ -12,7 +12,7 @@ const VOICE_COLORS = { 1: 'var(--v1)', 2: 'var(--v2)', 3: 'var(--v3)', 4: 'var(-
 const DUR_NAMES = { '1': 'Ganze', '2': 'Halbe', '4': 'Viertel', '8': 'Achtel', '16': 'Sechzehntel', '32': 'Zweiunddreißigstel' };
 
 // ---------- Einstellungen ----------
-const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, orn: true, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
+const DEFAULTS = { col: 'voices', harm: true, ghosts: true, zoom: 1, orn: true, follow: false, tempoPct: 75, room: 'halle', instr: 'grand', mute: [], sampleBase: 'https://tonejs.github.io/audio/salamander/' };
 let S = Object.assign({}, DEFAULTS);
 try { Object.assign(S, JSON.parse(localStorage.getItem('bach.settings') || '{}')); } catch (e) {}
 const save = () => { try { localStorage.setItem('bach.settings', JSON.stringify(S)); } catch (e) {} };
@@ -365,6 +365,7 @@ function syncSelTools() {
   const on = !!(selRange && layout);
   $('#selTools').classList.toggle('show', on);
   $('#stSel').classList.toggle('off', selHidden);
+  $('#stFollow').classList.toggle('off', !S.follow);
   $('#stInfo').classList.toggle('off', !infoShown());
 }
 function toggleInfo() {
@@ -439,6 +440,7 @@ function toggleInfo() {
     el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
   }
   $('#stSel').onclick = () => { selHidden = !selHidden; markSelection(); };
+  $('#stFollow').onclick = () => { S.follow = !S.follow; save(); syncSelTools(); toast(S.follow ? 'Markierung folgt dem Abspielkopf' : 'Markierung bleibt stehen'); };
   $('#stInfo').onclick = toggleInfo;
   $('#stClear').onclick = () => { clearSelection(); hideCards(); };
 })();
@@ -1248,12 +1250,24 @@ function frame() {
   if (!playing) return;
   const t = Math.min(curTick(), pl.end - 0.01);
   if (t >= 0) {
-    playhead = t; updateCursor();
+    playhead = t; updateCursor(); followPlayhead(t);
     const ids = model.notes.filter(n => n.onset <= t && n.onset + n.ticks > t && audible(n)).map(n => n.id);
     if (ids.join() !== onSet.join()) { flashNotes(ids); onSet = ids; }
     autoScroll();
   }
   raf = requestAnimationFrame(frame);
+}
+// Markierung folgt dem Abspielkopf: erreicht er die erste Note hinter dem markierten Abschnitt,
+// rückt das Rechteck um seine eigene Länge weiter
+function firstOnsetFrom(tick) { const n = playable.find(x => x.onset >= tick - 1e-6 && !x.grace); return n ? n.onset : Infinity; }
+function followPlayhead(t) {
+  if (!S.follow || !selRange || loopOn || handleDrag) return;
+  let { a, b } = selRange, moved = false;
+  const len = b - a + 1, N = model.measures;
+  while (b < N && t >= firstOnsetFrom(b * MEASURE)) { a = b + 1; b = Math.min(N, b + len); moved = true; }
+  if (!moved) return;
+  selRange = { a, b }; markSelection();
+  if (infoShown() && !selNote) showRangeInfo();
 }
 function autoScroll() {
   if (Date.now() - lastUserScroll < 2000) return;
@@ -1293,6 +1307,66 @@ function buildChips() {
 $('#roomSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.room = b.dataset.r; save(); syncPanel(); if (audio.ctx) audio.setRoom(S.room); else audio.ensure(); toast('Raum: ' + ROOMS[S.room].name); };
 $('#instr').value = S.instr;
 $('#instr').onchange = () => { S.instr = $('#instr').value; save(); audio.ensure(); if (S.instr === 'grand') audio.loadSamples(); };
+
+// ---------- Tastenkürzel (Notenansicht) ----------
+function cursorVisible() {
+  const p = tickToPos(playhead), sc = $('#scroller'); if (!p) return;
+  const top = p.top + pageEl.offsetTop, bottom = top + p.h;
+  if (top < sc.scrollTop + 10 || bottom > sc.scrollTop + sc.clientHeight - 40) sc.scrollTo({ top: Math.max(1, top - sc.clientHeight * 0.25), behavior: 'smooth' });
+}
+function jumpTo(tick, audition) {
+  tick = Math.max(0, Math.min(TOTAL - 1, tick));
+  if (playing) { startPlayback(tick); return; }
+  playhead = tick; updateCursor(); cursorVisible();
+  if (audition) {   // angesprungenen Zusammenklang kurz anspielen
+    audio.ensure();
+    const ns = playable.filter(n => !n.grace && Math.abs(n.onset - tick) < 1e-6 && audible(n));
+    ns.forEach(n => audio.note(n.midi, audio.now() + 0.02, Math.min(0.9, Math.max(0.25, n.ticks * spt())), 0.7, n.role));
+    flashNotes(ns.map(n => n.id)); clearTimeout(jumpTo.t); jumpTo.t = setTimeout(() => flashNotes([]), 450);
+  }
+}
+const measStart = k => (k - 1) * MEASURE;
+document.addEventListener('keydown', e => {
+  if (!$('#scoreView').classList.contains('show') || !model) return;
+  const tg = e.target; if (tg && (tg.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName) && tg.type !== 'range')) return;
+  const k = e.key, mod = e.metaKey || e.ctrlKey, alt = e.altKey, eps = 1e-6;
+  const here = playing ? curTick() : playhead;
+  const curM = Math.floor(here / MEASURE + eps) + 1;
+  if (k === ' ') { e.preventDefault(); if (document.activeElement && document.activeElement.tagName === 'BUTTON') document.activeElement.blur(); $('#play').click(); return; }
+  if (k === 'ArrowLeft' || k === 'ArrowRight') {
+    e.preventDefault();
+    const right = k === 'ArrowRight';
+    if (mod) {            // Übe-Abschnitte
+      const secs = sections.slice().sort((x, y) => x.a - y.a);
+      if (!secs.length) { toast('Noch keine Übe-Abschnitte angelegt'); return; }
+      const starts = secs.map(x => firstOnsetFrom(measStart(x.a)));
+      let t;
+      if (right) t = starts.find(x => x > here + eps);
+      else t = starts.filter(x => x < here - eps).pop();   // Anfang des aktuellen, am Anfang stehend des vorigen
+      if (t == null || !isFinite(t)) { toast(right ? 'Kein weiterer Übe-Abschnitt' : 'Kein früherer Übe-Abschnitt'); return; }
+      const sec = secs[starts.indexOf(t)];
+      jumpTo(t, false); toast('Übe-Abschnitt: ' + sec.name);
+    } else if (alt) {     // taktweise
+      const st = measStart(curM);
+      const t = right ? measStart(curM + 1) : (here > firstOnsetFrom(st) + eps ? st : measStart(curM - 1));
+      if (t >= TOTAL) return;
+      jumpTo(Math.max(firstOnsetFrom(Math.max(0, t)), 0), true);
+    } else {              // notenweise
+      const ons = [...new Set(playable.filter(n => !n.grace).map(n => n.onset))];
+      const t = right ? ons.find(x => x > here + eps) : ons.filter(x => x < here - eps).pop();
+      if (t != null) jumpTo(t, true);
+    }
+    return;
+  }
+  if (mod || alt) return;
+  if (k === 'i' || k === 'I') { e.preventDefault(); if ($('#aboutBtn').style.display === 'none') toast('Für dieses Stück gibt es noch keine Werkinfo'); else $('#aboutBtn').click(); return; }
+  if (k === 'm' || k === 'M') {
+    e.preventDefault();
+    endMarkMode(); selNote = null; selHidden = false;
+    selRange = { a: curM, b: curM }; markSelection(); showRangeInfo();
+    return;
+  }
+});
 
 // ---------- Ansicht-Panel ----------
 // ---------- Über das Stück (i) ----------
