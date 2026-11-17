@@ -44,6 +44,46 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 @media (max-width:600px){.libhead{padding-top:calc(var(--safe-t) + 76px)}.libhead h1{font-size:29px}.shelf{padding-top:28px}}
 .shelf{display:flex;flex-wrap:wrap;gap:30px 26px;justify-content:center;align-items:flex-end;
   padding:34px 24px 0;margin:10px auto 0;max-width:900px;position:relative}
+.studypage{display:flex;gap:24px;align-items:flex-start;padding:18px 24px 60px;max-width:1150px;margin:0 auto}
+.studymain{flex:1;min-width:0}
+.studycfg{flex:0 0 300px;position:sticky;top:8px;background:rgba(255,255,255,.22);border:1px solid rgba(107,88,67,.25);border-radius:10px;padding:8px 12px}
+.studycfg summary{font-variant:small-caps;letter-spacing:.05em;color:var(--ink2);font-size:16px;cursor:pointer}
+@media (max-width:900px){.studypage{flex-direction:column-reverse;align-items:stretch;padding:12px 10px 60px}.studycfg{flex:none;position:static}}
+.cfg .opt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin:8px 0}
+.cfg .opt>span{font-size:14px;color:var(--ink2);font-variant:small-caps;letter-spacing:.04em}
+.cfg .seg{display:flex;flex-wrap:wrap;border:1px solid rgba(107,88,67,.35);border-radius:9px;overflow:hidden}
+.cfg .seg button{font-family:inherit;font-size:14.5px;border:0;border-right:1px solid rgba(107,88,67,.25);background:rgba(255,255,255,.3);padding:5px 9px;color:var(--ink)}
+.cfg .seg button:last-child{border-right:0}.cfg .seg button.act{background:#2f6b4f;color:#fff}
+.howto{font-size:14.5px;line-height:1.4;margin-top:10px;padding-top:8px;border-top:1px solid rgba(107,88,67,.22)}
+.statrow{display:flex;flex-wrap:wrap;gap:8px;min-height:10px}
+.stat{background:rgba(255,255,255,.3);border:1px solid rgba(107,88,67,.22);border-radius:9px;padding:4px 12px;text-align:center;min-width:72px}
+.stat b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}.stat span{font-size:12.5px;color:var(--ink2)}
+.stat.dim{opacity:.7}
+.bigstaff{margin:6px auto 0;display:flex;justify-content:center}.bigstaff svg{width:min(260px,60%);height:auto;display:block}
+.studymsg{text-align:center;font-size:19px;min-height:52px;margin:4px 0 10px}
+.studymsg .small{font-size:14px}
+.okc{color:#2f6b4f;font-weight:600}.badc{color:#a8412a;font-weight:600}
+.pill{font-family:inherit;font-size:16px;border:1px solid rgba(47,107,79,.5);background:rgba(47,107,79,.12);border-radius:9px;padding:4px 12px;margin-left:6px}
+.weak{font-size:15px;margin-top:10px;color:var(--ink2)}.weak span{display:inline-block;margin:2px 6px 2px 0;color:var(--ink)}.weak i{color:#a8412a;font-style:normal;font-size:13px}
+.kbwrap{user-select:none;-webkit-user-select:none}
+.kb{position:relative;height:150px;touch-action:none}
+.kb .wk,.kb .bk{position:absolute;top:0;padding:0;border-radius:0 0 6px 6px;font-family:inherit;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.kb .wk{height:100%;background:linear-gradient(#fffdf8,#f2ead9);border:1px solid rgba(60,45,30,.45);z-index:1;padding-bottom:6px}
+.kb .bk{height:62%;background:linear-gradient(#3a3028,#17120d);border:1px solid #000;z-index:2;color:#eadbc0;padding-bottom:4px}
+.kb .wk i{font-size:11px;color:var(--ink2);font-style:normal;position:absolute;bottom:22px}
+.kb b{font-size:12px;font-weight:600;min-height:14px}.kb.names b::before{content:attr(data-n);font-weight:400;opacity:.65}
+.kb .down{background:#c9a45c !important}.kb .ok{background:#5d9a76 !important;color:#fff}.kb .bad{background:#c4593d !important;color:#fff}
+.kb .hint{box-shadow:inset 0 0 0 3px #2f6b4f;background:rgba(93,154,118,.35) !important}
+.kb .bk.hint{background:#2f6b4f !important}
+.exstaff svg{display:block;max-width:100%;height:auto}
+.exstaff g.tgt,.exstaff g.tgt *{fill:#b5432e;stroke:#b5432e}
+.answers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:560px}
+.answers button{font-family:inherit;font-size:22px;padding:10px 6px;border:1px solid rgba(107,88,67,.4);border-radius:10px;background:rgba(255,255,255,.35);color:var(--ink)}
+.answers button.ok{background:#5d9a76;color:#fff;border-color:#2f6b4f}.answers button.bad{background:#c4593d;color:#fff}
+.answers button:disabled{opacity:1}
+#harmStudy .plays{display:flex;flex-wrap:wrap;gap:6px}
+#harmStudy .plays button{font-family:inherit;font-size:16px;border:1px solid rgba(107,88,67,.4);background:rgba(255,255,255,.3);border-radius:9px;padding:6px 11px;color:var(--ink)}
+#harmStudy .plays button.primary{background:#2f6b4f;color:#fff;border-color:#2f6b4f}
 .deskhead{text-align:center;color:#eadbc0;font-variant:small-caps;letter-spacing:.08em;font-size:22px;margin:4px 0 16px}
 .desks{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;padding:0 16px}
 .desk{width:170px;min-height:104px;border:0;border-radius:4px;padding:12px 10px 10px;font-family:inherit;color:var(--ink);text-align:center;position:relative;
@@ -71,6 +111,10 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .cqstaff svg g.harm text{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
 .cqstaff svg g.on,.cqstaff svg g.on *{fill:#b5432e;stroke:#b5432e}
 .cqstaff svg g.chord{cursor:pointer}
+.cqtabs{display:flex;gap:0;margin:22px 0 4px;border-bottom:1px solid rgba(107,88,67,.35)}
+.cqtabs button{font-family:inherit;font-size:17px;font-variant:small-caps;letter-spacing:.05em;border:1px solid transparent;border-bottom:0;background:none;padding:7px 16px;color:var(--ink2);border-radius:9px 9px 0 0;margin-bottom:-1px}
+.cqtabs button.act{background:rgba(255,255,255,.35);border-color:rgba(107,88,67,.35);color:var(--ink)}
+.circledetail .rel button.on{background:rgba(47,107,79,.16);border-color:rgba(47,107,79,.5)}
 .cqdesc{font-size:15.5px;min-height:22px;margin-top:5px;color:var(--ink);font-style:italic}
 #circle .ctr{font-size:30px}#circle .ctr2{font-size:13px;fill:var(--ink2);font-style:italic}
 .circledetail h2{margin:0;font-weight:500;font-size:34px}
@@ -383,6 +427,47 @@ input{-webkit-user-select:text;user-select:text}
           <div style="text-align:center;margin:2px 0 6px"><button class="cqtog" id="cqSigBtn"></button></div>
           <div class="small" style="text-align:center">Außen Dur, innen die parallele Molltonart. Getönt: die Haupt- und Nebendreiklänge der gewählten Tonart.</div></div>
         <div class="circledetail" id="circleDetail"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Studierplatz: Notenlesen -->
+<section id="readView" class="view linen" style="--c:#3b3327">
+  <div class="cover">
+    <div class="topbar"><button class="tb" id="readBack">‹ Regal</button><div class="title">Notenlesen</div><button class="tb fsBtn" title="Vollbild">⤢</button></div>
+    <div class="page-scroll sheet" id="readScroll">
+      <div class="studypage">
+        <div class="studymain">
+          <div class="statrow" id="rdStats"></div>
+          <div id="rdStaff" class="bigstaff"></div>
+          <div id="rdMsg" class="studymsg"></div>
+          <div id="rdKb" class="kbwrap"></div>
+          <div id="rdWeak" class="weak"></div>
+        </div>
+        <details class="studycfg" open><summary>Einstellungen</summary><div id="rdCfg" class="cfg"></div>
+          <div class="howto"><b>So übst du</b><br>Täglich 5–10 Minuten wirken mehr als eine lange Sitzung. Erst sicher im System lesen, dann Hilfslinien dazu, dann Vorzeichen. Im Sprint zählt richtig minus falsch – Tempo kommt von selbst, wenn du nicht rätst. Lies Dreiklänge als Bild (alle Linien oder alle Zwischenräume = Grundstellung) statt Ton für Ton.</div></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Studierplatz: Harmonien bestimmen -->
+<section id="harmView" class="view linen" style="--c:#3b3327">
+  <div class="cover">
+    <div class="topbar"><button class="tb" id="harmBack">‹ Regal</button><div class="title">Harmonien bestimmen</div><button class="tb fsBtn" title="Vollbild">⤢</button></div>
+    <div class="page-scroll sheet" id="harmScroll">
+      <div class="studypage" id="harmStudy">
+        <div class="studymain">
+          <div class="statrow" id="hbStats"></div>
+          <div id="hbMsg" class="studymsg"></div>
+          <div id="hbStaff" class="exstaff"></div>
+          <div class="plays" style="margin:4px 0 10px"><button data-hb="play">▶ Ausschnitt</button><button data-hb="next">Andere Stelle</button></div>
+          <div id="hbOpts" class="answers"></div>
+          <div id="hbAfter"></div>
+        </div>
+        <details class="studycfg" open><summary>Einstellungen</summary><div id="hbCfg" class="cfg"></div>
+          <div class="howto"><b>So übst du</b><br>Erst hören, dann lesen: Spiel den Ausschnitt ab und frag dich, ob die Stelle Ruhe (Tonika), Aufbruch (Subdominante) oder Spannung (Dominante) ausstrahlt. Dann den Bass ansehen und die Töne der markierten Zählzeit zu einem Terzenstapel ordnen. Gefragt werden nur Stellen, an denen die Analyse eindeutig ist – oder die du selbst gedeutet hast.</div></details>
       </div>
     </div>
   </div>

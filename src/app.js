@@ -37,7 +37,7 @@ function keepOffEdges(el) {
   el.addEventListener('touchstart', fix, { passive: true });
   setTimeout(fix, 300);
 }
-['#libScroll', '#tocScroll', '#scroller', '#studyScroll'].forEach(s => keepOffEdges($(s)));
+['#libScroll', '#tocScroll', '#scroller', '#studyScroll', '#readScroll', '#harmScroll'].forEach(s => keepOffEdges($(s)));
 
 $$('.fsBtn').forEach(b => b.addEventListener('click', () => {
   const d = document, el = d.documentElement;
@@ -74,15 +74,15 @@ $('#shelf').addEventListener('click', e => {
 const DESKS = [
   { id: 'circle', t: 'Quintenzirkel', s: 'Tonarten, Vorzeichen, Dreiklänge', active: true,
     ic: '<circle cx="22" cy="22" r="17"/><circle cx="22" cy="22" r="9"/><path d="M22 5v8M22 31v8M5 22h8M31 22h8M10 10l5.6 5.6M28.4 28.4L34 34M34 10l-5.6 5.6M15.6 28.4L10 34"/>' },
-  { id: 'read', t: 'Notenlesen', s: 'auf Zeit: Töne und Dreiklänge', active: false,
+  { id: 'read', t: 'Notenlesen', s: 'Töne, Intervalle, Dreiklänge – mit Klaviatur', active: true,
     ic: '<path d="M4 12h36M4 18h36M4 24h36M4 30h36M4 36h36"/><ellipse cx="15" cy="27" rx="4" ry="3" fill="#6b5843"/><path d="M19 27V9"/><ellipse cx="30" cy="21" rx="4" ry="3" fill="#6b5843"/><path d="M34 21V4"/>' },
-  { id: 'harm', t: 'Harmonien bestimmen', s: 'Stufen und Funktionen zuordnen', active: false,
+  { id: 'harm', t: 'Harmonien bestimmen', s: 'Stufen und Funktionen in Bachs Stücken', active: true,
     ic: '<path d="M6 34V10M6 10h12c9 0 9 12 0 12H6M24 34V10h8c8 0 8 24 0 24z"/>' },
 ];
 $('#desks').innerHTML = DESKS.map(d => `<button class="desk ${d.active ? '' : 'dim'}" data-d="${d.id}"><svg viewBox="0 0 44 44">${d.ic}</svg><b>${d.t}</b><span>${d.active ? d.s : 'in Vorbereitung'}</span></button>`).join('');
 $('#desks').addEventListener('click', e => {
   const b = e.target.closest('.desk'); if (!b) return;
-  if (b.dataset.d === 'circle') { show('studyView'); renderCircle(); renderCircleDetail(); } else toast('Dieser Studierplatz ist noch in Vorbereitung');
+  if (b.dataset.d === 'circle') { show('studyView'); renderCircle(); renderCircleDetail(); } else if (b.dataset.d === 'read') openRead(); else if (b.dataset.d === 'harm') openHarm();
 });
 $('#studyBack').onclick = () => show('library');
 
@@ -163,6 +163,140 @@ function cqExtras(f, minor) {
     if (/^[sS]6$/.test(x.fn)) x.sym = nm(x.tones[2], !minor ? true : false) + (minor ? '°' : '') + '/' + b; });
   return out;
 }
+// ----- Akkord-Baukasten: Intervalle als [Stufenabstand, Halbtöne] -----
+const IVL = { '1': [0, 0], 'b3': [2, 3], '3': [2, 4], '4': [3, 5], 'b5': [4, 6], '5': [4, 7], '#5': [4, 8], '6': [5, 9], 'bb7': [6, 9], 'b7': [6, 10], '7': [6, 11],
+  'b9': [8, 13], '9': [8, 14], '#9': [8, 15], '11': [10, 17], '#11': [10, 18], 'b13': [12, 20], '13': [12, 21] };
+function cqTone(f, root, up, semi) {
+  const step = (root.step + up) % 7, midi = root.midi + semi; let alt = (((midi - CQ_NAT[step]) % 12) + 12) % 12; if (alt > 6) alt -= 12;
+  return { step, alt, midi, sig: cqSigAlt(step, f) };
+}
+// Grundton relativ zur Tonika: Stufenabstand und Halbtöne (z. B. ♭II = [1, 1])
+const cqRoot = (f, T, deg, semi) => cqTone(f, T, deg, semi);
+const cqChord = (f, root, spec) => spec.split(' ').map(k => cqTone(f, root, IVL[k][0], IVL[k][1]));
+const engName = t => 'CDEFGAB'[t.step] + ({ '-2': '𝄫', '-1': '♭', 0: '', 1: '♯', 2: '𝄪' })[t.alt];
+// Jazz-Klänge (Akkordsymbole mit englischen Tonnamen)
+function cqJazz(f, minor) {
+  const T = cqScale(f, minor, false)[0], out = [];
+  const J = (grp, deg, semi, spec, suf, fn, desc) => { const root = cqRoot(f, T, deg, semi); out.push({ grp, fn, tones: cqChord(f, root, spec), sym: engName(root) + suf, desc }); };
+  if (!minor) {
+    J('D', 0, 0, '1 3 5 6', '6', 'I6', 'Dur-Sextakkord: der klassische Swing-Schlussklang, ruhiger als maj7.');
+    J('D', 0, 0, '1 3 5 6 9', '6/9', 'I6/9', 'Sext-Nonen-Akkord: offen und hell, beliebter Schlussakkord (Quartenschichtung im Klang).');
+    J('D', 0, 0, '1 3 5 7', 'maj7', 'Imaj7', 'Major-Septakkord (Δ7): die typische Jazz-Tonika mit großer Septime.');
+    J('D', 0, 0, '1 3 5 7 9', 'maj9', 'Imaj9', 'Major-Nonenakkord: Δ7 mit großer None, weicher Klangteppich.');
+    J('D', 0, 0, '1 3 7 9 #11', 'maj7♯11', 'Imaj7♯11', 'Lydischer Klang: die übermäßige Quarte (♯11) vermeidet die Reibung von 4 gegen 3 – schwebend, modern.');
+    J('D', 5, 9, '1 b3 5 b7', 'm7', 'VIm7', 'Tonika-Ersatz (Tonikaparallele): teilt drei Töne mit Cmaj7, oft im Turnaround.');
+    J('D', 2, 4, '1 b3 5 b7', 'm7', 'IIIm7', 'Tonika-Ersatz (III): ebenfalls drei gemeinsame Töne mit Imaj7.');
+    J('E', 1, 2, '1 b3 5 b7', 'm7', 'IIm7', 'Die „II“ im II–V–I: Subdominant-Funktion, bereitet die Dominante vor.');
+    J('E', 1, 2, '1 b3 5 b7 9', 'm9', 'IIm9', 'Moll-Nonenakkord: IIm7 mit großer None – der Standard-Klang der II.');
+    J('E', 1, 2, '1 b3 b7 9 11', 'm11', 'IIm11', 'Moll-Undezimakkord: dorischer Klang, Quarten-Färbung (So-What-Klang verwandt).');
+    J('E', 3, 5, '1 3 5 7', 'maj7', 'IVmaj7', 'Subdominante als Δ7.');
+    J('E', 3, 5, '1 3 7 9 #11', 'maj7♯11', 'IVmaj7♯11', 'IV lydisch: die ♯11 ist hier leitereigen (die 7. Stufe der Tonart) – der natürliche lydische Klang.');
+    J('E', 3, 5, '1 b3 5 6', 'm6', 'IVm6', 'Moll-Subdominante (aus der Variante entlehnt): melancholische Wendung vor der Tonika.');
+    J('E', 6, 10, '1 3 5 b7', '7', '♭VII7', 'Backdoor-Dominante: kommt „durch die Hintertür“ zur Tonika (♭VII7 → I), weich statt zwingend.');
+  } else {
+    J('D', 0, 0, '1 b3 5 6', 'm6', 'Im6', 'Moll-Sextakkord: die typische Moll-Tonika im Jazz (dorische Sexte).');
+    J('D', 0, 0, '1 b3 5 7', 'm(maj7)', 'Im(maj7)', 'Moll-Major-Septakkord: Moll mit großer Septime – düster-elegant, Filmmusik-Klang.');
+    J('D', 0, 0, '1 b3 5 b7', 'm7', 'Im7', 'Moll-Septakkord als Tonika (dorisch/äolisch).');
+    J('D', 0, 0, '1 b3 5 b7 9', 'm9', 'Im9', 'Moll-Nonenakkord: weich, offen.');
+    J('D', 2, 3, '1 3 5 7', 'maj7', '♭IIImaj7', 'Durparallele als Δ7: Tonika-Ersatz.');
+    J('D', 5, 8, '1 3 5 7', 'maj7', '♭VImaj7', 'VI. Stufe als Δ7: warmer Ersatzklang, oft vor IIø7.');
+    J('E', 1, 2, '1 b3 b5 b7', 'm7♭5', 'IIm7♭5', 'Halbverminderter Akkord (ø): die „II“ im Moll-II–V–i.');
+    J('E', 3, 5, '1 b3 5 b7', 'm7', 'IVm7', 'Moll-Subdominante als Septakkord.');
+    J('E', 3, 5, '1 b3 5 6', 'm6', 'IVm6', 'Moll-Subdominante mit Sexte.');
+    J('E', 1, 1, '1 3 5 7', 'maj7', '♭IImaj7', 'Neapolitaner als Δ7: Subdominant-Klang auf der tiefen II. Stufe.');
+  }
+  const V = [4, 7];
+  J('F', ...V, '1 3 5 b7', '7', 'V7', 'Dominantseptakkord: Terz (Leitton) und Septime bilden den Tritonus – das Spannungszentrum.');
+  J('F', ...V, '1 3 b7 9', '9', 'V9', 'Dominant-Nonenakkord: weicher als V7, in Dur gebräuchlich.');
+  J('F', ...V, '1 3 b7 9 13', '13', 'V13', 'Dominant-Tredezimakkord: 13 statt Quinte – der klassische Swing-Dominantklang.');
+  J('F', ...V, '1 4 5 b7', '7sus4', 'V7sus4', 'Sus-Dominante: Quarte statt Terz, kein Tritonus – schwebend, wird oft zu V7 aufgelöst.');
+  J('F', ...V, '1 3 b7 b9', '7♭9', 'V7♭9', 'Dominante mit kleiner None: dunkel, typisch vor Moll-Tonika (aus harmonisch Moll).');
+  J('F', ...V, '1 3 b7 #9', '7♯9', 'V7♯9', 'Dominante mit übermäßiger None: große und kleine Terz zugleich – bluesig (Hendrix-Akkord).');
+  J('F', ...V, '1 3 b7 9 #11', '7♯11', 'V7♯11', 'Lydisch-Dominant: ♯11 klingt hell und offen (typisch für Tritonus-Substitutionen).');
+  J('F', ...V, '1 3 b7 b13', '7♭13', 'V7♭13', 'Dominante mit kleiner Tredezime: die ♭13 zieht abwärts zur Quinte der Tonika.');
+  J('F', ...V, '1 3 b7 #9 b13', '7alt', 'V7alt', 'Alterierte Dominante: Grundton, Terz und Septime fest, None und Quinte/Tredezime alteriert – maximale Spannung.');
+  J('F', 1, 1, '1 3 5 b7', '7', '♭II7', 'Tritonus-Substitution: teilt mit V7 den Tritonus (Terz und Septime vertauscht) und führt chromatisch abwärts zur Tonika.');
+  J('F', 6, 11, '1 b3 b5 bb7', '°7', 'VII°7', 'Verminderter Septakkord auf dem Leitton: V7♭9 ohne Grundton.');
+  out.forEach(x => { if (x.fn.startsWith('VII°')) x.sym = engName(x.tones[0]) + '°7'; });
+  return out;
+}
+// Verbindungen (Progressionen): Folge von Akkorden mit Bezeichnung
+function cqProgs(f, minor, jazz) {
+  const T = cqScale(f, minor, false)[0], P = [];
+  const C = (deg, semi, spec, lab, sym, bass) => { const root = cqRoot(f, T, deg, semi), tones = cqChord(f, root, spec);
+    return { tones, lab, sym: sym != null ? sym : engName(root) + '', bass: bass != null ? cqTone(f, root, IVL[bass][0], IVL[bass][1]) : root }; };
+  const add = (name, desc, chords) => P.push({ name, desc, chords });
+  const nm = (deg, semi, suf) => { const r = cqRoot(f, T, deg, semi); return (jazz ? engName(r) : cqName(r.step, r.alt, /^(m|°|ø)/.test(suf))) + suf; };
+  if (!jazz) {
+    const t = minor ? '1 b3 5' : '1 3 5', s = minor ? '1 b3 5' : '1 3 5', Tl = minor ? 't' : 'T', Sl = minor ? 's' : 'S';
+    add('Authentischer Ganzschluss', 'Tonika – Subdominante – Dominantseptakkord – Tonika: die Grundkadenz. Der Leitton der Dominante steigt zur Tonika.',
+      [C(0, 0, t, Tl), C(3, 5, s, Sl), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, t, Tl)]);
+    add('Kadenz mit Quartsextvorhalt', 'S mit Sixte ajoutée, dann der kadenzierende Quartsextakkord (Tonika-Töne über dem Dominantbass), der sich in D7 auflöst – die typische Schlussformel.',
+      [C(0, 0, t, Tl), C(3, 5, minor ? '1 b3 5 6' : '1 3 5 6', Sl + '65'), C(0, 0, t, 'D64', null, '5'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, t, Tl)]);
+    add('Halbschluss', 'Die Phrase endet auf der Dominante – ein „Komma“, die Musik bleibt offen.', [C(0, 0, t, Tl), C(3, 5, s, Sl), C(4, 7, '1 3 5', 'D')]);
+    add('Trugschluss', 'Statt zur Tonika löst sich die Dominante zur ' + (minor ? 'Durparallele der Subdominante (VI)' : 'Tonikaparallele (vi)') + ' auf – die Erwartung wird getäuscht.',
+      [C(0, 0, t, Tl), C(3, 5, s, Sl), C(4, 7, '1 3 5 b7', 'D7'), minor ? C(5, 8, '1 3 5', 'sP') : C(5, 9, '1 b3 5', 'Tp')]);
+    add('Plagalschluss', 'Subdominante → Tonika ohne Dominante: der weiche „Amen-Schluss“.', [C(0, 0, t, Tl), C(3, 5, s, Sl), C(0, 0, t, Tl)]);
+    add('Doppeldominante', 'Die Dominante der Dominante (mit erhöhter 4. Stufe als Leitton) verstärkt den Zug zur Dominante.',
+      [C(0, 0, t, Tl), C(1, 2, '1 3 5 b7', 'DD7', null, '3'), C(4, 7, '1 3 5', 'D'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, t, Tl)]);
+    add('Neapolitanische Kadenz', 'Der Neapolitaner (Moll-Subdominante mit kleiner Sexte, Terz im Bass) führt über die Dominante zur Tonika – bei Bach ein Ausdruck von Schmerz.',
+      [C(0, 0, minor ? t : '1 b3 5', minor ? 't' : 't'), C(1, 1, '1 3 5', 'sN', null, '3'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, minor ? t : '1 b3 5', 't')]);
+    if (!minor) add('Quintfallsequenz', 'Die Grundtöne fallen jeweils um eine Quinte (bzw. steigen um eine Quarte) durch alle Stufen der Tonart – Bachs liebstes Sequenzmodell, z. B. in vielen Präludien.',
+      [C(0, 0, '1 3 5', 'T'), C(3, 5, '1 3 5', 'S'), C(6, 11, '1 b3 b5', 'Đ7'), C(2, 4, '1 b3 5', 'Dp'), C(5, 9, '1 b3 5', 'Tp'), C(1, 2, '1 b3 5', 'Sp'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, '1 3 5', 'T')]);
+    else add('Quintfallsequenz', 'Die Grundtöne fallen jeweils um eine Quinte durch alle Stufen von Moll – über die Durparallele zurück zur Tonika.',
+      [C(0, 0, t, 't'), C(3, 5, s, 's'), C(6, 10, '1 3 5', 'dP'), C(2, 3, '1 3 5', 'tP'), C(5, 8, '1 3 5', 'sP'), C(1, 2, '1 b3 b5', 's6'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, t, 't')]);
+    add('Lamento-Bass', 'Der Bass steigt chromatisch von der Tonika zur Dominante hinab (Passus duriusculus) – Barock-Figur der Klage, etwa im „Crucifixus“ der h-Moll-Messe.',
+      [C(0, 0, '1 b3 5', 't'), C(4, 7, '1 3 5', 'D', null, '3'), C(6, 10, '1 3 5', 'dP'), C(1, 2, '1 3 5', '(D)s', null, '3'), C(3, 5, '1 b3 5', 's'), C(4, 7, '1 3 5', 'D')]);
+  } else {
+    const I = minor ? ['1 b3 5 6', 'm6'] : ['1 3 5 7', 'maj7'];
+    if (!minor) {
+      add('II–V–I', 'Die Grundformel des Jazz: Subdominante (IIm7) – Dominante (V7) – Tonika (Imaj7). Die Grundtöne fallen in Quinten; Terz und Septime gleiten jeweils nur einen Halbton.',
+        [C(1, 2, '1 b3 5 b7', 'IIm7', nm(1, 2, 'm7')), C(4, 7, '1 3 5 b7', 'V7', nm(4, 7, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Turnaround I–VI–II–V', 'Kreist zurück zum Anfang: Tonika – VI7 (Zwischendominante zur II) – IIm7 – V7. Steht am Ende vieler Standards.',
+        [C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7')), C(5, 9, '1 3 5 b7', 'VI7', nm(5, 9, '7')), C(1, 2, '1 b3 5 b7', 'IIm7', nm(1, 2, 'm7')), C(4, 7, '1 3 5 b7', 'V7', nm(4, 7, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Tritonus-Substitution', 'Statt V7 erklingt ♭II7: beide teilen den Tritonus. Der Bass gleitet chromatisch abwärts zur Tonika.',
+        [C(1, 2, '1 b3 5 b7', 'IIm7', nm(1, 2, 'm7')), C(1, 1, '1 3 5 b7', '♭II7', nm(1, 1, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Backdoor-Kadenz', 'IVm7 – ♭VII7 – Imaj7: die Tonika wird über die Moll-Subdominante „durch die Hintertür“ erreicht.',
+        [C(3, 5, '1 b3 5 b7', 'IVm7', nm(3, 5, 'm7')), C(6, 10, '1 3 5 b7', '♭VII7', nm(6, 10, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Kettendominanten', 'III7 – VI7 – II7 – V7 – I: jede Dominante löst sich in die nächste auf (Quintfall nur mit Dominantseptakkorden), z. B. in „Sweet Georgia Brown“.',
+        [C(2, 4, '1 3 5 b7', 'III7', nm(2, 4, '7')), C(5, 9, '1 3 5 b7', 'VI7', nm(5, 9, '7')), C(1, 2, '1 3 5 b7', 'II7', nm(1, 2, '7')), C(4, 7, '1 3 5 b7', 'V7', nm(4, 7, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Moll-Subdominante', 'Imaj7 – IVmaj7 – IVm6 – Imaj7: die Subdominante wird nach Moll eingetrübt – eine der schönsten Farbwendungen.',
+        [C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7')), C(3, 5, '1 3 5 7', 'IVmaj7', nm(3, 5, 'maj7')), C(3, 5, '1 b3 5 6', 'IVm6', nm(3, 5, 'm6')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Blues (12 Takte)', 'I7 – IV7 – I7 – I7 – IV7 – IV7 – I7 – I7 – V7 – IV7 – I7 – V7: alle Hauptstufen als Dominantseptakkorde.',
+        [0, 5, 0, 0, 5, 5, 0, 0, 7, 5, 0, 7].map(x => { const d = { 0: 0, 5: 3, 7: 4 }[x], lab = { 0: 'I7', 5: 'IV7', 7: 'V7' }[x]; return C(d, x, '1 3 5 b7', lab, nm(d, x, '7')); }));
+    } else {
+      add('Moll-II–V–i', 'IIm7♭5 – V7♭9 – Im6: die Moll-Kadenz. Die ♭9 der Dominante ist die ♭6 der Tonart und fällt zur Quinte.',
+        [C(1, 2, '1 b3 b5 b7', 'IIø7', nm(1, 2, 'm7♭5')), C(4, 7, '1 3 b7 b9', 'V7♭9', nm(4, 7, '7♭9')), C(0, 0, I[0], 'Im6', nm(0, 0, 'm6'))]);
+      add('Moll-Turnaround', 'Im6 – VIm7♭5 – IIm7♭5 – V7alt: kreisende Moll-Wendung zurück zur Tonika.',
+        [C(0, 0, I[0], 'Im6', nm(0, 0, 'm6')), C(5, 9, '1 b3 b5 b7', 'VIø7', nm(5, 9, 'm7♭5')), C(1, 2, '1 b3 b5 b7', 'IIø7', nm(1, 2, 'm7♭5')), C(4, 7, '1 3 b7 #9 b13', 'V7alt', nm(4, 7, '7alt')), C(0, 0, I[0], 'Im6', nm(0, 0, 'm6'))]);
+      add('Tritonus-Substitution', 'IIm7♭5 – ♭II7 – Im6: der Bass gleitet chromatisch zur Moll-Tonika.',
+        [C(1, 2, '1 b3 b5 b7', 'IIø7', nm(1, 2, 'm7♭5')), C(1, 1, '1 3 5 b7', '♭II7', nm(1, 1, '7')), C(0, 0, I[0], 'Im6', nm(0, 0, 'm6'))]);
+      add('Klischee-Linie', 'Im – Im(maj7) – Im7 – Im6: eine Stimme fällt chromatisch über dem liegenden Moll-Akkord (z. B. „My Funny Valentine“).',
+        [C(0, 0, '1 b3 5', 'Im', nm(0, 0, 'm')), C(0, 0, '1 b3 5 7', 'Im(maj7)', nm(0, 0, 'm(maj7)')), C(0, 0, '1 b3 5 b7', 'Im7', nm(0, 0, 'm7')), C(0, 0, '1 b3 5 6', 'Im6', nm(0, 0, 'm6'))]);
+      add('Moll-Blues (12 Takte)', 'Im7 – IVm7 – Im7 – Im7 – IVm7 – IVm7 – Im7 – Im7 – ♭VI7 – V7 – Im7 – V7.',
+        [['m7', 0, 0], ['m7', 3, 5], ['m7', 0, 0], ['m7', 0, 0], ['m7', 3, 5], ['m7', 3, 5], ['m7', 0, 0], ['m7', 0, 0], ['7', 5, 8], ['7', 4, 7], ['m7', 0, 0], ['7', 4, 7]]
+          .map(([q, d, x]) => C(d, x, q === 'm7' ? '1 b3 5 b7' : '1 3 5 b7', { 0: 'Im7', 5: 'IVm7', 8: '♭VI7', 7: 'V7' }[x], nm(d, x, q))));
+    }
+  }
+  return P;
+}
+// Stimmführung: obere Stimmen eng und möglichst nah am vorigen Akkord, Grundton (bzw. Basston) im Bass
+function cqVoice(chords) {
+  let prev = null;
+  return chords.map(c => {
+    const pcs = c.tones.length >= 4 && c.tones[0].step === c.bass.step && c.tones[0].alt === c.bass.alt ? c.tones.slice(1) : c.tones;
+    let best = null;
+    for (let base = 52; base <= 66; base++) {   // tiefster Ton der Oberstimmen
+      const up = pcs.map(t => { let m = t.midi; while (m < base) m += 12; while (m >= base + 12) m -= 12; return Object.assign({}, t, { midi: m }); }).sort((a, b) => a.midi - b.midi);
+      if (up[up.length - 1].midi > 81) continue;
+      const cost = prev ? up.reduce((a, t, i) => a + Math.abs(t.midi - (prev[Math.min(i, prev.length - 1)] || t.midi)), 0) : Math.abs(up[0].midi - 60) * 2;
+      if (!best || cost < best.cost) best = { up, cost };
+    }
+    prev = best.up.map(t => t.midi);
+    let b = c.bass.midi; while (b >= 52) b -= 12; while (b < 40) b += 12;
+    return { up: best.up, bass: Object.assign({}, c.bass, { midi: b }) };
+  });
+}
 function renderCircle() {
   const P = (r, deg) => { const a = (deg - 90) * Math.PI / 180; return [r * Math.cos(a), r * Math.sin(a)]; };
   const seg = (r0, r1, i) => { const a0 = i * 30 - 15, a1 = i * 30 + 15, [x0, y0] = P(r1, a0), [x1, y1] = P(r1, a1), [x2, y2] = P(r0, a1), [x3, y3] = P(r0, a0);
@@ -218,9 +352,15 @@ function renderCircleDetail() {
   h += `<div class="plays"><button data-act="scale">${IC.play}Tonleiter</button><button data-act="cad">${IC.play}Kadenz ${minor ? 't – s – D – t' : 'T – S – D – T'}</button></div>`;
   h += `<div class="k">Leitereigene Dreiklänge – antippen zum Hören</div><div class="triads">${tri.map((t, d) => `<button data-act="tri${d}" title="${t.fnt}"><b>${t.rom}</b><em>${t.fn}</em>${t.name}<br>${t.tones.map(x => cqName(x.step, x.alt, false)).join('–')}</button>`).join('')}</div>`;
   h += `<div class="small" style="margin-top:4px">${minor ? 'In Moll ist die Dominante meist ein Dur-Akkord: die 7. Stufe wird zum Leitton erhöht.' : 'Hauptdreiklänge: T, S, D (Dur). Nebendreiklänge: ihre Parallelen Tp, Sp, Dp (Moll), jeweils eine kleine Terz tiefer.'}</div>`;
-  const GRP = { A: 'Septakkorde der Stufen', B: 'Die Dominante und ihre Erweiterungen', C: 'Subdominante, Zwischendominanten und Farbklänge' };
-  for (const g of 'ABC') h += `<div class="k">${GRP[g]}</div><div class="cqstaff" id="cqStaff${g}"></div><div class="triads">${cqData.ex.map((x, k) => x.grp !== g ? '' :
-    `<button data-act="ex${k}"><b>${x.fn}</b><em>${x.sym}</em>${x.tones.map(t => cqName(t.step, t.alt, false)).join('–')}</button>`).join('')}</div><div class="cqdesc" id="cqDesc${g}">Akkord antippen: hören und Erklärung lesen.</div>`;
+  const jazz = S.cqTab === 'jazz';
+  cqData.ex = jazz ? cqJazz(f, minor) : cqData.ex; cqData.prog = cqProgs(f, minor, jazz); cqData.jazz = jazz;
+  h += `<div class="cqtabs"><button data-act="tabklassik" class="${jazz ? '' : 'act'}">Klassische Harmonik</button><button data-act="tabjazz" class="${jazz ? 'act' : ''}">Jazz-Harmonik</button></div>`;
+  if (jazz) h += `<div class="small" style="margin:4px 0 0">Jazz-Akkordsymbole verwenden englische Tonnamen: <b>B</b> = H, <b>B♭</b> = B. Notiert mit dem Grundton im Bass und den übrigen Tönen eng darüber.</div>`;
+  const GRP = jazz ? { D: 'Tonika-Klänge', E: 'Subdominant-Klänge', F: 'Dominanten, Optionen und Alterationen' } : { A: 'Septakkorde der Stufen', B: 'Die Dominante und ihre Erweiterungen', C: 'Subdominante, Zwischendominanten und Farbklänge' };
+  for (const g of Object.keys(GRP)) h += `<div class="k">${GRP[g]}</div><div class="cqstaff" id="cqStaff${g}"></div><div class="triads">${cqData.ex.map((x, k) => x.grp !== g ? '' :
+    `<button data-act="ex${k}"><b>${jazz ? x.sym : x.fn}</b><em>${jazz ? x.fn : x.sym}</em>${x.tones.map(t => cqName(t.step, t.alt, false)).join('–')}</button>`).join('')}</div><div class="cqdesc" id="cqDesc${g}">Akkord antippen: hören und Erklärung lesen.</div>`;
+  h += `<div class="k">${jazz ? 'Typische Verbindungen (Changes)' : 'Kadenzen und Verbindungen'}</div><div class="rel">${cqData.prog.map((p, k) => `<button data-act="prog${k}">${p.name}</button>`).join('')}</div>`;
+  h += `<div class="cqstaff" id="cqProgStaff"></div><div class="cqdesc" id="cqProgDesc">Verbindung antippen: anhören und mitlesen.</div>`;
   h += `<div class="k">Verwandte Tonarten</div><div class="rel">${rel.map(([t, k]) => `<button data-act="go${k.pos}_${k.minor ? 1 : 0}"><i>${t}</i>${k.label}</button>`).join('')}</div>`;
   $('#circleDetail').innerHTML = h;
   renderCircleStaff();
@@ -245,14 +385,30 @@ async function renderCircleStaff() {
   cqTk.setOptions({ pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale, breaks: 'auto', header: 'none', footer: 'none',
     pageMarginLeft: 10, pageMarginRight: 10, pageMarginTop: 30, pageMarginBottom: 20, svgViewBox: false, smuflTextFont: 'embedded' });
   cqTk.loadData(mei); box.innerHTML = cqTk.renderToSVG(1);
-  for (const g of 'ABC') {   // je Gruppe eine Notenzeile; jeder Akkord in eigenem Takt
+  const ks = d.f === 0 ? '0' : Math.abs(d.f) + (d.f > 0 ? 's' : 'f');
+  const head2 = head.replace(/<scoreDef[\s\S]*?<\/scoreDef>/, `<scoreDef key.sig="${ks}"><staffGrp symbol="brace" bar.thru="true"><staffDef n="1" lines="5" clef.shape="G" clef.line="2"/><staffDef n="2" lines="5" clef.shape="F" clef.line="4"/></staffGrp></scoreDef>`);
+  const grand = (items, idp) => {   // Oberstimmen im Violin-, Basston im Bassschlüssel
+    const vs = cqVoice(items.map(x => ({ tones: x.tones, bass: x.bass || x.tones[0] })));
+    return items.map((x, k) => { seen = {}; const up = `<chord xml:id="${idp}${x.k}" dur="1">${vs[k].up.map(t => note(t)).join('')}</chord>`; seen = {};
+      return `<measure n="${k + 1}"><staff n="1"><layer n="1">${up}</layer></staff><staff n="2"><layer n="1">${note(vs[k].bass, null, 1)}</layer></staff><harm startid="#${idp}${x.k}" place="above">${esc(x.label)}</harm></measure>`; }).join('');
+  };
+  for (const g of 'ABCDEF') {   // je Gruppe eine Notenzeile; jeder Akkord in eigenem Takt
     const el = $('#cqStaff' + g); if (!el) continue;
-    let m = head, n = 0;
-    d.ex.forEach((x, k) => { if (x.grp !== g) return; seen = {}; n++;
+    let m = d.jazz ? head2 : head, n = 0;
+    if (d.jazz) m += grand(d.ex.map((x, k) => ({ x, k })).filter(o => o.x.grp === g).map(o => ({ k: o.k, tones: o.x.tones, label: o.x.sym })), 'cqx');
+    else d.ex.forEach((x, k) => { if (x.grp !== g) return; seen = {}; n++;
       m += `<measure n="${n}"><staff n="1"><layer n="1"><chord xml:id="cqx${k}" dur="1">${x.tones.map(t => note(t)).join('')}</chord></layer></staff><harm startid="#cqx${k}" place="below">${x.fn}</harm></measure>`; });
     cqTk.loadData(m + '</section></score></mdiv></body></music></mei>'); el.innerHTML = cqTk.renderToSVG(1);
   }
+  cqRenderProg = k => {   // gewählte Verbindung als Klaviersatz
+    const el = $('#cqProgStaff'), p = d.prog[k]; if (!el || !p) return;
+    const lab = c => d.jazz ? c.sym : (S.labels === 'funk' ? c.lab : c.lab);
+    cqTk.loadData(head2 + grand(p.chords.map((c, i) => ({ k: i, tones: c.tones, bass: c.bass, label: d.jazz ? c.sym : c.lab })), 'cqp') + '</section></score></mdiv></body></music></mei>');
+    el.innerHTML = cqTk.renderToSVG(1); $('#cqProgDesc').textContent = p.desc;
+    $$('#circleDetail [data-act^="prog"]').forEach(b => b.classList.toggle('on', b.dataset.act === 'prog' + k));
+  };
 }
+let cqRenderProg = () => {};
 function cqLight(sel, at, dur) {
   cqTimers.push(setTimeout(() => { $$(sel).forEach(el => el.classList.add('on')); }, at * 1000));
   cqTimers.push(setTimeout(() => { $$(sel).forEach(el => el.classList.remove('on')); }, (at + dur) * 1000));
@@ -267,16 +423,24 @@ function cqPlay(what) {
   else if (what === 'scale') d.sc.slice(0, 8).forEach((x, i) => { audio.note(x.midi, t0 + i * 0.34, i === 7 ? 1 : 0.36, 0.6, 1); cqLight('#cqs' + i, i * 0.34, 0.34); });
   else if (what === 'cad') [0, 3, 4, 0].forEach((c, k) => chord(c, k * 0.85, k === 3 ? 1.6 : 0.85));
   else if (what.startsWith('tri')) chord(+what.slice(3), 0, 1.3);
-  else if (what.startsWith('ex')) { const k = +what.slice(2), x = d.ex[k];
+  else if (what.startsWith('ex') && !d.jazz) { const k = +what.slice(2), x = d.ex[k];
     audio.note(x.tones[0].midi - 12, t0, 1.6, 0.5, 3); x.tones.forEach((t, i) => audio.note(t.midi, t0 + i * 0.07, 1.6 - i * 0.07, 0.5, 1));
     cqLight('#cqx' + k + ', .triads [data-act="ex' + k + '"]', 0, 1.6);
     const de = $('#cqDesc' + x.grp); if (de) de.textContent = x.desc; }
+  else if (what.startsWith('prog')) { const k = +what.slice(4), p = d.prog[k]; cqRenderProg(k);
+    const vs = cqVoice(p.chords), dt = d.jazz ? 1.25 : 0.95;
+    vs.forEach((v, i) => { const at = i * dt, len = i === vs.length - 1 ? 1.8 : dt;
+      audio.note(v.bass.midi, t0 + at, len, 0.55, 3); v.up.forEach(t => audio.note(t.midi, t0 + at + 0.01, len, 0.48, 1)); cqLight('#cqp' + i, at, len); }); }
+  else if (what.startsWith('ex') && d.jazz) { const k = +what.slice(2), x = d.ex[k], v = cqVoice([{ tones: x.tones, bass: x.tones[0] }])[0];
+    audio.note(v.bass.midi, t0, 1.8, 0.55, 3); v.up.forEach((t, i) => audio.note(t.midi, t0 + 0.02 + i * 0.05, 1.8, 0.48, 1));
+    cqLight('#cqx' + k + ', .triads [data-act="ex' + k + '"]', 0, 1.8); const de = $('#cqDesc' + x.grp); if (de) de.textContent = x.desc; }
   else if (what.startsWith('note')) { const x = d.sc[+what.slice(4)]; audio.note(x.midi, t0, 0.9, 0.6, 1); cqLight('#cqs' + what.slice(4), 0, 0.6); }
 }
 $('#circleDetail').addEventListener('click', e => {
   const g = e.target.closest('#studyStaff g.chord, #studyStaff g.note, .cqstaff g.chord');
-  if (g && g.id) { if (g.id.startsWith('cqx')) cqPlay('ex' + g.id.slice(3)); else if (g.id.startsWith('cqc')) cqPlay('tri' + g.id.slice(3)); else if (g.id.startsWith('cqs')) cqPlay('note' + g.id.slice(3)); return; }
+  if (g && g.id) { if (g.id.startsWith('cqp')) { /* Verbindung: ganze Folge über den Knopf */ } else if (g.id.startsWith('cqx')) cqPlay('ex' + g.id.slice(3)); else if (g.id.startsWith('cqc')) cqPlay('tri' + g.id.slice(3)); else if (g.id.startsWith('cqs')) cqPlay('note' + g.id.slice(3)); return; }
   const b = e.target.closest('[data-act]'); if (!b) return; const act = b.dataset.act;
+  if (act === 'tabklassik' || act === 'tabjazz') { S.cqTab = act === 'tabjazz' ? 'jazz' : 'klassik'; save(); renderCircleDetail(); return; }
   if (act === 'enh') { CQ.alt = !CQ.alt; renderCircle(); renderCircleDetail(); }
   else if (act.startsWith('go')) { const [p, m] = act.slice(2).split('_'); CQ.pos = +p; CQ.minor = m === '1'; CQ.alt = false; renderCircle(); renderCircleDetail(); cqPlay('tonic'); }
   else cqPlay(act);

@@ -466,7 +466,7 @@ function buildMEI(model, harmony, opts) {
     if (m === 1 && P.pickup) attrs += ' metcon="false"';
     if (repStart.has(m) && m > 1) attrs += ' left="rptstart"';
     if (repEnd.has(m)) attrs += ' right="rptend"'; else if (m === model.measures) attrs += ' right="end"';
-    out.push(`<measure n="${measureLabel(m)}" xml:id="m${m}"${attrs}>`);
+    out.push(`<measure n="${opts.mOff != null ? m + opts.mOff : measureLabel(m)}" xml:id="m${m}"${attrs}>`);
     for (const s of staffs) {
       out.push(`<staff n="${s}">`);
       layersOf[s].forEach((v, li) => {

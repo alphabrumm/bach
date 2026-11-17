@@ -44,6 +44,46 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 @media (max-width:600px){.libhead{padding-top:calc(var(--safe-t) + 76px)}.libhead h1{font-size:29px}.shelf{padding-top:28px}}
 .shelf{display:flex;flex-wrap:wrap;gap:30px 26px;justify-content:center;align-items:flex-end;
   padding:34px 24px 0;margin:10px auto 0;max-width:900px;position:relative}
+.studypage{display:flex;gap:24px;align-items:flex-start;padding:18px 24px 60px;max-width:1150px;margin:0 auto}
+.studymain{flex:1;min-width:0}
+.studycfg{flex:0 0 300px;position:sticky;top:8px;background:rgba(255,255,255,.22);border:1px solid rgba(107,88,67,.25);border-radius:10px;padding:8px 12px}
+.studycfg summary{font-variant:small-caps;letter-spacing:.05em;color:var(--ink2);font-size:16px;cursor:pointer}
+@media (max-width:900px){.studypage{flex-direction:column-reverse;align-items:stretch;padding:12px 10px 60px}.studycfg{flex:none;position:static}}
+.cfg .opt{display:flex;flex-direction:column;align-items:flex-start;gap:3px;margin:8px 0}
+.cfg .opt>span{font-size:14px;color:var(--ink2);font-variant:small-caps;letter-spacing:.04em}
+.cfg .seg{display:flex;flex-wrap:wrap;border:1px solid rgba(107,88,67,.35);border-radius:9px;overflow:hidden}
+.cfg .seg button{font-family:inherit;font-size:14.5px;border:0;border-right:1px solid rgba(107,88,67,.25);background:rgba(255,255,255,.3);padding:5px 9px;color:var(--ink)}
+.cfg .seg button:last-child{border-right:0}.cfg .seg button.act{background:#2f6b4f;color:#fff}
+.howto{font-size:14.5px;line-height:1.4;margin-top:10px;padding-top:8px;border-top:1px solid rgba(107,88,67,.22)}
+.statrow{display:flex;flex-wrap:wrap;gap:8px;min-height:10px}
+.stat{background:rgba(255,255,255,.3);border:1px solid rgba(107,88,67,.22);border-radius:9px;padding:4px 12px;text-align:center;min-width:72px}
+.stat b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}.stat span{font-size:12.5px;color:var(--ink2)}
+.stat.dim{opacity:.7}
+.bigstaff{margin:6px auto 0;display:flex;justify-content:center}.bigstaff svg{width:min(260px,60%);height:auto;display:block}
+.studymsg{text-align:center;font-size:19px;min-height:52px;margin:4px 0 10px}
+.studymsg .small{font-size:14px}
+.okc{color:#2f6b4f;font-weight:600}.badc{color:#a8412a;font-weight:600}
+.pill{font-family:inherit;font-size:16px;border:1px solid rgba(47,107,79,.5);background:rgba(47,107,79,.12);border-radius:9px;padding:4px 12px;margin-left:6px}
+.weak{font-size:15px;margin-top:10px;color:var(--ink2)}.weak span{display:inline-block;margin:2px 6px 2px 0;color:var(--ink)}.weak i{color:#a8412a;font-style:normal;font-size:13px}
+.kbwrap{user-select:none;-webkit-user-select:none}
+.kb{position:relative;height:150px;touch-action:none}
+.kb .wk,.kb .bk{position:absolute;top:0;padding:0;border-radius:0 0 6px 6px;font-family:inherit;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.kb .wk{height:100%;background:linear-gradient(#fffdf8,#f2ead9);border:1px solid rgba(60,45,30,.45);z-index:1;padding-bottom:6px}
+.kb .bk{height:62%;background:linear-gradient(#3a3028,#17120d);border:1px solid #000;z-index:2;color:#eadbc0;padding-bottom:4px}
+.kb .wk i{font-size:11px;color:var(--ink2);font-style:normal;position:absolute;bottom:22px}
+.kb b{font-size:12px;font-weight:600;min-height:14px}.kb.names b::before{content:attr(data-n);font-weight:400;opacity:.65}
+.kb .down{background:#c9a45c !important}.kb .ok{background:#5d9a76 !important;color:#fff}.kb .bad{background:#c4593d !important;color:#fff}
+.kb .hint{box-shadow:inset 0 0 0 3px #2f6b4f;background:rgba(93,154,118,.35) !important}
+.kb .bk.hint{background:#2f6b4f !important}
+.exstaff svg{display:block;max-width:100%;height:auto}
+.exstaff g.tgt,.exstaff g.tgt *{fill:#b5432e;stroke:#b5432e}
+.answers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:560px}
+.answers button{font-family:inherit;font-size:22px;padding:10px 6px;border:1px solid rgba(107,88,67,.4);border-radius:10px;background:rgba(255,255,255,.35);color:var(--ink)}
+.answers button.ok{background:#5d9a76;color:#fff;border-color:#2f6b4f}.answers button.bad{background:#c4593d;color:#fff}
+.answers button:disabled{opacity:1}
+#harmStudy .plays{display:flex;flex-wrap:wrap;gap:6px}
+#harmStudy .plays button{font-family:inherit;font-size:16px;border:1px solid rgba(107,88,67,.4);background:rgba(255,255,255,.3);border-radius:9px;padding:6px 11px;color:var(--ink)}
+#harmStudy .plays button.primary{background:#2f6b4f;color:#fff;border-color:#2f6b4f}
 .deskhead{text-align:center;color:#eadbc0;font-variant:small-caps;letter-spacing:.08em;font-size:22px;margin:4px 0 16px}
 .desks{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;padding:0 16px}
 .desk{width:170px;min-height:104px;border:0;border-radius:4px;padding:12px 10px 10px;font-family:inherit;color:var(--ink);text-align:center;position:relative;
@@ -71,6 +111,10 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .cqstaff svg g.harm text{font-family:'EB Garamond',serif;font-style:italic;fill:#7a5530}
 .cqstaff svg g.on,.cqstaff svg g.on *{fill:#b5432e;stroke:#b5432e}
 .cqstaff svg g.chord{cursor:pointer}
+.cqtabs{display:flex;gap:0;margin:22px 0 4px;border-bottom:1px solid rgba(107,88,67,.35)}
+.cqtabs button{font-family:inherit;font-size:17px;font-variant:small-caps;letter-spacing:.05em;border:1px solid transparent;border-bottom:0;background:none;padding:7px 16px;color:var(--ink2);border-radius:9px 9px 0 0;margin-bottom:-1px}
+.cqtabs button.act{background:rgba(255,255,255,.35);border-color:rgba(107,88,67,.35);color:var(--ink)}
+.circledetail .rel button.on{background:rgba(47,107,79,.16);border-color:rgba(47,107,79,.5)}
 .cqdesc{font-size:15.5px;min-height:22px;margin-top:5px;color:var(--ink);font-style:italic}
 #circle .ctr{font-size:30px}#circle .ctr2{font-size:13px;fill:var(--ink2);font-style:italic}
 .circledetail h2{margin:0;font-weight:500;font-size:34px}
@@ -383,6 +427,47 @@ input{-webkit-user-select:text;user-select:text}
           <div style="text-align:center;margin:2px 0 6px"><button class="cqtog" id="cqSigBtn"></button></div>
           <div class="small" style="text-align:center">Außen Dur, innen die parallele Molltonart. Getönt: die Haupt- und Nebendreiklänge der gewählten Tonart.</div></div>
         <div class="circledetail" id="circleDetail"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Studierplatz: Notenlesen -->
+<section id="readView" class="view linen" style="--c:#3b3327">
+  <div class="cover">
+    <div class="topbar"><button class="tb" id="readBack">‹ Regal</button><div class="title">Notenlesen</div><button class="tb fsBtn" title="Vollbild">⤢</button></div>
+    <div class="page-scroll sheet" id="readScroll">
+      <div class="studypage">
+        <div class="studymain">
+          <div class="statrow" id="rdStats"></div>
+          <div id="rdStaff" class="bigstaff"></div>
+          <div id="rdMsg" class="studymsg"></div>
+          <div id="rdKb" class="kbwrap"></div>
+          <div id="rdWeak" class="weak"></div>
+        </div>
+        <details class="studycfg" open><summary>Einstellungen</summary><div id="rdCfg" class="cfg"></div>
+          <div class="howto"><b>So übst du</b><br>Täglich 5–10 Minuten wirken mehr als eine lange Sitzung. Erst sicher im System lesen, dann Hilfslinien dazu, dann Vorzeichen. Im Sprint zählt richtig minus falsch – Tempo kommt von selbst, wenn du nicht rätst. Lies Dreiklänge als Bild (alle Linien oder alle Zwischenräume = Grundstellung) statt Ton für Ton.</div></details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Studierplatz: Harmonien bestimmen -->
+<section id="harmView" class="view linen" style="--c:#3b3327">
+  <div class="cover">
+    <div class="topbar"><button class="tb" id="harmBack">‹ Regal</button><div class="title">Harmonien bestimmen</div><button class="tb fsBtn" title="Vollbild">⤢</button></div>
+    <div class="page-scroll sheet" id="harmScroll">
+      <div class="studypage" id="harmStudy">
+        <div class="studymain">
+          <div class="statrow" id="hbStats"></div>
+          <div id="hbMsg" class="studymsg"></div>
+          <div id="hbStaff" class="exstaff"></div>
+          <div class="plays" style="margin:4px 0 10px"><button data-hb="play">▶ Ausschnitt</button><button data-hb="next">Andere Stelle</button></div>
+          <div id="hbOpts" class="answers"></div>
+          <div id="hbAfter"></div>
+        </div>
+        <details class="studycfg" open><summary>Einstellungen</summary><div id="hbCfg" class="cfg"></div>
+          <div class="howto"><b>So übst du</b><br>Erst hören, dann lesen: Spiel den Ausschnitt ab und frag dich, ob die Stelle Ruhe (Tonika), Aufbruch (Subdominante) oder Spannung (Dominante) ausstrahlt. Dann den Bass ansehen und die Töne der markierten Zählzeit zu einem Terzenstapel ordnen. Gefragt werden nur Stellen, an denen die Analyse eindeutig ist – oder die du selbst gedeutet hast.</div></details>
       </div>
     </div>
   </div>
@@ -943,7 +1028,7 @@ function buildMEI(model, harmony, opts) {
     if (m === 1 && P.pickup) attrs += ' metcon="false"';
     if (repStart.has(m) && m > 1) attrs += ' left="rptstart"';
     if (repEnd.has(m)) attrs += ' right="rptend"'; else if (m === model.measures) attrs += ' right="end"';
-    out.push(`<measure n="${measureLabel(m)}" xml:id="m${m}"${attrs}>`);
+    out.push(`<measure n="${opts.mOff != null ? m + opts.mOff : measureLabel(m)}" xml:id="m${m}"${attrs}>`);
     for (const s of staffs) {
       out.push(`<staff n="${s}">`);
       layersOf[s].forEach((v, li) => {
@@ -1095,7 +1180,7 @@ function keepOffEdges(el) {
   el.addEventListener('touchstart', fix, { passive: true });
   setTimeout(fix, 300);
 }
-['#libScroll', '#tocScroll', '#scroller', '#studyScroll'].forEach(s => keepOffEdges($(s)));
+['#libScroll', '#tocScroll', '#scroller', '#studyScroll', '#readScroll', '#harmScroll'].forEach(s => keepOffEdges($(s)));
 
 $$('.fsBtn').forEach(b => b.addEventListener('click', () => {
   const d = document, el = d.documentElement;
@@ -1132,15 +1217,15 @@ $('#shelf').addEventListener('click', e => {
 const DESKS = [
   { id: 'circle', t: 'Quintenzirkel', s: 'Tonarten, Vorzeichen, Dreiklänge', active: true,
     ic: '<circle cx="22" cy="22" r="17"/><circle cx="22" cy="22" r="9"/><path d="M22 5v8M22 31v8M5 22h8M31 22h8M10 10l5.6 5.6M28.4 28.4L34 34M34 10l-5.6 5.6M15.6 28.4L10 34"/>' },
-  { id: 'read', t: 'Notenlesen', s: 'auf Zeit: Töne und Dreiklänge', active: false,
+  { id: 'read', t: 'Notenlesen', s: 'Töne, Intervalle, Dreiklänge – mit Klaviatur', active: true,
     ic: '<path d="M4 12h36M4 18h36M4 24h36M4 30h36M4 36h36"/><ellipse cx="15" cy="27" rx="4" ry="3" fill="#6b5843"/><path d="M19 27V9"/><ellipse cx="30" cy="21" rx="4" ry="3" fill="#6b5843"/><path d="M34 21V4"/>' },
-  { id: 'harm', t: 'Harmonien bestimmen', s: 'Stufen und Funktionen zuordnen', active: false,
+  { id: 'harm', t: 'Harmonien bestimmen', s: 'Stufen und Funktionen in Bachs Stücken', active: true,
     ic: '<path d="M6 34V10M6 10h12c9 0 9 12 0 12H6M24 34V10h8c8 0 8 24 0 24z"/>' },
 ];
 $('#desks').innerHTML = DESKS.map(d => `<button class="desk ${d.active ? '' : 'dim'}" data-d="${d.id}"><svg viewBox="0 0 44 44">${d.ic}</svg><b>${d.t}</b><span>${d.active ? d.s : 'in Vorbereitung'}</span></button>`).join('');
 $('#desks').addEventListener('click', e => {
   const b = e.target.closest('.desk'); if (!b) return;
-  if (b.dataset.d === 'circle') { show('studyView'); renderCircle(); renderCircleDetail(); } else toast('Dieser Studierplatz ist noch in Vorbereitung');
+  if (b.dataset.d === 'circle') { show('studyView'); renderCircle(); renderCircleDetail(); } else if (b.dataset.d === 'read') openRead(); else if (b.dataset.d === 'harm') openHarm();
 });
 $('#studyBack').onclick = () => show('library');
 
@@ -1221,6 +1306,140 @@ function cqExtras(f, minor) {
     if (/^[sS]6$/.test(x.fn)) x.sym = nm(x.tones[2], !minor ? true : false) + (minor ? '°' : '') + '/' + b; });
   return out;
 }
+// ----- Akkord-Baukasten: Intervalle als [Stufenabstand, Halbtöne] -----
+const IVL = { '1': [0, 0], 'b3': [2, 3], '3': [2, 4], '4': [3, 5], 'b5': [4, 6], '5': [4, 7], '#5': [4, 8], '6': [5, 9], 'bb7': [6, 9], 'b7': [6, 10], '7': [6, 11],
+  'b9': [8, 13], '9': [8, 14], '#9': [8, 15], '11': [10, 17], '#11': [10, 18], 'b13': [12, 20], '13': [12, 21] };
+function cqTone(f, root, up, semi) {
+  const step = (root.step + up) % 7, midi = root.midi + semi; let alt = (((midi - CQ_NAT[step]) % 12) + 12) % 12; if (alt > 6) alt -= 12;
+  return { step, alt, midi, sig: cqSigAlt(step, f) };
+}
+// Grundton relativ zur Tonika: Stufenabstand und Halbtöne (z. B. ♭II = [1, 1])
+const cqRoot = (f, T, deg, semi) => cqTone(f, T, deg, semi);
+const cqChord = (f, root, spec) => spec.split(' ').map(k => cqTone(f, root, IVL[k][0], IVL[k][1]));
+const engName = t => 'CDEFGAB'[t.step] + ({ '-2': '𝄫', '-1': '♭', 0: '', 1: '♯', 2: '𝄪' })[t.alt];
+// Jazz-Klänge (Akkordsymbole mit englischen Tonnamen)
+function cqJazz(f, minor) {
+  const T = cqScale(f, minor, false)[0], out = [];
+  const J = (grp, deg, semi, spec, suf, fn, desc) => { const root = cqRoot(f, T, deg, semi); out.push({ grp, fn, tones: cqChord(f, root, spec), sym: engName(root) + suf, desc }); };
+  if (!minor) {
+    J('D', 0, 0, '1 3 5 6', '6', 'I6', 'Dur-Sextakkord: der klassische Swing-Schlussklang, ruhiger als maj7.');
+    J('D', 0, 0, '1 3 5 6 9', '6/9', 'I6/9', 'Sext-Nonen-Akkord: offen und hell, beliebter Schlussakkord (Quartenschichtung im Klang).');
+    J('D', 0, 0, '1 3 5 7', 'maj7', 'Imaj7', 'Major-Septakkord (Δ7): die typische Jazz-Tonika mit großer Septime.');
+    J('D', 0, 0, '1 3 5 7 9', 'maj9', 'Imaj9', 'Major-Nonenakkord: Δ7 mit großer None, weicher Klangteppich.');
+    J('D', 0, 0, '1 3 7 9 #11', 'maj7♯11', 'Imaj7♯11', 'Lydischer Klang: die übermäßige Quarte (♯11) vermeidet die Reibung von 4 gegen 3 – schwebend, modern.');
+    J('D', 5, 9, '1 b3 5 b7', 'm7', 'VIm7', 'Tonika-Ersatz (Tonikaparallele): teilt drei Töne mit Cmaj7, oft im Turnaround.');
+    J('D', 2, 4, '1 b3 5 b7', 'm7', 'IIIm7', 'Tonika-Ersatz (III): ebenfalls drei gemeinsame Töne mit Imaj7.');
+    J('E', 1, 2, '1 b3 5 b7', 'm7', 'IIm7', 'Die „II“ im II–V–I: Subdominant-Funktion, bereitet die Dominante vor.');
+    J('E', 1, 2, '1 b3 5 b7 9', 'm9', 'IIm9', 'Moll-Nonenakkord: IIm7 mit großer None – der Standard-Klang der II.');
+    J('E', 1, 2, '1 b3 b7 9 11', 'm11', 'IIm11', 'Moll-Undezimakkord: dorischer Klang, Quarten-Färbung (So-What-Klang verwandt).');
+    J('E', 3, 5, '1 3 5 7', 'maj7', 'IVmaj7', 'Subdominante als Δ7.');
+    J('E', 3, 5, '1 3 7 9 #11', 'maj7♯11', 'IVmaj7♯11', 'IV lydisch: die ♯11 ist hier leitereigen (die 7. Stufe der Tonart) – der natürliche lydische Klang.');
+    J('E', 3, 5, '1 b3 5 6', 'm6', 'IVm6', 'Moll-Subdominante (aus der Variante entlehnt): melancholische Wendung vor der Tonika.');
+    J('E', 6, 10, '1 3 5 b7', '7', '♭VII7', 'Backdoor-Dominante: kommt „durch die Hintertür“ zur Tonika (♭VII7 → I), weich statt zwingend.');
+  } else {
+    J('D', 0, 0, '1 b3 5 6', 'm6', 'Im6', 'Moll-Sextakkord: die typische Moll-Tonika im Jazz (dorische Sexte).');
+    J('D', 0, 0, '1 b3 5 7', 'm(maj7)', 'Im(maj7)', 'Moll-Major-Septakkord: Moll mit großer Septime – düster-elegant, Filmmusik-Klang.');
+    J('D', 0, 0, '1 b3 5 b7', 'm7', 'Im7', 'Moll-Septakkord als Tonika (dorisch/äolisch).');
+    J('D', 0, 0, '1 b3 5 b7 9', 'm9', 'Im9', 'Moll-Nonenakkord: weich, offen.');
+    J('D', 2, 3, '1 3 5 7', 'maj7', '♭IIImaj7', 'Durparallele als Δ7: Tonika-Ersatz.');
+    J('D', 5, 8, '1 3 5 7', 'maj7', '♭VImaj7', 'VI. Stufe als Δ7: warmer Ersatzklang, oft vor IIø7.');
+    J('E', 1, 2, '1 b3 b5 b7', 'm7♭5', 'IIm7♭5', 'Halbverminderter Akkord (ø): die „II“ im Moll-II–V–i.');
+    J('E', 3, 5, '1 b3 5 b7', 'm7', 'IVm7', 'Moll-Subdominante als Septakkord.');
+    J('E', 3, 5, '1 b3 5 6', 'm6', 'IVm6', 'Moll-Subdominante mit Sexte.');
+    J('E', 1, 1, '1 3 5 7', 'maj7', '♭IImaj7', 'Neapolitaner als Δ7: Subdominant-Klang auf der tiefen II. Stufe.');
+  }
+  const V = [4, 7];
+  J('F', ...V, '1 3 5 b7', '7', 'V7', 'Dominantseptakkord: Terz (Leitton) und Septime bilden den Tritonus – das Spannungszentrum.');
+  J('F', ...V, '1 3 b7 9', '9', 'V9', 'Dominant-Nonenakkord: weicher als V7, in Dur gebräuchlich.');
+  J('F', ...V, '1 3 b7 9 13', '13', 'V13', 'Dominant-Tredezimakkord: 13 statt Quinte – der klassische Swing-Dominantklang.');
+  J('F', ...V, '1 4 5 b7', '7sus4', 'V7sus4', 'Sus-Dominante: Quarte statt Terz, kein Tritonus – schwebend, wird oft zu V7 aufgelöst.');
+  J('F', ...V, '1 3 b7 b9', '7♭9', 'V7♭9', 'Dominante mit kleiner None: dunkel, typisch vor Moll-Tonika (aus harmonisch Moll).');
+  J('F', ...V, '1 3 b7 #9', '7♯9', 'V7♯9', 'Dominante mit übermäßiger None: große und kleine Terz zugleich – bluesig (Hendrix-Akkord).');
+  J('F', ...V, '1 3 b7 9 #11', '7♯11', 'V7♯11', 'Lydisch-Dominant: ♯11 klingt hell und offen (typisch für Tritonus-Substitutionen).');
+  J('F', ...V, '1 3 b7 b13', '7♭13', 'V7♭13', 'Dominante mit kleiner Tredezime: die ♭13 zieht abwärts zur Quinte der Tonika.');
+  J('F', ...V, '1 3 b7 #9 b13', '7alt', 'V7alt', 'Alterierte Dominante: Grundton, Terz und Septime fest, None und Quinte/Tredezime alteriert – maximale Spannung.');
+  J('F', 1, 1, '1 3 5 b7', '7', '♭II7', 'Tritonus-Substitution: teilt mit V7 den Tritonus (Terz und Septime vertauscht) und führt chromatisch abwärts zur Tonika.');
+  J('F', 6, 11, '1 b3 b5 bb7', '°7', 'VII°7', 'Verminderter Septakkord auf dem Leitton: V7♭9 ohne Grundton.');
+  out.forEach(x => { if (x.fn.startsWith('VII°')) x.sym = engName(x.tones[0]) + '°7'; });
+  return out;
+}
+// Verbindungen (Progressionen): Folge von Akkorden mit Bezeichnung
+function cqProgs(f, minor, jazz) {
+  const T = cqScale(f, minor, false)[0], P = [];
+  const C = (deg, semi, spec, lab, sym, bass) => { const root = cqRoot(f, T, deg, semi), tones = cqChord(f, root, spec);
+    return { tones, lab, sym: sym != null ? sym : engName(root) + '', bass: bass != null ? cqTone(f, root, IVL[bass][0], IVL[bass][1]) : root }; };
+  const add = (name, desc, chords) => P.push({ name, desc, chords });
+  const nm = (deg, semi, suf) => { const r = cqRoot(f, T, deg, semi); return (jazz ? engName(r) : cqName(r.step, r.alt, /^(m|°|ø)/.test(suf))) + suf; };
+  if (!jazz) {
+    const t = minor ? '1 b3 5' : '1 3 5', s = minor ? '1 b3 5' : '1 3 5', Tl = minor ? 't' : 'T', Sl = minor ? 's' : 'S';
+    add('Authentischer Ganzschluss', 'Tonika – Subdominante – Dominantseptakkord – Tonika: die Grundkadenz. Der Leitton der Dominante steigt zur Tonika.',
+      [C(0, 0, t, Tl), C(3, 5, s, Sl), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, t, Tl)]);
+    add('Kadenz mit Quartsextvorhalt', 'S mit Sixte ajoutée, dann der kadenzierende Quartsextakkord (Tonika-Töne über dem Dominantbass), der sich in D7 auflöst – die typische Schlussformel.',
+      [C(0, 0, t, Tl), C(3, 5, minor ? '1 b3 5 6' : '1 3 5 6', Sl + '65'), C(0, 0, t, 'D64', null, '5'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, t, Tl)]);
+    add('Halbschluss', 'Die Phrase endet auf der Dominante – ein „Komma“, die Musik bleibt offen.', [C(0, 0, t, Tl), C(3, 5, s, Sl), C(4, 7, '1 3 5', 'D')]);
+    add('Trugschluss', 'Statt zur Tonika löst sich die Dominante zur ' + (minor ? 'Durparallele der Subdominante (VI)' : 'Tonikaparallele (vi)') + ' auf – die Erwartung wird getäuscht.',
+      [C(0, 0, t, Tl), C(3, 5, s, Sl), C(4, 7, '1 3 5 b7', 'D7'), minor ? C(5, 8, '1 3 5', 'sP') : C(5, 9, '1 b3 5', 'Tp')]);
+    add('Plagalschluss', 'Subdominante → Tonika ohne Dominante: der weiche „Amen-Schluss“.', [C(0, 0, t, Tl), C(3, 5, s, Sl), C(0, 0, t, Tl)]);
+    add('Doppeldominante', 'Die Dominante der Dominante (mit erhöhter 4. Stufe als Leitton) verstärkt den Zug zur Dominante.',
+      [C(0, 0, t, Tl), C(1, 2, '1 3 5 b7', 'DD7', null, '3'), C(4, 7, '1 3 5', 'D'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, t, Tl)]);
+    add('Neapolitanische Kadenz', 'Der Neapolitaner (Moll-Subdominante mit kleiner Sexte, Terz im Bass) führt über die Dominante zur Tonika – bei Bach ein Ausdruck von Schmerz.',
+      [C(0, 0, minor ? t : '1 b3 5', minor ? 't' : 't'), C(1, 1, '1 3 5', 'sN', null, '3'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, minor ? t : '1 b3 5', 't')]);
+    if (!minor) add('Quintfallsequenz', 'Die Grundtöne fallen jeweils um eine Quinte (bzw. steigen um eine Quarte) durch alle Stufen der Tonart – Bachs liebstes Sequenzmodell, z. B. in vielen Präludien.',
+      [C(0, 0, '1 3 5', 'T'), C(3, 5, '1 3 5', 'S'), C(6, 11, '1 b3 b5', 'Đ7'), C(2, 4, '1 b3 5', 'Dp'), C(5, 9, '1 b3 5', 'Tp'), C(1, 2, '1 b3 5', 'Sp'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, '1 3 5', 'T')]);
+    else add('Quintfallsequenz', 'Die Grundtöne fallen jeweils um eine Quinte durch alle Stufen von Moll – über die Durparallele zurück zur Tonika.',
+      [C(0, 0, t, 't'), C(3, 5, s, 's'), C(6, 10, '1 3 5', 'dP'), C(2, 3, '1 3 5', 'tP'), C(5, 8, '1 3 5', 'sP'), C(1, 2, '1 b3 b5', 's6'), C(4, 7, '1 3 5 b7', 'D7'), C(0, 0, t, 't')]);
+    add('Lamento-Bass', 'Der Bass steigt chromatisch von der Tonika zur Dominante hinab (Passus duriusculus) – Barock-Figur der Klage, etwa im „Crucifixus“ der h-Moll-Messe.',
+      [C(0, 0, '1 b3 5', 't'), C(4, 7, '1 3 5', 'D', null, '3'), C(6, 10, '1 3 5', 'dP'), C(1, 2, '1 3 5', '(D)s', null, '3'), C(3, 5, '1 b3 5', 's'), C(4, 7, '1 3 5', 'D')]);
+  } else {
+    const I = minor ? ['1 b3 5 6', 'm6'] : ['1 3 5 7', 'maj7'];
+    if (!minor) {
+      add('II–V–I', 'Die Grundformel des Jazz: Subdominante (IIm7) – Dominante (V7) – Tonika (Imaj7). Die Grundtöne fallen in Quinten; Terz und Septime gleiten jeweils nur einen Halbton.',
+        [C(1, 2, '1 b3 5 b7', 'IIm7', nm(1, 2, 'm7')), C(4, 7, '1 3 5 b7', 'V7', nm(4, 7, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Turnaround I–VI–II–V', 'Kreist zurück zum Anfang: Tonika – VI7 (Zwischendominante zur II) – IIm7 – V7. Steht am Ende vieler Standards.',
+        [C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7')), C(5, 9, '1 3 5 b7', 'VI7', nm(5, 9, '7')), C(1, 2, '1 b3 5 b7', 'IIm7', nm(1, 2, 'm7')), C(4, 7, '1 3 5 b7', 'V7', nm(4, 7, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Tritonus-Substitution', 'Statt V7 erklingt ♭II7: beide teilen den Tritonus. Der Bass gleitet chromatisch abwärts zur Tonika.',
+        [C(1, 2, '1 b3 5 b7', 'IIm7', nm(1, 2, 'm7')), C(1, 1, '1 3 5 b7', '♭II7', nm(1, 1, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Backdoor-Kadenz', 'IVm7 – ♭VII7 – Imaj7: die Tonika wird über die Moll-Subdominante „durch die Hintertür“ erreicht.',
+        [C(3, 5, '1 b3 5 b7', 'IVm7', nm(3, 5, 'm7')), C(6, 10, '1 3 5 b7', '♭VII7', nm(6, 10, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Kettendominanten', 'III7 – VI7 – II7 – V7 – I: jede Dominante löst sich in die nächste auf (Quintfall nur mit Dominantseptakkorden), z. B. in „Sweet Georgia Brown“.',
+        [C(2, 4, '1 3 5 b7', 'III7', nm(2, 4, '7')), C(5, 9, '1 3 5 b7', 'VI7', nm(5, 9, '7')), C(1, 2, '1 3 5 b7', 'II7', nm(1, 2, '7')), C(4, 7, '1 3 5 b7', 'V7', nm(4, 7, '7')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Moll-Subdominante', 'Imaj7 – IVmaj7 – IVm6 – Imaj7: die Subdominante wird nach Moll eingetrübt – eine der schönsten Farbwendungen.',
+        [C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7')), C(3, 5, '1 3 5 7', 'IVmaj7', nm(3, 5, 'maj7')), C(3, 5, '1 b3 5 6', 'IVm6', nm(3, 5, 'm6')), C(0, 0, '1 3 5 7', 'Imaj7', nm(0, 0, 'maj7'))]);
+      add('Blues (12 Takte)', 'I7 – IV7 – I7 – I7 – IV7 – IV7 – I7 – I7 – V7 – IV7 – I7 – V7: alle Hauptstufen als Dominantseptakkorde.',
+        [0, 5, 0, 0, 5, 5, 0, 0, 7, 5, 0, 7].map(x => { const d = { 0: 0, 5: 3, 7: 4 }[x], lab = { 0: 'I7', 5: 'IV7', 7: 'V7' }[x]; return C(d, x, '1 3 5 b7', lab, nm(d, x, '7')); }));
+    } else {
+      add('Moll-II–V–i', 'IIm7♭5 – V7♭9 – Im6: die Moll-Kadenz. Die ♭9 der Dominante ist die ♭6 der Tonart und fällt zur Quinte.',
+        [C(1, 2, '1 b3 b5 b7', 'IIø7', nm(1, 2, 'm7♭5')), C(4, 7, '1 3 b7 b9', 'V7♭9', nm(4, 7, '7♭9')), C(0, 0, I[0], 'Im6', nm(0, 0, 'm6'))]);
+      add('Moll-Turnaround', 'Im6 – VIm7♭5 – IIm7♭5 – V7alt: kreisende Moll-Wendung zurück zur Tonika.',
+        [C(0, 0, I[0], 'Im6', nm(0, 0, 'm6')), C(5, 9, '1 b3 b5 b7', 'VIø7', nm(5, 9, 'm7♭5')), C(1, 2, '1 b3 b5 b7', 'IIø7', nm(1, 2, 'm7♭5')), C(4, 7, '1 3 b7 #9 b13', 'V7alt', nm(4, 7, '7alt')), C(0, 0, I[0], 'Im6', nm(0, 0, 'm6'))]);
+      add('Tritonus-Substitution', 'IIm7♭5 – ♭II7 – Im6: der Bass gleitet chromatisch zur Moll-Tonika.',
+        [C(1, 2, '1 b3 b5 b7', 'IIø7', nm(1, 2, 'm7♭5')), C(1, 1, '1 3 5 b7', '♭II7', nm(1, 1, '7')), C(0, 0, I[0], 'Im6', nm(0, 0, 'm6'))]);
+      add('Klischee-Linie', 'Im – Im(maj7) – Im7 – Im6: eine Stimme fällt chromatisch über dem liegenden Moll-Akkord (z. B. „My Funny Valentine“).',
+        [C(0, 0, '1 b3 5', 'Im', nm(0, 0, 'm')), C(0, 0, '1 b3 5 7', 'Im(maj7)', nm(0, 0, 'm(maj7)')), C(0, 0, '1 b3 5 b7', 'Im7', nm(0, 0, 'm7')), C(0, 0, '1 b3 5 6', 'Im6', nm(0, 0, 'm6'))]);
+      add('Moll-Blues (12 Takte)', 'Im7 – IVm7 – Im7 – Im7 – IVm7 – IVm7 – Im7 – Im7 – ♭VI7 – V7 – Im7 – V7.',
+        [['m7', 0, 0], ['m7', 3, 5], ['m7', 0, 0], ['m7', 0, 0], ['m7', 3, 5], ['m7', 3, 5], ['m7', 0, 0], ['m7', 0, 0], ['7', 5, 8], ['7', 4, 7], ['m7', 0, 0], ['7', 4, 7]]
+          .map(([q, d, x]) => C(d, x, q === 'm7' ? '1 b3 5 b7' : '1 3 5 b7', { 0: 'Im7', 5: 'IVm7', 8: '♭VI7', 7: 'V7' }[x], nm(d, x, q))));
+    }
+  }
+  return P;
+}
+// Stimmführung: obere Stimmen eng und möglichst nah am vorigen Akkord, Grundton (bzw. Basston) im Bass
+function cqVoice(chords) {
+  let prev = null;
+  return chords.map(c => {
+    const pcs = c.tones.length >= 4 && c.tones[0].step === c.bass.step && c.tones[0].alt === c.bass.alt ? c.tones.slice(1) : c.tones;
+    let best = null;
+    for (let base = 52; base <= 66; base++) {   // tiefster Ton der Oberstimmen
+      const up = pcs.map(t => { let m = t.midi; while (m < base) m += 12; while (m >= base + 12) m -= 12; return Object.assign({}, t, { midi: m }); }).sort((a, b) => a.midi - b.midi);
+      if (up[up.length - 1].midi > 81) continue;
+      const cost = prev ? up.reduce((a, t, i) => a + Math.abs(t.midi - (prev[Math.min(i, prev.length - 1)] || t.midi)), 0) : Math.abs(up[0].midi - 60) * 2;
+      if (!best || cost < best.cost) best = { up, cost };
+    }
+    prev = best.up.map(t => t.midi);
+    let b = c.bass.midi; while (b >= 52) b -= 12; while (b < 40) b += 12;
+    return { up: best.up, bass: Object.assign({}, c.bass, { midi: b }) };
+  });
+}
 function renderCircle() {
   const P = (r, deg) => { const a = (deg - 90) * Math.PI / 180; return [r * Math.cos(a), r * Math.sin(a)]; };
   const seg = (r0, r1, i) => { const a0 = i * 30 - 15, a1 = i * 30 + 15, [x0, y0] = P(r1, a0), [x1, y1] = P(r1, a1), [x2, y2] = P(r0, a1), [x3, y3] = P(r0, a0);
@@ -1276,9 +1495,15 @@ function renderCircleDetail() {
   h += `<div class="plays"><button data-act="scale">${IC.play}Tonleiter</button><button data-act="cad">${IC.play}Kadenz ${minor ? 't – s – D – t' : 'T – S – D – T'}</button></div>`;
   h += `<div class="k">Leitereigene Dreiklänge – antippen zum Hören</div><div class="triads">${tri.map((t, d) => `<button data-act="tri${d}" title="${t.fnt}"><b>${t.rom}</b><em>${t.fn}</em>${t.name}<br>${t.tones.map(x => cqName(x.step, x.alt, false)).join('–')}</button>`).join('')}</div>`;
   h += `<div class="small" style="margin-top:4px">${minor ? 'In Moll ist die Dominante meist ein Dur-Akkord: die 7. Stufe wird zum Leitton erhöht.' : 'Hauptdreiklänge: T, S, D (Dur). Nebendreiklänge: ihre Parallelen Tp, Sp, Dp (Moll), jeweils eine kleine Terz tiefer.'}</div>`;
-  const GRP = { A: 'Septakkorde der Stufen', B: 'Die Dominante und ihre Erweiterungen', C: 'Subdominante, Zwischendominanten und Farbklänge' };
-  for (const g of 'ABC') h += `<div class="k">${GRP[g]}</div><div class="cqstaff" id="cqStaff${g}"></div><div class="triads">${cqData.ex.map((x, k) => x.grp !== g ? '' :
-    `<button data-act="ex${k}"><b>${x.fn}</b><em>${x.sym}</em>${x.tones.map(t => cqName(t.step, t.alt, false)).join('–')}</button>`).join('')}</div><div class="cqdesc" id="cqDesc${g}">Akkord antippen: hören und Erklärung lesen.</div>`;
+  const jazz = S.cqTab === 'jazz';
+  cqData.ex = jazz ? cqJazz(f, minor) : cqData.ex; cqData.prog = cqProgs(f, minor, jazz); cqData.jazz = jazz;
+  h += `<div class="cqtabs"><button data-act="tabklassik" class="${jazz ? '' : 'act'}">Klassische Harmonik</button><button data-act="tabjazz" class="${jazz ? 'act' : ''}">Jazz-Harmonik</button></div>`;
+  if (jazz) h += `<div class="small" style="margin:4px 0 0">Jazz-Akkordsymbole verwenden englische Tonnamen: <b>B</b> = H, <b>B♭</b> = B. Notiert mit dem Grundton im Bass und den übrigen Tönen eng darüber.</div>`;
+  const GRP = jazz ? { D: 'Tonika-Klänge', E: 'Subdominant-Klänge', F: 'Dominanten, Optionen und Alterationen' } : { A: 'Septakkorde der Stufen', B: 'Die Dominante und ihre Erweiterungen', C: 'Subdominante, Zwischendominanten und Farbklänge' };
+  for (const g of Object.keys(GRP)) h += `<div class="k">${GRP[g]}</div><div class="cqstaff" id="cqStaff${g}"></div><div class="triads">${cqData.ex.map((x, k) => x.grp !== g ? '' :
+    `<button data-act="ex${k}"><b>${jazz ? x.sym : x.fn}</b><em>${jazz ? x.fn : x.sym}</em>${x.tones.map(t => cqName(t.step, t.alt, false)).join('–')}</button>`).join('')}</div><div class="cqdesc" id="cqDesc${g}">Akkord antippen: hören und Erklärung lesen.</div>`;
+  h += `<div class="k">${jazz ? 'Typische Verbindungen (Changes)' : 'Kadenzen und Verbindungen'}</div><div class="rel">${cqData.prog.map((p, k) => `<button data-act="prog${k}">${p.name}</button>`).join('')}</div>`;
+  h += `<div class="cqstaff" id="cqProgStaff"></div><div class="cqdesc" id="cqProgDesc">Verbindung antippen: anhören und mitlesen.</div>`;
   h += `<div class="k">Verwandte Tonarten</div><div class="rel">${rel.map(([t, k]) => `<button data-act="go${k.pos}_${k.minor ? 1 : 0}"><i>${t}</i>${k.label}</button>`).join('')}</div>`;
   $('#circleDetail').innerHTML = h;
   renderCircleStaff();
@@ -1303,14 +1528,30 @@ async function renderCircleStaff() {
   cqTk.setOptions({ pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale, breaks: 'auto', header: 'none', footer: 'none',
     pageMarginLeft: 10, pageMarginRight: 10, pageMarginTop: 30, pageMarginBottom: 20, svgViewBox: false, smuflTextFont: 'embedded' });
   cqTk.loadData(mei); box.innerHTML = cqTk.renderToSVG(1);
-  for (const g of 'ABC') {   // je Gruppe eine Notenzeile; jeder Akkord in eigenem Takt
+  const ks = d.f === 0 ? '0' : Math.abs(d.f) + (d.f > 0 ? 's' : 'f');
+  const head2 = head.replace(/<scoreDef[\s\S]*?<\/scoreDef>/, `<scoreDef key.sig="${ks}"><staffGrp symbol="brace" bar.thru="true"><staffDef n="1" lines="5" clef.shape="G" clef.line="2"/><staffDef n="2" lines="5" clef.shape="F" clef.line="4"/></staffGrp></scoreDef>`);
+  const grand = (items, idp) => {   // Oberstimmen im Violin-, Basston im Bassschlüssel
+    const vs = cqVoice(items.map(x => ({ tones: x.tones, bass: x.bass || x.tones[0] })));
+    return items.map((x, k) => { seen = {}; const up = `<chord xml:id="${idp}${x.k}" dur="1">${vs[k].up.map(t => note(t)).join('')}</chord>`; seen = {};
+      return `<measure n="${k + 1}"><staff n="1"><layer n="1">${up}</layer></staff><staff n="2"><layer n="1">${note(vs[k].bass, null, 1)}</layer></staff><harm startid="#${idp}${x.k}" place="above">${esc(x.label)}</harm></measure>`; }).join('');
+  };
+  for (const g of 'ABCDEF') {   // je Gruppe eine Notenzeile; jeder Akkord in eigenem Takt
     const el = $('#cqStaff' + g); if (!el) continue;
-    let m = head, n = 0;
-    d.ex.forEach((x, k) => { if (x.grp !== g) return; seen = {}; n++;
+    let m = d.jazz ? head2 : head, n = 0;
+    if (d.jazz) m += grand(d.ex.map((x, k) => ({ x, k })).filter(o => o.x.grp === g).map(o => ({ k: o.k, tones: o.x.tones, label: o.x.sym })), 'cqx');
+    else d.ex.forEach((x, k) => { if (x.grp !== g) return; seen = {}; n++;
       m += `<measure n="${n}"><staff n="1"><layer n="1"><chord xml:id="cqx${k}" dur="1">${x.tones.map(t => note(t)).join('')}</chord></layer></staff><harm startid="#cqx${k}" place="below">${x.fn}</harm></measure>`; });
     cqTk.loadData(m + '</section></score></mdiv></body></music></mei>'); el.innerHTML = cqTk.renderToSVG(1);
   }
+  cqRenderProg = k => {   // gewählte Verbindung als Klaviersatz
+    const el = $('#cqProgStaff'), p = d.prog[k]; if (!el || !p) return;
+    const lab = c => d.jazz ? c.sym : (S.labels === 'funk' ? c.lab : c.lab);
+    cqTk.loadData(head2 + grand(p.chords.map((c, i) => ({ k: i, tones: c.tones, bass: c.bass, label: d.jazz ? c.sym : c.lab })), 'cqp') + '</section></score></mdiv></body></music></mei>');
+    el.innerHTML = cqTk.renderToSVG(1); $('#cqProgDesc').textContent = p.desc;
+    $$('#circleDetail [data-act^="prog"]').forEach(b => b.classList.toggle('on', b.dataset.act === 'prog' + k));
+  };
 }
+let cqRenderProg = () => {};
 function cqLight(sel, at, dur) {
   cqTimers.push(setTimeout(() => { $$(sel).forEach(el => el.classList.add('on')); }, at * 1000));
   cqTimers.push(setTimeout(() => { $$(sel).forEach(el => el.classList.remove('on')); }, (at + dur) * 1000));
@@ -1325,16 +1566,24 @@ function cqPlay(what) {
   else if (what === 'scale') d.sc.slice(0, 8).forEach((x, i) => { audio.note(x.midi, t0 + i * 0.34, i === 7 ? 1 : 0.36, 0.6, 1); cqLight('#cqs' + i, i * 0.34, 0.34); });
   else if (what === 'cad') [0, 3, 4, 0].forEach((c, k) => chord(c, k * 0.85, k === 3 ? 1.6 : 0.85));
   else if (what.startsWith('tri')) chord(+what.slice(3), 0, 1.3);
-  else if (what.startsWith('ex')) { const k = +what.slice(2), x = d.ex[k];
+  else if (what.startsWith('ex') && !d.jazz) { const k = +what.slice(2), x = d.ex[k];
     audio.note(x.tones[0].midi - 12, t0, 1.6, 0.5, 3); x.tones.forEach((t, i) => audio.note(t.midi, t0 + i * 0.07, 1.6 - i * 0.07, 0.5, 1));
     cqLight('#cqx' + k + ', .triads [data-act="ex' + k + '"]', 0, 1.6);
     const de = $('#cqDesc' + x.grp); if (de) de.textContent = x.desc; }
+  else if (what.startsWith('prog')) { const k = +what.slice(4), p = d.prog[k]; cqRenderProg(k);
+    const vs = cqVoice(p.chords), dt = d.jazz ? 1.25 : 0.95;
+    vs.forEach((v, i) => { const at = i * dt, len = i === vs.length - 1 ? 1.8 : dt;
+      audio.note(v.bass.midi, t0 + at, len, 0.55, 3); v.up.forEach(t => audio.note(t.midi, t0 + at + 0.01, len, 0.48, 1)); cqLight('#cqp' + i, at, len); }); }
+  else if (what.startsWith('ex') && d.jazz) { const k = +what.slice(2), x = d.ex[k], v = cqVoice([{ tones: x.tones, bass: x.tones[0] }])[0];
+    audio.note(v.bass.midi, t0, 1.8, 0.55, 3); v.up.forEach((t, i) => audio.note(t.midi, t0 + 0.02 + i * 0.05, 1.8, 0.48, 1));
+    cqLight('#cqx' + k + ', .triads [data-act="ex' + k + '"]', 0, 1.8); const de = $('#cqDesc' + x.grp); if (de) de.textContent = x.desc; }
   else if (what.startsWith('note')) { const x = d.sc[+what.slice(4)]; audio.note(x.midi, t0, 0.9, 0.6, 1); cqLight('#cqs' + what.slice(4), 0, 0.6); }
 }
 $('#circleDetail').addEventListener('click', e => {
   const g = e.target.closest('#studyStaff g.chord, #studyStaff g.note, .cqstaff g.chord');
-  if (g && g.id) { if (g.id.startsWith('cqx')) cqPlay('ex' + g.id.slice(3)); else if (g.id.startsWith('cqc')) cqPlay('tri' + g.id.slice(3)); else if (g.id.startsWith('cqs')) cqPlay('note' + g.id.slice(3)); return; }
+  if (g && g.id) { if (g.id.startsWith('cqp')) { /* Verbindung: ganze Folge über den Knopf */ } else if (g.id.startsWith('cqx')) cqPlay('ex' + g.id.slice(3)); else if (g.id.startsWith('cqc')) cqPlay('tri' + g.id.slice(3)); else if (g.id.startsWith('cqs')) cqPlay('note' + g.id.slice(3)); return; }
   const b = e.target.closest('[data-act]'); if (!b) return; const act = b.dataset.act;
+  if (act === 'tabklassik' || act === 'tabjazz') { S.cqTab = act === 'tabjazz' ? 'jazz' : 'klassik'; save(); renderCircleDetail(); return; }
   if (act === 'enh') { CQ.alt = !CQ.alt; renderCircle(); renderCircleDetail(); }
   else if (act.startsWith('go')) { const [p, m] = act.slice(2).split('_'); CQ.pos = +p; CQ.minor = m === '1'; CQ.alt = false; renderCircle(); renderCircleDetail(); cqPlay('tonic'); }
   else cqPlay(act);
@@ -2865,6 +3114,362 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 function rerender() { if (rendered && tk) render(); }
 let rz = null;
 window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(rerender, 250); });
+
+// =====================================================================
+//  Studierplätze: Notenlesen (mit Klaviatur) und Harmonien bestimmen
+// =====================================================================
+let stTk = null;
+async function studyToolkit() { await initVerovio(); stTk = stTk || new verovio.toolkit(); return stTk; }
+const MEI_HEAD = '<?xml version="1.0" encoding="UTF-8"?><mei xmlns="http://www.music-encoding.org/ns/mei" meiversion="4.0.1"><meiHead><fileDesc><titleStmt><title/></titleStmt><pubStmt/></fileDesc></meiHead><music><body><mdiv><score>';
+const MEI_FOOT = '</section></score></mdiv></body></music></mei>';
+const NATS = [0, 2, 4, 5, 7, 9, 11], LETTERS = 'cdefgab';
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function loadStore(k, d) { try { return Object.assign(d, JSON.parse(localStorage.getItem(k) || '{}')); } catch (e) { return d; } }
+function saveStore(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+const fmtS = s => s < 10 ? s.toFixed(1).replace('.', ',') + ' s' : Math.round(s) + ' s';
+
+// ---------- Klaviatur ----------
+// lo/hi: MIDI-Grenzen (weiße Tasten); onPress(midi)
+function makeKeyboard(el, lo, hi, onPress) {
+  const whites = []; for (let m = lo; m <= hi; m++) if (NATS.includes(m % 12)) whites.push(m);
+  const W = 100 / whites.length;
+  let h = '<div class="kb">';
+  whites.forEach((m, i) => { h += `<button class="wk" data-m="${m}" style="left:${i * W}%;width:${W}%">${m % 12 === 0 ? `<i>c${m / 12 - 4 >= 0 ? "'".repeat(m / 12 - 4) : ''}</i>` : ''}<b></b></button>`; });
+  whites.forEach((m, i) => { if (m + 1 <= hi && !NATS.includes((m + 1) % 12)) h += `<button class="bk" data-m="${m + 1}" style="left:${(i + 1) * W - W * 0.32}%;width:${W * 0.64}%"><b></b></button>`; });
+  el.innerHTML = h + '</div>';
+  const kb = el.firstChild;
+  kb.addEventListener('pointerdown', e => { const k = e.target.closest('[data-m]'); if (!k) return; e.preventDefault(); onPress(+k.dataset.m); });
+  return {
+    set(m, cls, on = true) { const k = kb.querySelector(`[data-m="${m}"]`); if (k) k.classList.toggle(cls, on); },
+    label(m, txt) { const k = kb.querySelector(`[data-m="${m}"] b`); if (k) k.textContent = txt || ''; },
+    clear(...cls) { kb.querySelectorAll('[data-m]').forEach(k => { k.classList.remove(...cls); if (cls.includes('lab')) k.querySelector('b').textContent = ''; }); },
+    names(on) { kb.classList.toggle('names', on); kb.querySelectorAll('[data-m]').forEach(k => { const m = +k.dataset.m, pc = m % 12; k.querySelector('b').dataset.n = on ? ['c', 'cis', 'd', 'es', 'e', 'f', 'fis', 'g', 'as', 'a', 'b', 'h'][pc] : ''; }); },
+  };
+}
+
+// ---------- Notenlesen ----------
+const RD = loadStore('bach.read', { cfg: { clef: 'G', what: 'ton', range: 'staff', acc: 'keine', mode: 'ueben', oct: true, names: false }, best: {}, notes: {}, total: { ok: 0, bad: 0 } });
+const RD_RANGE = { G: { staff: [30, 38], ledger: [25, 42] }, F: { staff: [18, 26], ledger: [14, 30] } };   // Diatonische Nummern: Oktave*7 + Stufe
+const dnMidi = (dn, alt) => 12 * (Math.floor(dn / 7) + 1) + NATS[((dn % 7) + 7) % 7] + alt;
+let rdPressed = [], rdTask = null, rdSel = new Set(), rdKb = null, rdLock = false, rdRun = null;
+function rdCfgKey() { const c = RD.cfg; return [c.clef, c.what, c.range, c.acc, c.oct ? 'o' : 'p'].join('|'); }
+function rdSigAlt(step, fifths) { return fifths > 0 && [3, 0, 4, 1, 5, 2, 6].slice(0, fifths).includes(step) ? 1 : fifths < 0 && [6, 2, 5, 1, 4, 0, 3].slice(0, -fifths).includes(step) ? -1 : 0; }
+function rdGenerate() {
+  const c = RD.cfg, clef = c.clef === 'beide' ? pick(['G', 'F']) : c.clef, [lo, hi] = RD_RANGE[clef][c.range];
+  const fifths = c.acc === 'tonart' ? pick([-4, -3, -2, -1, 1, 2, 3, 4]) : 0;
+  const altFor = step => {
+    if (c.acc === 'tonart') return rdSigAlt(step, fifths);
+    if (c.acc !== 'frei' || Math.random() > 0.35) return 0;
+    let a = pick([-1, 1]); if ((step === 2 || step === 6) && a === 1) a = -1; if ((step === 0 || step === 3) && a === -1) a = 1; return a;
+  };
+  // Häufig verwechselte Töne kommen öfter dran (Gewicht nach Fehlerquote)
+  const weight = dn => { const s = RD.notes[clef + dn]; return s ? 1 + 4 * (s.bad + 1) / (s.ok + s.bad + 2) : 1.6; };
+  const choose = (a, b) => { const pool = []; for (let d = a; d <= b; d++) pool.push([d, weight(d)]); let r = Math.random() * pool.reduce((x, y) => x + y[1], 0);
+    for (const [d, w] of pool) { if ((r -= w) <= 0) return d; } return b; };
+  let dns;
+  if (c.what === 'ton') dns = [choose(lo, hi)];
+  else if (c.what === 'intervall') { const iv = 1 + Math.floor(Math.random() * 7), a = choose(lo, hi - iv); dns = [a, a + iv]; }
+  else { const r = choose(lo, hi - 4), inv = Math.floor(Math.random() * 3); dns = [r, r + 2, r + 4]; for (let k = 0; k < inv; k++) dns.push(dns.shift() + 7); if (dns[2] > hi + 2) dns = [r, r + 2, r + 4]; }
+  const notes = dns.map(dn => { const step = ((dn % 7) + 7) % 7; return { dn, step, oct: Math.floor(dn / 7), alt: altFor(step) }; });
+  if (c.what === 'dreiklang' && c.acc === 'frei') {   // freie Akkorde: Dur, Moll, vermindert, übermäßig
+    const base = notes.find(n => notes.every(x => [0, 2, 4].includes(((x.dn - n.dn) % 7 + 7) % 7))) || notes[0], q = pick([[4, 7], [3, 7], [3, 6], [4, 8]]);
+    const rootMidi = dnMidi(base.dn, base.alt);
+    notes.forEach(n => { if (n !== base && ![2, 4].includes(((n.dn - base.dn) % 7 + 7) % 7)) n.alt = base.alt; });
+    notes.forEach(n => { const deg = ((n.dn - base.dn) % 7 + 7) % 7; if (deg === 2 || deg === 4) { const want = (rootMidi + (deg === 2 ? q[0] : q[1])) % 12, nat = dnMidi(n.dn, 0) % 12; let a = ((want - nat) % 12 + 12) % 12; if (a > 6) a -= 12; n.alt = a; } });
+  }
+  notes.forEach(n => { n.midi = dnMidi(n.dn, n.alt); });
+  return { clef, fifths, notes, at: performance.now() };
+}
+async function rdRender() {
+  const t = rdTask, box = $('#rdStaff');
+  let tk; try { tk = await studyToolkit(); } catch (e) { box.innerHTML = '<div class="small">Notenbild nicht verfügbar.</div>'; return; }
+  if (t !== rdTask) return;
+  const ACC = { '-2': 'ff', '-1': 'f', 0: 'n', 1: 's', 2: 'x' }, seen = {};
+  const nt = n => { const k = n.step + '_' + n.oct, cur = k in seen ? seen[k] : rdSigAlt(n.step, t.fifths), a = n.alt !== cur; seen[k] = n.alt;
+    return `<note pname="${LETTERS[n.step]}" oct="${n.oct}"${a ? ` accid="${ACC[n.alt]}"` : ''}/>`; };
+  const ks = t.fifths === 0 ? '0' : Math.abs(t.fifths) + (t.fifths > 0 ? 's' : 'f');
+  const body = t.notes.length === 1 ? nt(t.notes[0]).replace('<note ', '<note xml:id="rdn" dur="1" ') : `<chord xml:id="rdn" dur="1">${t.notes.map(nt).join('')}</chord>`;
+  const mei = MEI_HEAD + `<scoreDef key.sig="${ks}"><staffGrp><staffDef n="1" lines="5" clef.shape="${t.clef}" clef.line="${t.clef === 'G' ? 2 : 4}"/></staffGrp></scoreDef><section>` +
+    `<measure n="1" right="invis"><staff n="1"><layer n="1">${body}</layer></staff></measure>` + MEI_FOOT;
+  tk.setOptions({ pageWidth: 900, pageHeight: 3000, adjustPageHeight: true, adjustPageWidth: true, scale: 70, header: 'none', footer: 'none', pageMarginLeft: 20, pageMarginRight: 20, pageMarginTop: 60, pageMarginBottom: 60, svgViewBox: true, smuflTextFont: 'embedded' });
+  tk.loadData(mei); box.innerHTML = tk.renderToSVG(1);
+}
+function rdNext() {
+  rdTask = rdGenerate(); rdSel.clear(); rdPressed = []; rdLock = false;
+  rdKb.clear('down', 'ok', 'bad', 'hint', 'lab');
+  $('#rdMsg').innerHTML = { ton: 'Welcher Ton ist das? Tippe die Taste.', intervall: 'Tippe beide Töne.', dreiklang: 'Tippe alle drei Töne des Akkords.' }[RD.cfg.what] +
+    (RD.cfg.oct ? '' : ' <span class="small">(Oktave egal)</span>');
+  rdRender();
+}
+const rdName = n => helmholtz({ step: n.step, alter: n.alt, oct: n.oct });
+function rdPress(m) {
+  if (!rdTask || rdLock) return;
+  audio.ensure(); audio.note(m, audio.now() + 0.01, 0.6, 0.55, 1);
+  const need = rdTask.notes.length, key = RD.cfg.oct ? m : m % 12;
+  if (rdSel.has(key)) { rdSel.delete(key); rdKb.set(m, 'down', false); rdPressed = rdPressed.filter(x => (RD.cfg.oct ? x : x % 12) !== key); return; }
+  rdSel.add(key); rdKb.set(m, 'down'); rdPressed.push(m);
+  if (rdSel.size < need && need > 1) return;
+  // auswerten
+  const want = rdTask.notes.map(n => RD.cfg.oct ? n.midi : ((n.midi % 12) + 12) % 12);
+  const ok = want.every(w => rdSel.has(w)) && rdSel.size === want.length, dt = (performance.now() - rdTask.at) / 1000;
+  const st = RD.notes[rdTask.clef + rdTask.notes[0].dn] = RD.notes[rdTask.clef + rdTask.notes[0].dn] || { ok: 0, bad: 0 };
+  if (ok) st.ok++; else st.bad++;
+  RD.total[ok ? 'ok' : 'bad']++;
+  if (rdRun) { rdRun[ok ? 'ok' : 'bad']++; if (ok) { rdRun.streak++; rdRun.best = Math.max(rdRun.best, rdRun.streak); rdRun.times.push(dt); } else rdRun.streak = 0; }
+  saveStore('bach.read', RD);
+  rdLock = true;
+  const names = rdTask.notes.map(rdName).join(' – ');
+  // Tasten einfärben: gedrückte richtig grün / falsch rot, nicht gefundene als Hinweis
+  rdKb.clear('down');
+  const pcOf = x => ((x % 12) + 12) % 12, hit = x => RD.cfg.oct ? want.includes(x) : want.includes(pcOf(x));
+  rdPressed.forEach(x => rdKb.set(x, hit(x) ? 'ok' : 'bad'));
+  rdTask.notes.forEach(n => { const found = rdPressed.some(x => RD.cfg.oct ? x === n.midi : pcOf(x) === pcOf(n.midi)); if (!found) rdKb.set(n.midi, 'hint'); });
+  rdTask.notes.forEach(n => rdKb.label(n.midi, germanStepName(n.step, n.alt)));
+  let extra = '';
+  if (rdTask.notes.length === 3) extra = ' · ' + triadName(rdTask.notes);
+  if (rdTask.notes.length === 2) extra = ' · ' + intervalName(rdTask.notes[0], rdTask.notes[1]);
+  $('#rdMsg').innerHTML = ok ? `<span class="okc">Richtig</span> – ${names}${extra} <span class="small">(${fmtS(dt)})</span>` : `<span class="badc">Nicht ganz</span> – richtig wäre: <b>${names}</b>${extra}`;
+  if (!ok) { audio.ensure(); rdTask.notes.forEach((n, i) => audio.note(n.midi, audio.now() + 0.25 + i * 0.12, 0.9, 0.5, 1)); }
+  rdStats();
+  setTimeout(() => { if (rdRun && rdRun.over) return; rdNext(); }, ok ? (RD.cfg.mode === 'sprint' ? 280 : 650) : (RD.cfg.mode === 'sprint' ? 1300 : 2300));
+}
+function intervalName(a, b) {
+  const steps = b.dn - a.dn, semi = b.midi - a.midi;
+  const N = ['Prime', 'Sekunde', 'Terz', 'Quarte', 'Quinte', 'Sexte', 'Septime', 'Oktave'];
+  const perfect = [0, 3, 4, 7].includes(steps), ref = [0, 2, 4, 5, 7, 9, 11, 12][steps], d = semi - ref;
+  const q = perfect ? { '-1': 'verminderte', 0: 'reine', 1: 'übermäßige' }[d] : { '-2': 'verminderte', '-1': 'kleine', 0: 'große', 1: 'übermäßige' }[d];
+  return (q ? q + ' ' : '') + N[steps];
+}
+function triadName(ns) {
+  // Grundton: der Ton, über dem die anderen in Terzen liegen
+  const s = ns.slice().sort((a, b) => a.dn - b.dn);
+  for (const r of s) {
+    const rel = s.map(n => ((n.dn - r.dn) % 7 + 7) % 7).sort();
+    if (rel.join() !== '0,2,4') continue;
+    const third = s.find(n => ((n.dn - r.dn) % 7 + 7) % 7 === 2), fifth = s.find(n => ((n.dn - r.dn) % 7 + 7) % 7 === 4);
+    const i3 = ((third.midi - r.midi) % 12 + 12) % 12, i5 = ((fifth.midi - r.midi) % 12 + 12) % 12;
+    const q = i3 === 4 && i5 === 7 ? 'Dur' : i3 === 3 && i5 === 7 ? 'Moll' : i3 === 3 && i5 === 6 ? 'vermindert' : i3 === 4 && i5 === 8 ? 'übermäßig' : '?';
+    const nm = germanStepName(r.step, r.alt), bass = s[0];
+    const inv = bass === r ? 'Grundstellung' : bass === third ? 'Sextakkord' : 'Quartsextakkord';
+    return (q === 'Dur' ? nm[0].toUpperCase() + nm.slice(1) + '-Dur' : q === 'Moll' ? nm + '-Moll' : nm + ' ' + q) + ', ' + inv;
+  }
+  return '';
+}
+function rdStats() {
+  const c = RD.cfg, run = rdRun, best = RD.best[rdCfgKey()];
+  let h = '';
+  if (run) {
+    const avg = run.times.length ? run.times.reduce((a, b) => a + b, 0) / run.times.length : 0;
+    h += `<div class="stat"><b>${run.ok}</b><span>richtig</span></div><div class="stat"><b>${run.bad}</b><span>Fehler</span></div>` +
+      `<div class="stat"><b>${run.best}</b><span>beste Serie</span></div><div class="stat"><b>${avg ? fmtS(avg) : '–'}</b><span>Ø Zeit</span></div>`;
+    if (c.mode === 'sprint') h += `<div class="stat"><b id="rdClock">${Math.max(0, Math.ceil(run.left))}</b><span>Sekunden</span></div>`;
+  }
+  if (best) h += `<div class="stat dim"><b>${best}</b><span>Rekord (60 s)</span></div>`;
+  $('#rdStats').innerHTML = h;
+  // schwierigste Töne
+  const list = Object.entries(RD.notes).filter(([k, s]) => s.ok + s.bad >= 3 && k[0] === (c.clef === 'beide' ? k[0] : c.clef))
+    .map(([k, s]) => ({ clef: k[0], dn: +k.slice(1), rate: s.bad / (s.ok + s.bad), n: s.ok + s.bad })).filter(x => x.rate > 0).sort((a, b) => b.rate - a.rate).slice(0, 6);
+  $('#rdWeak').innerHTML = list.length ? 'Häufigste Fehler: ' + list.map(x => `<span>${helmholtz({ step: ((x.dn % 7) + 7) % 7, alter: 0, oct: Math.floor(x.dn / 7) })} <i>${x.clef === 'G' ? '𝄞' : '𝄢'} ${Math.round(100 * x.rate)} %</i></span>`).join('') +
+    ' <span class="small">– diese Töne kommen öfter dran.</span>' : '';
+}
+function rdStart() {
+  clearInterval(rdStart.t);
+  rdRun = { ok: 0, bad: 0, streak: 0, best: 0, times: [], left: 60, over: false };
+  if (RD.cfg.mode === 'sprint') {
+    const t0 = performance.now();
+    rdStart.t = setInterval(() => {
+      rdRun.left = 60 - (performance.now() - t0) / 1000;
+      const el = $('#rdClock'); if (el) el.textContent = Math.max(0, Math.ceil(rdRun.left));
+      if (rdRun.left <= 0) { clearInterval(rdStart.t); rdRun.over = true; rdLock = true;
+        const k = rdCfgKey(), old = RD.best[k] || 0, score = rdRun.ok - rdRun.bad;
+        if (score > old) { RD.best[k] = score; saveStore('bach.read', RD); }
+        $('#rdMsg').innerHTML = `<b>Zeit um!</b> ${rdRun.ok} richtig, ${rdRun.bad} Fehler – Wertung ${score}${score > old ? ' · <span class="okc">neuer Rekord!</span>' : old ? ` (Rekord ${old})` : ''}. <button class="pill" data-rd="start">Noch einmal</button>`;
+        rdStats(); }
+    }, 200);
+  }
+  rdStats(); rdNext();
+}
+function rdSetup() {
+  const c = RD.cfg;
+  const seg = (k, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-rdc="${k}:${v}" class="${String(c[k]) === String(v) ? 'act' : ''}">${l}</button>`).join('')}</div>`;
+  $('#rdCfg').innerHTML =
+    `<div class="opt"><span>Schlüssel</span>${seg('clef', [['G', 'Violin'], ['F', 'Bass'], ['beide', 'gemischt']])}</div>` +
+    `<div class="opt"><span>Aufgabe</span>${seg('what', [['ton', 'Einzeltöne'], ['intervall', 'Intervalle'], ['dreiklang', 'Dreiklänge']])}</div>` +
+    `<div class="opt"><span>Umfang</span>${seg('range', [['staff', 'im System'], ['ledger', 'mit Hilfslinien']])}</div>` +
+    `<div class="opt"><span>Vorzeichen</span>${seg('acc', [['keine', 'keine'], ['tonart', 'Tonarten'], ['frei', 'Versetzungszeichen']])}</div>` +
+    `<div class="opt"><span>Modus</span>${seg('mode', [['ueben', 'Üben'], ['sprint', '60-Sekunden-Sprint']])}</div>` +
+    `<div class="opt"><span>Oktave</span>${seg('oct', [['true', 'genau'], ['false', 'egal']])}</div>` +
+    `<div class="opt"><span>Tastennamen</span>${seg('names', [['false', 'aus'], ['true', 'ein']])}</div>`;
+  const [lo, hi] = c.clef === 'F' ? [36, 64] : c.clef === 'G' ? [55, 84] : [36, 84];
+  rdKb = makeKeyboard($('#rdKb'), lo, hi, rdPress); rdKb.names(c.names);
+}
+$('#rdCfg').addEventListener('click', e => {
+  const b = e.target.closest('[data-rdc]'); if (!b) return;
+  const [k, v] = b.dataset.rdc.split(':'); RD.cfg[k] = v === 'true' ? true : v === 'false' ? false : v; saveStore('bach.read', RD);
+  rdSetup(); if (k !== 'names') rdStart(); else rdStats();
+});
+$('#readView').addEventListener('click', e => { const b = e.target.closest('[data-rd]'); if (b && b.dataset.rd === 'start') rdStart(); });
+$('#readBack').onclick = () => { clearInterval(rdStart.t); show('library'); };
+function openRead() { show('readView'); rdSetup(); rdStart(); }
+
+// ---------- Harmonien bestimmen ----------
+const HB = loadStore('bach.hb', { cfg: { book: 'all', level: 1, lab: 'stufen' }, cat: {}, total: { ok: 0, bad: 0 } });
+const hbCache = {};
+let hbTask = null, hbBusy = false;
+const HB_LEVEL = {
+  1: { t: 'Hauptstufen', d: 'I, IV, V (T, S, D) und V7', ok: r => /^(I|i|IV|iv|V|V7)$/.test(r) },
+  2: { t: 'Alle Stufen', d: 'alle leitereigenen Dreiklänge und Septakkorde', ok: r => !/[/♭♯(]/.test(r) },
+  3: { t: 'Mit Zwischendominanten', d: 'auch V/x, vii°/x und leiterfremde Klänge', ok: r => true },
+};
+async function hbPiece(id) {
+  if (!hbCache[id]) hbCache[id] = await fetch('pieces/' + id + '.json').then(r => r.json());
+  return hbCache[id];
+}
+// Zählzeiten, die sich gut zum Üben eignen: eindeutige Deutung (oder vom Nutzer bestätigt), kein Tonartwechsel daneben
+function hbCandidates(P, M, H, level) {
+  const out = [];
+  H.beats.forEach((bt, i) => {
+    const ch = bt.chord; if (!ch) return;
+    const r = ch.roman.replace(/ \(.*\)$/, '');
+    if (!HB_LEVEL[level].ok(r)) return;
+    if (ch.roman.includes('picardische') && bt.measure < M.measures - 1) return;   // Dur-Tonika mitten im Moll-Stück ist meist eine Zwischendominante
+    if (P.pickup && bt.measure === 1) return;
+    const prev = H.beats[i - H.perMeasure], next = H.beats[i + H.perMeasure];
+    const same = (a, b) => a && b && a.key.tonic === b.key.tonic && a.key.minor === b.key.minor;
+    if ((prev && !same(prev, bt)) || (next && !same(next, bt))) return;
+    if (!ch.own) {
+      const ev = ch.ev; if (!ev || ev.top <= 0) return;
+      const second = ev.cands.find(c => !(c.root === ch.root && c.q === ch.q) && !(c.q === 'dim7' && ch.q === 'dim7'));
+      if (second && second.score / ev.top > 0.62) return;
+      if (!ev.w[ch.root] || !ev.w[ch.pcs[1]]) return;   // Grundton und Terz müssen erklingen
+    }
+    out.push(i);
+  });
+  return out;
+}
+async function hbNext() {
+  if (hbBusy) return; hbBusy = true;
+  $('#hbMsg').innerHTML = 'Suche eine passende Stelle …'; $('#hbOpts').innerHTML = ''; $('#hbAfter').innerHTML = '';
+  try {
+    const pool = catalog.filter(c => c.available !== false && c.book && (HB.cfg.book === 'all' || c.book === HB.cfg.book));
+    for (let tries = 0; tries < 8; tries++) {
+      const meta = pick(pool), P = await hbPiece(meta.id);
+      const M = buildModel(P); computeAccidentals(M);
+      let ov = null; try { ov = JSON.parse(localStorage.getItem('bach.harm.' + meta.id) || 'null'); } catch (e) {}
+      const H = analyzeHarmony(M, ov);
+      const cands = hbCandidates(P, M, H, HB.cfg.level); if (!cands.length) continue;
+      const i = pick(cands);
+      hbTask = { meta, P, M, H, i, bt: H.beats[i], at: performance.now() };
+      await hbRender(); hbOptions(); break;
+    }
+    if (!hbTask) $('#hbMsg').textContent = 'Keine passende Stelle gefunden.';
+  } catch (e) { console.warn(e); $('#hbMsg').textContent = 'Stück konnte nicht geladen werden.'; }
+  hbBusy = false;
+}
+// Notenausschnitt: Zieltakt mit Nachbartakten, Töne der gefragten Zählzeit farbig
+function hbExcerpt(t) {
+  const { P, bt } = t, Mt = P.measureTicks, short = Mt <= 48;
+  const a = Math.max(1, bt.measure - (short ? 2 : 1)), b = Math.min(P.measures, bt.measure + 1);
+  const t0 = (a - 1) * Mt, t1 = b * Mt;
+  const clefs = P.staffClefs.map(c => c.slice());
+  (P.clefChanges || []).filter(c => c.t <= t0 + 1e-6).forEach(c => { clefs[c.staff - 1] = [c.shape, c.line]; });
+  const events = P.events.filter(e => e.t >= t0 - 1e-6 && e.t < t1 - 1e-6).map(e => { const x = Object.assign({}, e, { t: e.t - t0 }); if (x.t < Mt && x.te) delete x.te; return x; });
+  const E = Object.assign({}, P, { events, measures: b - a + 1, pickup: 0, staffClefs: clefs, repeats: [], clefChanges: (P.clefChanges || []).filter(c => c.t > t0 && c.t < t1).map(c => Object.assign({}, c, { t: c.t - t0 })) });
+  return { E, a, b, t0 };
+}
+async function hbRender() {
+  const t = hbTask, box = $('#hbStaff');
+  let tk; try { tk = await studyToolkit(); } catch (e) { box.innerHTML = '<div class="small">Notenbild nicht verfügbar.</div>'; return; }
+  const ex = hbExcerpt(t), EM = buildModel(ex.E); computeAccidentals(EM); t.ex = ex; t.EM = EM;
+  const mei = buildMEI(EM, { beats: [], perMeasure: 1 }, { harm: false, ghosts: false, mOff: ex.a - 1 });
+  const w = Math.max(320, box.clientWidth), scale = w < 600 ? 34 : 40;
+  tk.setOptions({ pageWidth: Math.round(w * 100 / scale), pageHeight: 60000, adjustPageHeight: true, scale, breaks: 'auto', header: 'none', footer: 'none',
+    pageMarginLeft: 20, pageMarginRight: 20, pageMarginTop: 40, pageMarginBottom: 20, svgViewBox: false, smuflTextFont: 'embedded' });
+  tk.loadData(mei); box.innerHTML = tk.renderToSVG(1);
+  const from = t.bt.from - ex.t0, to = t.bt.to - ex.t0;
+  EM.notes.filter(n => n.onset < to - 1e-6 && n.onset + n.ticks > from + 1e-6).forEach(n => { const el = document.getElementById(n.id); if (el) el.classList.add('tgt'); });
+  setupPiece(t.P);   // Globale Taktmaße wieder auf das ganze Stück
+  const pk = pieceKey(t.P), kn = pk.tonic === t.bt.key.tonic && pk.minor === t.bt.key.minor && t.meta.keyName ? t.meta.keyName : keyName(t.bt.key), lab = HB.cfg.lab === 'funk' ? 'Funktion' : 'Stufe';
+  $('#hbMsg').innerHTML = `<b>${t.meta.title}</b> <span class="small">${t.meta.keyName || ''} · BWV ${t.meta.bwv}</span><br>` +
+    `Welche ${lab} erklingt in <b>Takt ${t.P.pickup ? t.bt.measure - 1 : t.bt.measure}</b>, Zählzeit ${t.bt.beat + 1}? <span class="small">(farbig markiert, Tonart: ${kn})</span>`;
+}
+function hbLabel(ch) { return (HB.cfg.lab === 'funk' ? ch.func : ch.roman).replace(/ \(.*\)$/, ''); }
+function hbOptions() {
+  const t = hbTask, { M, bt } = t, ch = bt.chord, key = bt.key, correct = hbLabel(ch);
+  setupPiece(t.P);
+  const cand = [];
+  // nur sinnvolle Verwechslungen: im gewählten Niveau erlaubt, leitereigen oder (ab Niveau 3) Zwischendominante
+  const add = (root, q) => { try { const c = makeChord(M, bt, root, q), l = hbLabel(c), r = c.roman.replace(/ \(.*\)$/, '');
+    if (HB.cfg.level > 1 && !HB_LEVEL[HB.cfg.level].ok(r) || !(isDiatonic(c, key) || (HB.cfg.level >= 3 && r.includes('/')))) return;
+    if (HB.cfg.level === 1 && !/^(I|i|IV|iv|V|V7|ii|vi|VI|III|iii)$/.test(r)) return;
+    if (l && l !== correct && !cand.some(x => x.l === l)) cand.push({ l, c }); } catch (e) {} };
+  // plausible Verwechslungen zuerst (die nächstbesten Deutungen der App), dann leitereigene Stufen
+  ((ch.ev || (bt.auto && bt.auto.ev) || {}).cands || []).forEach(c => add(c.root, c.q));
+  const sc = [...scaleSet(key)].sort((x, y) => ((x - key.tonic + 12) % 12) - ((y - key.tonic + 12) % 12));
+  shuffle(sc.slice()).forEach(r => add(r, diatonicQuality(r, key)));
+  if (HB.cfg.level >= 2) [7, 2, 11, 9, 5].forEach(iv => add((key.tonic + iv) % 12, iv === 7 ? 'dom7' : iv === 11 ? (key.minor ? 'dim7' : 'hdim7') : key.minor ? (iv === 2 ? 'hdim7' : 'min7') : (iv === 5 ? 'maj' : 'min7')));
+  if (HB.cfg.level === 1) [0, 5, 7, 2, 9].forEach(iv => add((key.tonic + iv) % 12, iv === 7 ? (Math.random() < .5 ? 'maj' : 'dom7') : diatonicQuality((key.tonic + iv) % 12, key)));
+  if (HB.cfg.level >= 3) [2, 9, 4].forEach(iv => add((key.tonic + iv) % 12, 'dom7'));
+  const opts = shuffle([{ l: correct, ok: true }].concat(cand.slice(0, 5)));
+  $('#hbOpts').innerHTML = opts.map(o => `<button data-hb="ans" data-l="${o.l.replace(/"/g, '&quot;')}">${o.l}</button>`).join('');
+}
+function hbAnswer(btn) {
+  const t = hbTask; if (!t || t.done) return;
+  t.done = true;
+  const correct = hbLabel(t.bt.chord), ok = btn.dataset.l === correct;
+  $$('#hbOpts button').forEach(b => { b.disabled = true; if (b.dataset.l === correct) b.classList.add('ok'); });
+  if (!ok) btn.classList.add('bad');
+  const cat = correct.replace(/[0-9°øv]+$/, '').replace(/\/.*/, '/x') || correct;
+  HB.cat[cat] = HB.cat[cat] || { ok: 0, bad: 0 }; HB.cat[cat][ok ? 'ok' : 'bad']++; HB.total[ok ? 'ok' : 'bad']++; saveStore('bach.hb', HB);
+  // Erklärung: die Texte aus der Notenansicht, mit den Daten dieses Stücks
+  const sv = [model, harmony, piece]; let txt = '';
+  try { setupPiece(t.P); model = t.M; harmony = t.H; piece = t.P; txt = explainChord(t.bt); } catch (e) { txt = ''; } finally { [model, harmony, piece] = sv; }
+  const own = t.bt.chord.own ? ' <span class="owntag">(deine eigene Deutung)</span>' : '';
+  $('#hbAfter').innerHTML = `<div class="${ok ? 'okc' : 'badc'}" style="font-size:19px">${ok ? 'Richtig!' : 'Nicht ganz – gesucht war ' + correct}${own}</div>` +
+    `<div style="margin:4px 0 8px">${t.bt.chord.name}: ${txt}</div>` +
+    `<div class="plays"><button data-hb="chord">${IC.play}Akkord</button><button data-hb="play">${IC.play}Ausschnitt</button><button data-hb="open">Im Stück ansehen</button><button data-hb="next" class="primary">Weiter</button></div>` +
+    `<div class="small" style="margin-top:6px">Die Lösung stammt von der automatischen Analyse. Wenn du anderer Meinung bist: „Im Stück ansehen“ → Stufe antippen → „Andere Deutung“. Deine Deutung gilt dann auch hier.</div>`;
+  hbStats();
+}
+function hbPlay(what) {
+  const t = hbTask; if (!t) return;
+  audio.ensure(); const t0 = audio.now() + 0.05;
+  if (what === 'chord') { const ch = t.bt.chord, b = 48 + ((ch.root - 48) % 12 + 12) % 12;
+    audio.note(b - 12, t0, 1.6, 0.5, 3); ch.pcs.forEach((pc, i) => audio.note(60 + ((pc - 60) % 12 + 12) % 12, t0 + i * 0.06, 1.5, 0.45, 1)); return; }
+  const sp = 60 / (72 * S.tempoPct / 75) / (t.P.tpw / 4);   // Sekunden pro Tick (Viertel ≈ 72 bei 75 %)
+  const from = t.bt.from - t.ex.t0, to = t.bt.to - t.ex.t0;
+  t.EM.notes.filter(n => !n.tieEnd).forEach(n => {
+    audio.note(n.midi, t0 + n.onset * sp, Math.max(0.08, n.ticks * sp), n.onset < to && n.onset + n.ticks > from ? 0.62 : 0.45, n.role);
+  });
+}
+function hbStats() {
+  const tot = HB.total, all = tot.ok + tot.bad;
+  const weak = Object.entries(HB.cat).filter(([, s]) => s.ok + s.bad >= 3).map(([k, s]) => ({ k, r: s.ok / (s.ok + s.bad), n: s.ok + s.bad })).sort((a, b) => a.r - b.r).slice(0, 5);
+  $('#hbStats').innerHTML = all ? `<div class="stat"><b>${tot.ok}</b><span>richtig</span></div><div class="stat"><b>${tot.bad}</b><span>Fehler</span></div><div class="stat"><b>${Math.round(100 * tot.ok / all)} %</b><span>Trefferquote</span></div>` +
+    (weak.length ? `<div class="weak">Noch unsicher: ${weak.map(w => `<span>${w.k} <i>${Math.round(100 * w.r)} %</i></span>`).join('')}</div>` : '') : '';
+}
+function hbSetup() {
+  const c = HB.cfg;
+  const seg = (k, opts) => `<div class="seg">${opts.map(([v, l]) => `<button data-hbc="${k}:${v}" class="${String(c[k]) === String(v) ? 'act' : ''}">${l}</button>`).join('')}</div>`;
+  $('#hbCfg').innerHTML =
+    `<div class="opt"><span>Stücke</span>${seg('book', [['all', 'alle'], ['inv', 'Inventionen'], ['wtk1', 'WTK I'], ['gold', 'Goldberg']])}</div>` +
+    `<div class="opt"><span>Stufe</span>${seg('level', [[1, HB_LEVEL[1].t], [2, HB_LEVEL[2].t], [3, HB_LEVEL[3].t]])}</div>` +
+    `<div class="opt"><span>Antworten als</span>${seg('lab', [['stufen', 'Stufen'], ['funk', 'Funktionen']])}</div>` +
+    `<div class="small">${HB_LEVEL[c.level].d}</div>`;
+}
+$('#hbCfg').addEventListener('click', e => { const b = e.target.closest('[data-hbc]'); if (!b) return; const [k, v] = b.dataset.hbc.split(':'); HB.cfg[k] = k === 'level' ? +v : v; saveStore('bach.hb', HB); hbSetup(); hbTask = null; hbNext(); });
+$('#harmStudy').addEventListener('click', async e => {
+  const b = e.target.closest('[data-hb]'); if (!b) return; const a = b.dataset.hb;
+  if (a === 'ans') hbAnswer(b);
+  else if (a === 'next') { hbTask = null; hbNext(); }
+  else if (a === 'chord' || a === 'play') hbPlay(a);
+  else if (a === 'open') { const t = hbTask; await openPiece(t.meta.id); setTimeout(() => { endMarkMode(); selectMeasure(t.bt.measure); }, 400); }
+});
+$('#harmBack').onclick = () => show('library');
+function openHarm() { show('harmView'); hbSetup(); hbStats(); if (!hbTask) hbNext(); }
+window.__st = { rd: () => rdTask, hb: () => hbTask, rdNext, triadName };   // für Tests
+
 })();
 
 </script>
